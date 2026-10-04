@@ -981,27 +981,26 @@ class _CardBack extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _CardShell(
-      faceColor: const Color(0xFF121D38),
+      faceColor: const Color(0xFF111935),
       borderGradient: const [
-        Color(0xFF71E4FF),
-        Color(0xFFD49B4A),
-        Color(0xFF9C73FF),
+        Color(0xFFFFD36A),
+        Color(0xFF54E1FF),
+        Color(0xFF9A6BFF),
+        Color(0xFFFFD36A),
       ],
       width: 400,
       height: 520,
       child: Stack(
         fit: StackFit.expand,
         children: [
-          const CustomPaint(
-            painter: _HoloPatternPainter(),
-          ),
+          const CustomPaint(painter: _CardBackPainter()),
           Positioned(
-            top: 20,
-            left: 22,
-            right: 22,
+            top: 18,
+            left: 20,
+            right: 20,
             child: Row(
               children: [
-                const _RarityBadge(text: 'EPIC'),
+                _RarityBadge(text: arabic ? 'إبيك' : 'EPIC'),
                 const Spacer(),
                 Text(
                   category,
@@ -1020,75 +1019,121 @@ class _CardBack extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 104,
-                  height: 104,
+                  width: 132,
+                  height: 132,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF8EF3FF), Color(0xFFA977FF)],
+                    gradient: const RadialGradient(
+                      colors: [
+                        Color(0xFFFFF0AF),
+                        Color(0xFFFFC34D),
+                        Color(0xFF7A4DFF),
+                      ],
+                      stops: [0.0, 0.58, 1.0],
                     ),
                     boxShadow: const [
                       BoxShadow(
-                        color: Color(0x8852DDFF),
-                        blurRadius: 35,
+                        color: Color(0x6658E4FF),
+                        blurRadius: 36,
+                        spreadRadius: 2,
+                      ),
+                      BoxShadow(
+                        color: Color(0x554E3B9A),
+                        blurRadius: 50,
                         spreadRadius: -6,
                       ),
                     ],
                   ),
-                  child: const Icon(
-                    Icons.style_rounded,
-                    color: Color(0xFF081329),
-                    size: 48,
+                  child: Container(
+                    margin: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFF111935),
+                      border: Border.all(
+                        color: const Color(0xA6FFE19A),
+                        width: 1.4,
+                      ),
+                    ),
+                    child: const Center(
+                      child: Text(
+                        'STQ',
+                        style: TextStyle(
+                          fontSize: 34,
+                          letterSpacing: 1.8,
+                          color: Color(0xFFFFE7A0),
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 22),
-                const Text(
-                  'STEAL THE',
-                  style: TextStyle(
-                    letterSpacing: 4.0,
-                    fontSize: 12,
-                    color: Color(0xFF75E8FF),
+                const SizedBox(height: 24),
+                Text(
+                  arabic ? 'اسرق السؤال' : 'STEAL THE',
+                  style: const TextStyle(
+                    letterSpacing: 3.6,
+                    fontSize: 11,
+                    color: Color(0xFF74E8FF),
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 2),
-                const Text(
-                  'QUESTIONS',
-                  style: TextStyle(
-                    letterSpacing: 2.6,
-                    fontSize: 25,
+                const SizedBox(height: 4),
+                Text(
+                  arabic ? 'الأسئلة' : 'QUESTIONS',
+                  style: const TextStyle(
+                    letterSpacing: 3.0,
+                    fontSize: 27,
+                    color: Colors.white,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
                 const SizedBox(height: 16),
                 Container(
-                  width: 86,
-                  height: 1,
-                  color: const Color(0x66FFD66B),
-                ),
-                const SizedBox(height: 13),
-                Text(
-                  arabic ? 'بطاقة سؤال' : 'QUESTION CARD',
-                  style: const TextStyle(
-                    fontSize: 10,
-                    letterSpacing: 1.9,
-                    color: Color(0x99FFFFFF),
-                    fontWeight: FontWeight.w800,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 13,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0x241D2447),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0x3DFFE07A)),
+                  ),
+                  child: Text(
+                    arabic ? 'بطاقة نادرة' : 'COLLECTIBLE QUESTION',
+                    style: const TextStyle(
+                      fontSize: 8,
+                      letterSpacing: 1.35,
+                      color: Color(0xD1FFFFFF),
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
           const Positioned(
-            right: 22,
+            left: 22,
             bottom: 20,
             child: Text(
-              'STQ / 001',
+              'STQ • 001',
               style: TextStyle(
                 fontSize: 9,
-                letterSpacing: 1.7,
+                letterSpacing: 1.8,
                 color: Color(0x66FFFFFF),
                 fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          Positioned(
+            right: 20,
+            bottom: 18,
+            child: Text(
+              arabic ? 'مجموعة 01' : 'COLLECTION 01',
+              style: const TextStyle(
+                fontSize: 8,
+                letterSpacing: 1.3,
+                color: Color(0x59FFFFFF),
+                fontWeight: FontWeight.w800,
               ),
             ),
           ),
@@ -1120,121 +1165,233 @@ class _QuestionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _CardShell(
-      faceColor: const Color(0xFFF8F4EA),
+      faceColor: const Color(0xFF141A37),
       borderGradient: const [
-        Color(0xFFFFD56A),
-        Color(0xFF73E8FF),
-        Color(0xFF9A74FF),
+        Color(0xFFFFD66F),
+        Color(0xFF55E4FF),
+        Color(0xFF8F63FF),
+        Color(0xFFFFC84D),
       ],
       width: 400,
       height: 520,
-      light: true,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 22, 24, 24),
-        child: Column(
-          crossAxisAlignment:
-              arabic ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-          children: [
-            Row(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          const CustomPaint(painter: _CardFacePainter()),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(22, 18, 22, 18),
+            child: Column(
+              crossAxisAlignment:
+                  arabic ? CrossAxisAlignment.end : CrossAxisAlignment.start,
               children: [
-                _RarityBadge(
-                  text: arabic ? 'إبيك' : 'EPIC',
-                  light: true,
-                ),
-                const Spacer(),
-                _TimerRing(seconds: seconds, light: true),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Text(
-              arabic ? question.categoryAr : question.categoryEn,
-              textAlign: arabic ? TextAlign.right : TextAlign.left,
-              style: TextStyle(
-                fontSize: 9,
-                letterSpacing: arabic ? .4 : 2.2,
-                color: const Color(0xFF776C5A),
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 9),
-            Text(
-              arabic ? question.ar : question.en,
-              textAlign: arabic ? TextAlign.right : TextAlign.left,
-              style: const TextStyle(
-                color: Color(0xFF151B2C),
-                fontSize: 25,
-                height: 1.17,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const Spacer(),
-            for (int i = 0; i < 3; i++) ...[
-              _ChoiceButton(
-                arabic: arabic,
-                label: String.fromCharCode(65 + i),
-                text: arabic
-                    ? question.arAnswers[i]
-                    : question.enAnswers[i],
-                selected: selected == i,
-                correct: question.correctIndex == i,
-                locked: locked,
-                onTap: () => onAnswer(i),
-              ),
-              if (i != 2) const SizedBox(height: 9),
-            ],
-            const SizedBox(height: 14),
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 180),
-              child: locked
-                  ? Row(
-                      key: ValueKey<String>(
-                        'state-' + correct.toString(),
-                      ),
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          correct
-                              ? Icons.check_circle_rounded
-                              : Icons.error_rounded,
-                          size: 18,
-                          color: correct
-                              ? const Color(0xFF1EAF82)
-                              : const Color(0xFFDB526A),
+                Row(
+                  children: [
+                    _RarityBadge(text: arabic ? 'إبيك' : 'EPIC'),
+                    const SizedBox(width: 9),
+                    Expanded(
+                      child: Text(
+                        arabic ? 'سؤال تنافسي' : 'COMPETITIVE QUESTION',
+                        textAlign: arabic ? TextAlign.right : TextAlign.left,
+                        style: TextStyle(
+                          fontSize: 8,
+                          letterSpacing: arabic ? .1 : 1.35,
+                          color: const Color(0x8EFFFFFF),
+                          fontWeight: FontWeight.w900,
                         ),
-                        const SizedBox(width: 6),
-                        Text(
-                          correct
-                              ? (arabic ? 'إجابة صحيحة' : 'CORRECT')
-                              : (arabic ? 'إجابة خاطئة' : 'WRONG'),
-                          style: TextStyle(
-                            fontSize: 10,
-                            letterSpacing: arabic ? .1 : 2.0,
-                            color: correct
-                                ? const Color(0xFF159873)
-                                : const Color(0xFFD84B62),
+                      ),
+                    ),
+                    _TimerRing(seconds: seconds),
+                  ],
+                ),
+                const SizedBox(height: 15),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 11,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0x25FFD66F),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0x5CFFD66F)),
+                      ),
+                      child: Text(
+                        arabic ? question.categoryAr : question.categoryEn,
+                        style: const TextStyle(
+                          fontSize: 8,
+                          color: Color(0xFFFFD878),
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      _questionNo(0) + ' / ' + kTotalQuestions.toString(),
+                      style: const TextStyle(
+                        fontSize: 8,
+                        letterSpacing: 1.35,
+                        color: Color(0x66FFFFFF),
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 13),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(18, 18, 18, 19),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Color(0xE92B3561),
+                        Color(0xF0181F42),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(23),
+                    border: Border.all(
+                      color: const Color(0x5E9BEFFF),
+                      width: 1,
+                    ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x35000000),
+                        blurRadius: 22,
+                        offset: Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    textDirection:
+                        arabic ? TextDirection.rtl : TextDirection.ltr,
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        margin: EdgeInsets.only(
+                          right: arabic ? 0 : 12,
+                          left: arabic ? 12 : 0,
+                        ),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: const LinearGradient(
+                            colors: [
+                              Color(0xFFFFDF7C),
+                              Color(0xFFB66BFF),
+                            ],
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.question_mark_rounded,
+                          color: Color(0xFF121731),
+                          size: 21,
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          arabic ? question.ar : question.en,
+                          textAlign: arabic ? TextAlign.right : TextAlign.left,
+                          style: const TextStyle(
+                            color: Color(0xFFF9F5EA),
+                            fontSize: 24,
+                            height: 1.18,
                             fontWeight: FontWeight.w900,
                           ),
                         ),
-                      ],
-                    )
-                  : Text(
-                      arabic
-                          ? 'أجب قبل انتهاء الوقت'
-                          : 'ANSWER BEFORE TIME RUNS OUT',
-                      key: const ValueKey<String>('hint'),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 9,
-                        letterSpacing: arabic ? .1 : 1.4,
-                        color: const Color(0xFF8D8372),
-                        fontWeight: FontWeight.w800,
                       ),
-                    ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      for (int i = 0; i < 3; i++) ...[
+                        _ChoiceButton(
+                          arabic: arabic,
+                          label: String.fromCharCode(65 + i),
+                          text: arabic
+                              ? question.arAnswers[i]
+                              : question.enAnswers[i],
+                          selected: selected == i,
+                          correct: question.correctIndex == i,
+                          locked: locked,
+                          onTap: () => onAnswer(i),
+                        ),
+                        if (i != 2) const SizedBox(height: 8),
+                      ],
+                      const SizedBox(height: 10),
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 180),
+                        child: locked
+                            ? Container(
+                                key: ValueKey<String>(
+                                  'state-' + correct.toString(),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 7,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: correct
+                                      ? const Color(0x2538E2AE)
+                                      : const Color(0x25FF6985),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: correct
+                                        ? const Color(0x5E38E2AE)
+                                        : const Color(0x5EFF6985),
+                                  ),
+                                ),
+                                child: Text(
+                                  correct
+                                      ? (arabic
+                                          ? 'إجابة صحيحة'
+                                          : 'CORRECT • KEEP GOING')
+                                      : (arabic
+                                          ? 'إجابة خاطئة'
+                                          : 'WRONG • NEXT CARD'),
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    letterSpacing: arabic ? .05 : 1.15,
+                                    color: correct
+                                        ? const Color(0xFF72F2C0)
+                                        : const Color(0xFFFF879A),
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              )
+                            : Text(
+                                arabic
+                                    ? 'اختر إجابة قبل انتهاء العداد'
+                                    : 'LOCK AN ANSWER BEFORE THE TIMER ENDS',
+                                key: const ValueKey<String>('hint'),
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 8,
+                                  letterSpacing: arabic ? .05 : 1.1,
+                                  color: const Color(0x78FFFFFF),
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
+  }
+
+  String _questionNo(int offset) {
+    return (offset + 1).toString().padLeft(2, '0');
   }
 }
 
@@ -1261,35 +1418,53 @@ class _CardShell extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(32),
+        borderRadius: BorderRadius.circular(34),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: borderGradient,
         ),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
-            color: const Color(0xB5000000),
-            blurRadius: 48,
-            offset: const Offset(0, 24),
+            color: Color(0x99000000),
+            blurRadius: 42,
+            offset: Offset(0, 24),
           ),
-          if (!light)
-            const BoxShadow(
-              color: Color(0x4548DFFF),
-              blurRadius: 36,
-              spreadRadius: -6,
-            ),
+          BoxShadow(
+            color: Color(0x3358E4FF),
+            blurRadius: 30,
+            spreadRadius: -8,
+            offset: Offset(0, 4),
+          ),
         ],
       ),
-      padding: const EdgeInsets.all(2),
+      padding: const EdgeInsets.all(3),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(30),
+          borderRadius: BorderRadius.circular(31),
           color: faceColor,
+          border: Border.all(
+            color: light
+                ? const Color(0x66FFFFFF)
+                : const Color(0x45FFFFFF),
+            width: 1,
+          ),
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(30),
-          child: child,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              child,
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: CustomPaint(
+                    painter: _CardFramePainter(light: light),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1308,28 +1483,50 @@ class _RarityBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
       decoration: BoxDecoration(
-        color: light
-            ? const Color(0xFFF0D89A)
-            : const Color(0x22FFD66B),
-        borderRadius: BorderRadius.circular(11),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFFFE78A),
+            Color(0xFFBD7BDE),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: light
-              ? const Color(0xFFB68B38)
-              : const Color(0x66FFD66B),
+          color: const Color(0xA6FFF1B2),
+          width: 1,
         ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x55FFD76A),
+            blurRadius: 18,
+            spreadRadius: -5,
+          ),
+        ],
       ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 9,
-          letterSpacing: 1.45,
-          color: light
-              ? const Color(0xFF76541A)
-              : const Color(0xFFFFD66B),
-          fontWeight: FontWeight.w900,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.diamond_rounded,
+            size: 11,
+            color: light
+                ? const Color(0xFF6F4518)
+                : const Color(0xFF261A3F),
+          ),
+          const SizedBox(width: 5),
+          Text(
+            text,
+            style: const TextStyle(
+              fontSize: 8,
+              letterSpacing: 1.2,
+              color: Color(0xFF2A193B),
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1347,32 +1544,64 @@ class _TimerRing extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Color accent = seconds <= 5
-        ? const Color(0xFFE95C71)
-        : const Color(0xFF29B9DA);
+        ? const Color(0xFFFF6B85)
+        : const Color(0xFF59E5FF);
 
-    return SizedBox(
+    return Container(
       width: 58,
       height: 58,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: const Color(0x20101632),
+        border: Border.all(
+          color: const Color(0x4CFFFFFF),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: accent.withValues(alpha: .20),
+            blurRadius: 18,
+            spreadRadius: -3,
+          ),
+        ],
+      ),
       child: Stack(
         fit: StackFit.expand,
         children: [
           CircularProgressIndicator(
             value: seconds / kSecondsPerQuestion,
-            strokeWidth: 4.5,
-            backgroundColor:
-                light ? const Color(0xFFDCD5C7) : const Color(0x261A2440),
+            strokeWidth: 4,
+            backgroundColor: light
+                ? const Color(0x33211D30)
+                : const Color(0x33FFFFFF),
             valueColor: AlwaysStoppedAnimation<Color>(accent),
           ),
           Center(
-            child: Text(
-              seconds.toString(),
-              style: TextStyle(
-                color: light
-                    ? const Color(0xFF15203A)
-                    : Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w900,
-              ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  seconds.toString(),
+                  style: TextStyle(
+                    color: light ? const Color(0xFF171C32) : Colors.white,
+                    fontSize: 15,
+                    height: 1,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                Text(
+                  'SEC',
+                  style: TextStyle(
+                    color: light
+                        ? const Color(0xFF7C7080)
+                        : const Color(0x73FFFFFF),
+                    fontSize: 6,
+                    letterSpacing: 1.1,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -1405,79 +1634,133 @@ class _ChoiceButton extends StatelessWidget {
     final bool showCorrect = locked && correct;
     final bool showWrong = locked && selected && !correct;
 
-    Color bg = const Color(0xFFF0EBDE);
-    Color border = const Color(0xFFD9D1C0);
-    Color textColor = const Color(0xFF1A2031);
+    Color border = const Color(0x334E5C8B);
+    Color top = const Color(0xCC26325E);
+    Color bottom = const Color(0xE6151B39);
+    Color labelFill = const Color(0x25FFFFFF);
+    Color textColor = const Color(0xFFF7F3E8);
+    Color accent = const Color(0xFF64DFF8);
 
     if (showCorrect) {
-      bg = const Color(0xFFDFF5EC);
-      border = const Color(0xFF4CC89A);
+      border = const Color(0xB34BE4B1);
+      top = const Color(0xCC1E564B);
+      bottom = const Color(0xEE14332F);
+      accent = const Color(0xFF76F5C2);
     } else if (showWrong) {
-      bg = const Color(0xFFFBE1E6);
-      border = const Color(0xFFE86D82);
+      border = const Color(0xB3FF6C86);
+      top = const Color(0xCC5A263B);
+      bottom = const Color(0xEE351625);
+      accent = const Color(0xFFFF8398);
     } else if (selected) {
-      bg = const Color(0xFFD9F3F8);
-      border = const Color(0xFF4CCAE7);
+      border = const Color(0xC85DE5FF);
+      top = const Color(0xCC275A73);
+      bottom = const Color(0xEE172D47);
+      accent = const Color(0xFF8CEBFF);
     }
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: locked ? null : onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(15),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          duration: const Duration(milliseconds: 170),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
           decoration: BoxDecoration(
-            color: bg,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: border, width: 1.2),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [top, bottom],
+            ),
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(
+              color: border,
+              width: selected ? 1.5 : 1,
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x33000000),
+                blurRadius: 10,
+                offset: Offset(0, 5),
+              ),
+            ],
           ),
           child: Row(
             textDirection: arabic ? TextDirection.rtl : TextDirection.ltr,
             children: [
-              Container(
-                width: 34,
-                height: 34,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: const Color(0x160F1830),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  label,
-                  style: const TextStyle(
-                    color: Color(0xFF2A344B),
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 11),
+              if (!arabic) ...[
+                _ChoiceBadge(label: label, accent: accent, fill: labelFill),
+                const SizedBox(width: 10),
+              ],
               Expanded(
                 child: Text(
                   text,
                   textAlign: arabic ? TextAlign.right : TextAlign.left,
-                  style: const TextStyle(
-                    color: Color(0xFF1A2031),
+                  style: TextStyle(
+                    color: textColor,
                     fontSize: 14,
+                    height: 1.05,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
-              if (showCorrect)
-                const Icon(
-                  Icons.check_circle_rounded,
-                  color: Color(0xFF30B88B),
-                  size: 20,
-                ),
-              if (showWrong)
-                const Icon(
-                  Icons.cancel_rounded,
-                  color: Color(0xFFE26379),
-                  size: 20,
-                ),
+              if (arabic) ...[
+                const SizedBox(width: 10),
+                _ChoiceBadge(label: label, accent: accent, fill: labelFill),
+              ],
+              if (showCorrect) ...[
+                const SizedBox(width: 6),
+                Icon(Icons.check_circle_rounded, color: accent, size: 18),
+              ],
+              if (showWrong) ...[
+                const SizedBox(width: 5),
+                Icon(Icons.close_rounded, color: accent, size: 20),
+              ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ChoiceBadge extends StatelessWidget {
+  const _ChoiceBadge({
+    required this.label,
+    required this.accent,
+    required this.fill,
+  });
+
+  final String label;
+  final Color accent;
+  final Color fill;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 31,
+      height: 31,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: fill,
+        border: Border.all(
+          color: accent.withValues(alpha: .75),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: accent.withValues(alpha: .12),
+            blurRadius: 8,
+          ),
+        ],
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: accent,
+          fontSize: 11,
+          fontWeight: FontWeight.w900,
         ),
       ),
     );
@@ -1897,6 +2180,189 @@ class _HoloPatternPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) {
     return false;
   }
+}
+
+class _CardFacePainter extends CustomPainter {
+  const _CardFacePainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Paint halo = Paint()
+      ..shader = const RadialGradient(
+        colors: [
+          Color(0x543F58C8),
+          Color(0x00141A37),
+        ],
+      ).createShader(
+        Rect.fromCircle(
+          center: Offset(size.width * .55, size.height * .48),
+          radius: size.width * .78,
+        ),
+      );
+    canvas.drawRect(Offset.zero & size, halo);
+
+    final Paint cyan = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1
+      ..color = const Color(0x274DE6FF);
+    final Paint gold = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.1
+      ..color = const Color(0x2DFFD66F);
+
+    for (double r = 120; r < size.width * .75; r += 32) {
+      canvas.drawCircle(
+        Offset(size.width * .5, size.height * .53),
+        r,
+        cyan,
+      );
+    }
+
+    for (int i = 0; i < 7; i++) {
+      final double y = 98 + i * 58;
+      canvas.drawLine(
+        Offset(16, y),
+        Offset(size.width - 16, y),
+        cyan,
+      );
+    }
+
+    final Path left = Path()
+      ..moveTo(0, 122)
+      ..lineTo(42, 96)
+      ..lineTo(68, 122)
+      ..lineTo(42, 150)
+      ..close();
+    canvas.drawPath(left, gold);
+
+    final Path right = Path()
+      ..moveTo(size.width, 165)
+      ..lineTo(size.width - 42, 139)
+      ..lineTo(size.width - 68, 165)
+      ..lineTo(size.width - 42, 191)
+      ..close();
+    canvas.drawPath(right, cyan);
+
+    final Paint micro = Paint()..color = const Color(0x24FFFFFF);
+    for (int i = 0; i < 18; i++) {
+      final double x = 14 + (i * 37) % (size.width.toInt() - 28);
+      final double y = 70 + (i * 53) % (size.height.toInt() - 110);
+      canvas.drawCircle(Offset(x, y), i.isEven ? 1.2 : .7, micro);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _CardBackPainter extends CustomPainter {
+  const _CardBackPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Offset c = size.center(Offset.zero);
+    final Paint cyan = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.15
+      ..color = const Color(0x3A48E3FF);
+    final Paint violet = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1
+      ..color = const Color(0x32B36DFF);
+    final Paint gold = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.35
+      ..color = const Color(0x34FFD56A);
+
+    for (double r = 48; r < size.width * .76; r += 31) {
+      canvas.drawCircle(c, r, cyan);
+    }
+
+    for (int i = 0; i < 14; i++) {
+      final double a = math.pi * 2 * i / 14;
+      final Offset inner = c + Offset(math.cos(a), math.sin(a)) * 76;
+      final Offset outer = c + Offset(math.cos(a), math.sin(a)) * size.width * .55;
+      canvas.drawLine(inner, outer, violet);
+    }
+
+    final Path diamond = Path()
+      ..moveTo(c.dx, c.dy - 154)
+      ..lineTo(c.dx + 154, c.dy)
+      ..lineTo(c.dx, c.dy + 154)
+      ..lineTo(c.dx - 154, c.dy)
+      ..close();
+    canvas.drawPath(diamond, gold);
+
+    final Paint edge = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1
+      ..color = const Color(0x35FFFFFF);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(16, 16, size.width - 32, size.height - 32),
+        const Radius.circular(27),
+      ),
+      edge,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _CardFramePainter extends CustomPainter {
+  const _CardFramePainter({required this.light});
+
+  final bool light;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Paint p = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1
+      ..color = const Color(0x4594EFFF);
+
+    final RRect r = RRect.fromRectAndRadius(
+      Offset.zero & size,
+      const Radius.circular(29),
+    );
+    canvas.drawRRect(r.deflate(9), p);
+
+    final Paint gold = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.7
+      ..color = const Color(0x5DFFD66F);
+
+    final List<Offset> corners = [
+      const Offset(30, 30),
+      Offset(size.width - 30, 30),
+      const Offset(30, 490),
+      Offset(size.width - 30, 490),
+    ];
+
+    for (final Offset p0 in corners) {
+      final double sx = p0.dx < size.width / 2 ? 1 : -1;
+      final double sy = p0.dy < size.height / 2 ? 1 : -1;
+      final Path path = Path()
+        ..moveTo(p0.dx, p0.dy + 20 * sy)
+        ..lineTo(p0.dx, p0.dy)
+        ..lineTo(p0.dx + 20 * sx, p0.dy);
+      canvas.drawPath(path, gold);
+    }
+
+    final Paint side = Paint()
+      ..color = const Color(0x1F6DE7FF);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(7, 7, size.width - 14, size.height - 14),
+        const Radius.circular(27),
+      ),
+      side,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _AmbientLights extends StatelessWidget {
