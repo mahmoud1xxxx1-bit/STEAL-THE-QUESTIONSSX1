@@ -38,7 +38,7 @@ jobs:
         run: flutter pub get
 
       - name: Build web preview
-        run: flutter build web --release --base-href "/STEAL-THE-QUESTIONSSX1/"
+        run: flutter build web --release --pwa-strategy=none --base-href "/STEAL-THE-QUESTIONSSX1/"
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
