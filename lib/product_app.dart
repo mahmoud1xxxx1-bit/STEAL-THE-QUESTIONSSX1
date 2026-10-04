@@ -458,6 +458,83 @@ class _MorePage extends StatelessWidget {
   }
 }
 
+
+class _ModePanel extends StatelessWidget {
+  const _ModePanel({
+    required this.icon,
+    required this.title,
+    required this.body,
+    required this.action,
+  });
+
+  final IconData icon;
+  final String title;
+  final String body;
+  final String action;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(17),
+      decoration: BoxDecoration(
+        color: const Color(0xFF111824),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0x1FFFFFFF)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: const Color(0xFF78D9D0), size: 29),
+          const SizedBox(width: 13),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
+                const SizedBox(height: 5),
+                Text(body, style: const TextStyle(color: Color(0xFF7F8B9C), fontSize: 10, height: 1.4)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(action, style: const TextStyle(color: Color(0xFFF3C86B), fontSize: 9, fontWeight: FontWeight.w900)),
+        ],
+      ),
+    );
+  }
+}
+
+class _PageTitle extends StatelessWidget {
+  const _PageTitle({
+    required this.title,
+    required this.body,
+    required this.count,
+  });
+
+  final String title;
+  final String body;
+  final String count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 6),
+              Text(body, style: const TextStyle(color: Color(0xFF7F8B9C), fontSize: 11, height: 1.4)),
+            ],
+          ),
+        ),
+        Text(count, style: const TextStyle(color: Color(0xFFF3C86B), fontWeight: FontWeight.w900)),
+      ],
+    );
+  }
+}
+
 class _MoreTile extends StatelessWidget {
   const _MoreTile({required this.icon, required this.title, required this.subtitle, required this.onTap});
   final IconData icon;
