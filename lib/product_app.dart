@@ -969,7 +969,7 @@ class _DeckSlotCard extends StatelessWidget {
                         ? (arabic ? 'مفتوحة مع Weekly Pass' : 'Unlock with Weekly Pass')
                         : ready
                             ? (arabic ? 'مكتملة 10 / 10' : 'COMPLETE 10 / 10')
-                            : (arabic ? '${deck.length / $kDeckSize بطاقات' : '${deck.length / $kDeckSize cards'),
+                            : (arabic ? '${deck.length} / $kDeckSize بطاقات' : '${deck.length} / $kDeckSize cards'),
                     style: TextStyle(
                       color: ready ? const Color(0xFF78D9D0) : const Color(0xFF7F8B9C),
                       fontSize: 10,
@@ -1014,7 +1014,7 @@ class _DeckBuilderPage extends StatelessWidget {
           textDirection: arabic ? TextDirection.rtl : TextDirection.ltr,
           child: Scaffold(
             appBar: AppBar(
-              title: Text(arabic ? 'مجموعة ${deckIndex + 1' : 'DECK ${deckIndex + 1'),
+              title: Text(arabic ? 'مجموعة ${deckIndex + 1}' : 'DECK ${deckIndex + 1}'),
               actions: [
                 TextButton(
                   onPressed: current.isEmpty ? null : () => player.clearDeck(deckIndex),
@@ -1889,7 +1889,7 @@ class _HowItWorksPage extends StatelessWidget {
                     radius: 17,
                     backgroundColor: const Color(0xFF202D3C),
                     child: Text(
-                      '${i + 1',
+                      '${i + 1}',
                       style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900),
                     ),
                   ),
