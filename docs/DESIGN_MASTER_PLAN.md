@@ -216,3 +216,14 @@ A player can:
 7. reach a polished steal presentation
 
 Only after this foundation feels excellent do we expand the game systems.
+
+
+## 21. Fixed duel timing
+- Each player prepares exactly 10 cards in a chosen deck.
+- At duel start, the system selects 7 of those 10 cards for the round.
+- Each selected card produces one question.
+- Each question has exactly 20 seconds for reading and answering.
+- Seven questions = 140 seconds (2 minutes 20 seconds).
+- The closing/steal sequence has a fixed maximum of 40 seconds.
+- Full round target = 3 minutes.
+- The winner's steal is exactly one card from the loser's 10-card duel deck.
