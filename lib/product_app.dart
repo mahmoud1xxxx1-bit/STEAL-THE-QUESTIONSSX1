@@ -635,7 +635,7 @@ class _CollectionPageState extends State<_CollectionPage> {
           body: widget.arabic
               ? '222 بطاقة فريدة. لا يمكن امتلاك نسختين من نفس Card ID.'
               : '222 unique cards. One copy maximum per Card ID.',
-          trailing: '${owned/$kTotalCards',
+          trailing: '${owned}/$kTotalCards',
         ),
         const SizedBox(height: 14),
         Row(
@@ -663,7 +663,7 @@ class _CollectionPageState extends State<_CollectionPage> {
               ),
             ),
             Text(
-              '${cards.length',
+              '${cards.length}',
               style: const TextStyle(color: Color(0xFF7F8B9C), fontSize: 11, fontWeight: FontWeight.w800),
             ),
           ],
@@ -960,7 +960,7 @@ class _DeckSlotCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    arabic ? 'مجموعة ${index + 1' : 'DECK ${index + 1',
+                    arabic ? 'مجموعة ${index + 1}' : 'DECK ${index + 1}',
                     style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
                   ),
                   const SizedBox(height: 5),
