@@ -390,270 +390,53 @@ class _PlayPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final unlocked = player.pvpUnlocked;
+    final pvpOpen = player.pvpUnlocked;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 30),
       children: [
-        Text(arabic ? 'اللعب' : 'PLAY', style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900)),
-        const SizedBox(height: 5),
-        Text(arabic ? 'Bot في البداية ثم Troll Duel عند 10 بطاقات.' : 'Bot first, then Troll Duel at 10 cards.', style: const TextStyle(color: Color(0xFF7F8B9C), fontSize: 11)),
-        const SizedBox(height: 15),
-        _PlayMode(
+        _PageTitle(
+          title: arabic ? 'اللعب' : 'PLAY',
+          body: arabic
+              ? 'هيكل أوضاع اللعب فقط. لم تتم إضافة الأسئلة بعد.'
+              : 'Game-mode structure only. Question content has not been added yet.',
+          count: pvpOpen ? 'READY' : 'LOCKED',
+        ),
+        const SizedBox(height: 12),
+        _ModePanel(
           icon: Icons.smart_toy_rounded,
           title: 'BOT TRAINING',
-          body: unlocked
-              ? (arabic ? 'اكتمل مسار البداية، وBot متوقف.' : 'Onboarding is complete. Bot is closed.')
-              : (arabic ? 'إجابة صحيحة = بطاقة جديدة حتى تصل إلى 10.' : 'Correct answer = a new card until you reach 10.'),
-          enabled: !unlocked,
-          button: arabic ? 'ابدأ' : 'START',
-          onTap: !unlocked ? () => Navigator.push(context, MaterialPageRoute(builder: (_) => _BotPage(arabic: arabic, player: player))) : null,
+          body: arabic
+              ? 'يظهر هنا مسار التدريب الأولي. سيتم ربطه لاحقًا ببنك الأسئلة.'
+              : 'The onboarding mode lives here and will connect to the question bank later.',
+          action: 'LATER',
         ),
         const SizedBox(height: 10),
-        _PlayMode(
+        _ModePanel(
           icon: Icons.sports_mma_rounded,
           title: 'TROLL DUEL',
-          body: unlocked
-              ? (arabic ? '7 أسئلة • 20 ثانية للسؤال • الفائز يسرق بطاقة.' : '7 questions • 20 seconds • winner steals one card.')
-              : (arabic ? 'مغلق حتى تملك 10 بطاقات.' : 'Locked until you own 10 cards.'),
-          enabled: unlocked,
-          button: unlocked ? (arabic ? 'دخول' : 'ENTER') : 'LOCKED',
-          onTap: unlocked ? () => Navigator.push(context, MaterialPageRoute(builder: (_) => _DuelPage(arabic: arabic, player: player))) : null,
+          body: pvpOpen
+              ? (arabic
+                  ? 'PvP مفتوح. نحتاج الـbackend والمطابقة والمحتوى قبل التشغيل.'
+                  : 'PvP is unlocked. Backend, matchmaking and content are still required.')
+              : (arabic
+                  ? 'مغلق حتى تملك 10 بطاقات.'
+                  : 'Locked until 10 cards are owned.'),
+          action: pvpOpen ? 'PENDING' : 'LOCKED',
+        ),
+        const SizedBox(height: 12),
+        _InfoBox(
+          icon: Icons.rule_rounded,
+          text: arabic
+              ? 'لا توجد أسئلة حقيقية أو مباراة فعلية في هذا التحديث.'
+              : 'No real questions or live matches are included in this update.',
         ),
       ],
     );
   }
 }
 
-class _PlayMode extends StatelessWidget {
-  const _PlayMode({required this.icon, required this.title, required this.body, required this.enabled, required this.button, required this.onTap});
-  final IconData icon;
-  final String title;
-  final String body;
-  final bool enabled;
-  final String button;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(17),
-      decoration: BoxDecoration(color: const Color(0xFF111824), borderRadius: BorderRadius.circular(21), border: Border.all(color: const Color(0x1FFFFFFF))),
-      child: Row(
-        children: [
-          Icon(icon, color: enabled ? const Color(0xFF78D9D0) : const Color(0xFF606C7E), size: 31),
-          const SizedBox(width: 13),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: .8)),
-            const SizedBox(height: 5),
-            Text(body, style: const TextStyle(color: Color(0xFF7F8B9C), fontSize: 10, height: 1.4)),
-          ])),
-          FilledButton(onPressed: onTap, child: Text(button, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900))),
-        ],
-      ),
-    );
-  }
-}
-
-class _BotPage extends StatefulWidget {
-  const _BotPage({required this.arabic, required this.player});
-  final bool arabic;
-  final DemoPlayerState player;
-
-  @override
-  State<_BotPage> createState() => _BotPageState();
-}
-
-class _BotPageState extends State<_BotPage> {
-  int question = 0;
-  int selected = -1;
-  bool locked = false;
-
-  static const qs = [
-    'Which planet is known as the Red Planet?',
-    'What is the largest ocean on Earth?',
-    'How many continents are there?',
-  ];
-  static const answers = [
-    ['Mars', 'Venus', 'Jupiter'],
-    ['Atlantic', 'Pacific', 'Indian'],
-    ['5', '6', '7'],
-  ];
-  static const correct = [0, 1, 2];
-
-  void answer(int value) {
-    if (locked || widget.player.pvpUnlocked) return;
-    setState(() { selected = value; locked = true; });
-    if (value == correct[question]) {
-      widget.player.awardBotCard();
-    } else {
-      widget.player.wrongBotAnswer();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(widget.arabic ? 'تدريب Bot' : 'BOT TRAINING')),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(18, 8, 18, 28),
-        children: [
-          _InfoBox(icon: Icons.style_rounded, text: widget.arabic ? 'بطاقاتك: ${widget.player.ownedCount} / 10' : 'Cards: ${widget.player.ownedCount} / 10'),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(19),
-            decoration: BoxDecoration(color: const Color(0xFFF4E9D4), borderRadius: BorderRadius.circular(24)),
-            child: Text(qs[question], style: const TextStyle(color: Color(0xFF1A2230), fontSize: 21, fontWeight: FontWeight.w900, height: 1.2)),
-          ),
-          const SizedBox(height: 11),
-          for (int i = 0; i < 3; i++) ...[
-            FilledButton.tonal(
-              onPressed: locked ? null : () => answer(i),
-              style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(54), alignment: Alignment.centerLeft),
-              child: Text(answers[question][i]),
-            ),
-            const SizedBox(height: 8),
-          ],
-          if (locked)
-            FilledButton(
-              onPressed: () {
-                if (widget.player.pvpUnlocked) {
-                  Navigator.pop(context);
-                } else {
-                  setState(() { question = (question + 1) % qs.length; selected = -1; locked = false; });
-                }
-              },
-              child: Text(widget.player.pvpUnlocked ? (widget.arabic ? 'تم فتح PvP' : 'PVP UNLOCKED') : (widget.arabic ? 'السؤال التالي' : 'NEXT QUESTION')),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DuelPage extends StatefulWidget {
-  const _DuelPage({required this.arabic, required this.player});
-  final bool arabic;
-  final DemoPlayerState player;
-
-  @override
-  State<_DuelPage> createState() => _DuelPageState();
-}
-
-class _DuelPageState extends State<_DuelPage> {
-  int index = 0;
-  int score = 0;
-  int selected = -1;
-  bool locked = false;
-  bool result = false;
-  int steal = -1;
-
-  static const qs = [
-    'Which planet is known as the Red Planet?',
-    'What is the largest ocean on Earth?',
-    'How many continents are there?',
-    'Which animal is the fastest on land?',
-    'Which country is home to Kyoto?',
-    'What is the hardest natural substance?',
-    'Which language has the most native speakers?',
-  ];
-  static const answers = [
-    ['Mars', 'Venus', 'Jupiter'],
-    ['Atlantic', 'Pacific', 'Indian'],
-    ['5', '6', '7'],
-    ['Lion', 'Cheetah', 'Horse'],
-    ['China', 'Japan', 'Thailand'],
-    ['Iron', 'Diamond', 'Quartz'],
-    ['Spanish', 'English', 'Mandarin'],
-  ];
-  static const correct = [0, 1, 2, 1, 1, 1, 2];
-
-  void answer(int value) {
-    if (locked || result) return;
-    setState(() { selected = value; locked = true; if (value == correct[index]) score++; });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (result) {
-      return Scaffold(
-        appBar: AppBar(title: Text(widget.arabic ? 'النتيجة والسرقة' : 'RESULT & STEAL')),
-        body: ListView(
-          padding: const EdgeInsets.fromLTRB(18, 8, 18, 28),
-          children: [
-            _InfoBox(icon: Icons.emoji_events_rounded, text: widget.arabic ? 'فوز تجريبي • ${score} / 7' : 'Demo win • ${score} / 7'),
-            const SizedBox(height: 14),
-            Text(widget.arabic ? 'اختر بطاقة واحدة من بطاقات الخصم' : 'CHOOSE ONE RIVAL CARD', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
-            const SizedBox(height: 10),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: kDeckSize,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 9, mainAxisSpacing: 9, childAspectRatio: .9),
-              itemBuilder: (context, i) {
-                final chosen = steal == i;
-                return InkWell(
-                  onTap: () => setState(() => steal = i),
-                  borderRadius: BorderRadius.circular(17),
-                  child: Ink(
-                    decoration: BoxDecoration(color: chosen ? const Color(0xFF40351D) : const Color(0xFF111824), borderRadius: BorderRadius.circular(17), border: Border.all(color: chosen ? const Color(0xFFF3C86B) : const Color(0x1FFFFFFF))),
-                    child: Center(child: Text('CARD ${i + 1}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10))),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 12),
-            FilledButton(
-              onPressed: steal == -1 ? null : () {
-                widget.player.wins++;
-                widget.player.notifyListeners();
-                Navigator.pop(context);
-              },
-              child: Text(widget.arabic ? 'تأكيد السرقة' : 'CONFIRM STEAL'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Scaffold(
-      appBar: AppBar(title: Text('TROLL DUEL • ${index + 1}/$kDuelQuestions')),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(18, 8, 18, 28),
-        children: [
-          _InfoBox(icon: Icons.timer_outlined, text: widget.arabic ? '20 ثانية لكل سؤال • 7 أسئلة' : '20 seconds each • 7 questions'),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(19),
-            decoration: BoxDecoration(color: const Color(0xFFF4E9D4), borderRadius: BorderRadius.circular(24)),
-            child: Text(qs[index], style: const TextStyle(color: Color(0xFF1A2230), fontSize: 21, fontWeight: FontWeight.w900, height: 1.2)),
-          ),
-          const SizedBox(height: 11),
-          for (int i = 0; i < 3; i++) ...[
-            FilledButton.tonal(
-              onPressed: locked ? null : () => answer(i),
-              style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(54), alignment: Alignment.centerLeft),
-              child: Text(answers[index][i]),
-            ),
-            const SizedBox(height: 8),
-          ],
-          if (locked)
-            FilledButton(
-              onPressed: () {
-                if (index == kDuelQuestions - 1) {
-                  setState(() => result = true);
-                } else {
-                  setState(() { index++; selected = -1; locked = false; });
-                }
-              },
-              child: Text(index == kDuelQuestions - 1 ? (widget.arabic ? 'النتيجة' : 'RESULT') : (widget.arabic ? 'التالي' : 'NEXT')),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
 class _MorePage extends StatelessWidget {
+
   const _MorePage({required this.arabic, required this.player});
   final bool arabic;
   final DemoPlayerState player;
