@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'product_app.dart';
 
 void main() {
-  runApp(const _App());
+  runApp(const StealTheQuestionsApp());
 }
 
-class _App extends StatelessWidget {
-  const _App();
+class StealTheQuestionsApp extends StatelessWidget {
+  const StealTheQuestionsApp({super.key});
 
   @override
   Widget build(BuildContext context) {
