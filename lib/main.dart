@@ -2073,6 +2073,9 @@ class _SmallCardBackPainter extends CustomPainter {
       ..color = const Color(0x4CA98C45);
     canvas.drawCircle(size.center(Offset.zero), size.width * .32, gold);
   }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _StealAction extends StatelessWidget {
@@ -2364,7 +2367,7 @@ class _CardFacePainter extends CustomPainter {
 
     _corner(canvas, corner, const Offset(13, 13), 1, 1);
     _corner(canvas, corner, Offset(size.width - 13, 13), -1, 1);
-    _corner(canvas, corner, const Offset(13, size.height - 13), 1, -1);
+    _corner(canvas, corner, Offset(13, size.height - 13), 1, -1);
     _corner(canvas, corner, Offset(size.width - 13, size.height - 13), -1, -1);
   }
 
