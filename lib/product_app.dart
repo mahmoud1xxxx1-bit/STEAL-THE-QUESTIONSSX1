@@ -1415,7 +1415,7 @@ class _DuelFlowCard extends StatelessWidget {
                   CircleAvatar(
                     radius: 11,
                     backgroundColor: const Color(0xFF202D3C),
-                    child: Text('$i'.replaceFirst(RegExp(r'^0$'), '1')),
+                    child: Text('${i + 1}'),
                   ),
                   const SizedBox(width: 9),
                   Expanded(
