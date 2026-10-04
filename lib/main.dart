@@ -189,7 +189,7 @@ class _TopBar extends StatelessWidget {
           children: [
             Text('DUEL', style: TextStyle(color: Colors.white.withValues(alpha: .45), letterSpacing: 2)),
             Text(
-              (index + 1).toString() + '/' + total.toString() + '  •  ' + score.toString(),
+              '${index + 1}/$total  •  $score',
               style: const TextStyle(fontWeight: FontWeight.w900),
             ),
           ],
@@ -311,7 +311,7 @@ class _QuestionCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
-                    '#' + number.toString().padLeft(2, '0'),
+                    '#${number.toString().padLeft(2, '0')}',
                     style: const TextStyle(fontWeight: FontWeight.w900),
                   ),
                 ),
@@ -471,7 +471,7 @@ class _Finish extends StatelessWidget {
             const SizedBox(height: 16),
             const Text('ROUND COMPLETE', style: TextStyle(letterSpacing: 2, fontWeight: FontWeight.w900, fontSize: 12)),
             const SizedBox(height: 8),
-            Text(score.toString() + ' / ' + total.toString(), style: const TextStyle(fontSize: 54, fontWeight: FontWeight.w900)),
+            Text('$score / $total', style: const TextStyle(fontSize: 54, fontWeight: FontWeight.w900)),
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
