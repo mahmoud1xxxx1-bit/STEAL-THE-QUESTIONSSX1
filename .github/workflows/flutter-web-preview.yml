@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - FOUNDATION-DESIGN-PROTOTYPE
   workflow_dispatch:
 
 permissions:
