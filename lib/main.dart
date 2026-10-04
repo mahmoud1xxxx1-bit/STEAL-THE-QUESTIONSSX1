@@ -354,15 +354,14 @@ class _DuelDesignPrototypeState extends State<DuelDesignPrototype>
 
   Widget _buildDuel() {
     final bool compact = MediaQuery.sizeOf(context).height < 760;
-    final String progress = (_questionIndex + 1).toString() +
-        ' / ' +
-        totalQuestions.toString();
+    final String progress =
+        (_questionIndex + 1).toString() + ' / ' + totalQuestions.toString();
 
     return Column(
       key: const ValueKey<String>('duel'),
       children: [
         Padding(
-          padding: EdgeInsets.fromLTRB(18, compact ? 10 : 18, 18, 0),
+          padding: EdgeInsets.fromLTRB(18, compact ? 8 : 14, 18, 8),
           child: _ArenaHeader(
             arabic: _arabic,
             score: _score,
@@ -371,80 +370,107 @@ class _DuelDesignPrototypeState extends State<DuelDesignPrototype>
             onLanguage: _toggleLanguage,
           ),
         ),
-        const SizedBox(height: 8),
         Expanded(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 980),
-                child: Column(
-                  children: [
-                    _BattleLine(
-                      arabic: _arabic,
-                      deckSize: deckSize,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final bool wide = constraints.maxWidth >= 900;
+              return Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(18, 4, 18, 18),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1180),
+                    child: Column(
+                      children: [
+                        _BattleLine(arabic: _arabic, deckSize: deckSize),
+                        const SizedBox(height: 12),
+                        if (wide)
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              const Expanded(
+                                child: _DeckStack(
+                                  mine: true,
+                                ),
+                              ),
+                              const SizedBox(width: 18),
+                              _buildAnimatedCard(),
+                              const SizedBox(width: 18),
+                              const Expanded(
+                                child: _DeckStack(
+                                  mine: false,
+                                ),
+                              ),
+                            ],
+                          )
+                        else
+                          _buildAnimatedCard(),
+                        const SizedBox(height: 12),
+                        _DeckRail(
+                          active: _questionIndex,
+                          size: deckSize,
+                          arabic: _arabic,
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 12),
-                    AnimatedBuilder(
-                      animation: Listenable.merge([_flip, _enter, _pulse]),
-                      builder: (context, child) {
-                        final double enter = Curves.easeOutCubic.transform(_enter.value);
-                        final double pulse = Curves.easeOutCubic.transform(_pulse.value);
-                        final double flip = _flip.value;
-                        final double scale = 0.95 + (0.05 * enter) + (0.012 * pulse);
-                        final double y = 26 * (1 - enter);
-                        final double shake =
-                            _locked && !_correct
-                                ? math.sin(pulse * math.pi * 6) * 4
-                                : 0;
-
-                        return Transform.translate(
-                          offset: Offset(shake, y),
-                          child: Transform.scale(
-                            scale: scale,
-                            child: Transform(
-                              alignment: Alignment.center,
-                              transform: Matrix4.identity()
-                                ..setEntry(3, 2, 0.0013)
-                                ..rotateY(math.pi * flip),
-                              child: flip < 0.5
-                                  ? _CardBack(
-                                      arabic: _arabic,
-                                      category: _arabic
-                                          ? _question.categoryAr
-                                          : _question.categoryEn,
-                                    )
-                                  : Transform(
-                                      alignment: Alignment.center,
-                                      transform: Matrix4.rotationY(math.pi),
-                                      child: _QuestionCard(
-                                        arabic: _arabic,
-                                        question: _question,
-                                        seconds: _seconds,
-                                        selected: _selected,
-                                        locked: _locked,
-                                        correct: _correct,
-                                        onAnswer: _answer,
-                                      ),
-                                    ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 14),
-                    _DeckRail(
-                      active: _questionIndex,
-                      size: deckSize,
-                      arabic: _arabic,
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildAnimatedCard() {
+    return AnimatedBuilder(
+      animation: Listenable.merge([_flip, _enter, _pulse]),
+      builder: (context, child) {
+        final double enter =
+            Curves.easeOutCubic.transform(_enter.value);
+        final double pulse =
+            Curves.easeOutCubic.transform(_pulse.value);
+        final double flip = _flip.value;
+        final double scale =
+            0.97 + (0.03 * enter) + (0.006 * pulse);
+        final double y = 18 * (1 - enter);
+        final double shake = _locked && !_correct
+            ? math.sin(pulse * math.pi * 6) * 3
+            : 0;
+
+        return Transform.translate(
+          offset: Offset(shake, y),
+          child: Transform.scale(
+            scale: scale,
+            child: Transform(
+              alignment: Alignment.center,
+              transform: Matrix4.identity()
+                ..setEntry(3, 2, 0.001)
+                ..rotateY(math.pi * flip),
+              child: flip < 0.5
+                  ? _CardBack(
+                      arabic: _arabic,
+                      category: _arabic
+                          ? _question.categoryAr
+                          : _question.categoryEn,
+                    )
+                  : Transform(
+                      alignment: Alignment.center,
+                      transform: Matrix4.rotationY(math.pi),
+                      child: _QuestionCard(
+                        arabic: _arabic,
+                        question: _question,
+                        seconds: _seconds,
+                        selected: _selected,
+                        locked: _locked,
+                        correct: _correct,
+                        onAnswer: _answer,
+                      ),
+                    ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -707,79 +733,200 @@ class _ArenaHeader extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(15),
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF7EE8FF), Color(0xFFB47CFF)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x5539D9FF),
-                      blurRadius: 20,
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.style_rounded,
-                  color: Color(0xFF091326),
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Flexible(
-                child: Text(
-                  'STEAL THE\nQUESTIONS',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    height: 0.95,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.6,
-                  ),
-                ),
-              ),
-            ],
+          child: _MatchPlayer(
+            arabic: arabic,
+            label: arabic ? 'أنت' : 'YOU',
+            sublabel: arabic ? 'مجموعتك' : 'YOUR COLLECTION',
+            score: score,
+            left: true,
           ),
         ),
-        _ScoreBox(
-          label: arabic ? 'أنت' : 'YOU',
-          value: score,
-          accent: const Color(0xFF70E7FF),
+        const SizedBox(width: 10),
+        _QuestionProgress(
+          progress: progress,
+          arabic: arabic,
         ),
-        const SizedBox(width: 7),
-        _Pill(text: progress, color: Colors.white70),
-        const SizedBox(width: 7),
-        _ScoreBox(
-          label: arabic ? 'خصم' : 'RIVAL',
-          value: rivalScore,
-          accent: const Color(0xFFFF8CB4),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _MatchPlayer(
+            arabic: arabic,
+            label: arabic ? 'الخصم' : 'RIVAL',
+            sublabel: arabic ? 'خصمك' : 'OPPONENT',
+            score: rivalScore,
+            left: false,
+          ),
         ),
-        const SizedBox(width: 7),
-        OutlinedButton(
+        const SizedBox(width: 8),
+        IconButton(
           onPressed: onLanguage,
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size(54, 40),
-            side: BorderSide(color: Colors.white.withValues(alpha: .16)),
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(13),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 10),
+          tooltip: arabic ? 'English' : 'العربية',
+          style: IconButton.styleFrom(
+            backgroundColor: const Color(0x331D2940),
+            foregroundColor: const Color(0xFFF3E8CA),
+            side: const BorderSide(color: Color(0x355F708E)),
           ),
-          child: Text(
+          icon: Text(
             arabic ? 'EN' : 'ع',
             style: const TextStyle(
               fontWeight: FontWeight.w900,
+              fontSize: 13,
             ),
           ),
         ),
       ],
+    );
+  }
+}
+
+class _MatchPlayer extends StatelessWidget {
+  const _MatchPlayer({
+    required this.arabic,
+    required this.label,
+    required this.sublabel,
+    required this.score,
+    required this.left,
+  });
+
+  final bool arabic;
+  final String label;
+  final String sublabel;
+  final int score;
+  final bool left;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xB91A2435),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: left
+              ? const Color(0x5C73B7CE)
+              : const Color(0x5CBF7480),
+        ),
+      ),
+      child: Row(
+        textDirection: left ? TextDirection.ltr : TextDirection.rtl,
+        children: [
+          _ProfileMedallion(left: left),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment:
+                  left ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: left
+                        ? const Color(0xFF8DE2EC)
+                        : const Color(0xFFE89BA5),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  sublabel,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF8995A8),
+                    fontSize: 8,
+                    letterSpacing: 1.0,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            score.toString(),
+            style: const TextStyle(
+              color: Color(0xFFF7E3A6),
+              fontSize: 25,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuestionProgress extends StatelessWidget {
+  const _QuestionProgress({
+    required this.progress,
+    required this.arabic,
+  });
+
+  final String progress;
+  final bool arabic;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF121A29),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0x5B7A6D52)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            arabic ? 'السؤال' : 'QUESTION',
+            style: const TextStyle(
+              color: Color(0xFFB9A87B),
+              fontSize: 8,
+              letterSpacing: 2.1,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            progress,
+            style: const TextStyle(
+              color: Color(0xFFFFF4D6),
+              fontSize: 19,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileMedallion extends StatelessWidget {
+  const _ProfileMedallion({required this.left});
+  final bool left;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: const Color(0xFF243147),
+        border: Border.all(
+          color: left
+              ? const Color(0xFF6FC5D5)
+              : const Color(0xFFD27883),
+          width: 1.4,
+        ),
+      ),
+      alignment: Alignment.center,
+      child: Icon(
+        left ? Icons.person_outline_rounded : Icons.shield_outlined,
+        size: 21,
+        color: left
+            ? const Color(0xFF8DE2EC)
+            : const Color(0xFFE89BA5),
+      ),
     );
   }
 }
@@ -840,43 +987,61 @@ class _BattleLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const _PlayerBadge(
-          name: 'YOU',
-          active: true,
-        ),
-        const Spacer(),
-        Column(
-          children: [
-            Text(
-              arabic ? 'المواجهة' : 'CARD DUEL',
-              style: TextStyle(
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+      decoration: BoxDecoration(
+        color: const Color(0x7A141D2C),
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: const Color(0x2F7B8AA0)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              arabic ? 'مواجهة مباشرة' : 'HEAD-TO-HEAD',
+              style: const TextStyle(
+                color: Color(0xFFE8D8B5),
                 fontSize: 10,
-                letterSpacing: 1.8,
-                color: Colors.white.withValues(alpha: .58),
                 fontWeight: FontWeight.w900,
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              '10 ' + (arabic ? 'بطاقات' : 'CARDS') + '  •  7 ' +
-                  (arabic ? 'أسئلة' : 'QUESTIONS'),
-              style: TextStyle(
-                fontSize: 9,
-                letterSpacing: 1.0,
-                color: Colors.white.withValues(alpha: .4),
-                fontWeight: FontWeight.w800,
+          ),
+          Column(
+            children: [
+              Text(
+                arabic ? 'سطح من 10 • 7 تُسحب' : '10-CARD DECK • 7 DRAWN',
+                style: const TextStyle(
+                  color: Color(0xFF9DA8B8),
+                  fontSize: 8,
+                  letterSpacing: 1.25,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                arabic ? '20 ثانية للسؤال' : '20 SECONDS EACH',
+                style: const TextStyle(
+                  color: Color(0xFF6EBAC7),
+                  fontSize: 8,
+                  letterSpacing: 1.0,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          Expanded(
+            child: Text(
+              arabic ? 'اسرق بطاقة واحدة' : 'WINNER STEALS ONE',
+              textAlign: TextAlign.end,
+              style: const TextStyle(
+                color: Color(0xFFE8D8B5),
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
               ),
             ),
-          ],
-        ),
-        const Spacer(),
-        const _PlayerBadge(
-          name: 'RIVAL',
-          active: false,
-        ),
-      ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -981,21 +1146,20 @@ class _CardBack extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _CardShell(
-      faceColor: const Color(0xFF111935),
+      faceColor: const Color(0xFF1D273D),
       borderGradient: const [
-        Color(0xFFFFD36A),
-        Color(0xFF54E1FF),
-        Color(0xFF9A6BFF),
-        Color(0xFFFFD36A),
+        Color(0xFFD4AF61),
+        Color(0xFF7086A1),
+        Color(0xFFD4AF61),
       ],
-      width: 400,
-      height: 520,
+      width: 390,
+      height: 510,
       child: Stack(
         fit: StackFit.expand,
         children: [
           const CustomPaint(painter: _CardBackPainter()),
           Positioned(
-            top: 18,
+            top: 19,
             left: 20,
             right: 20,
             child: Row(
@@ -1003,136 +1167,88 @@ class _CardBack extends StatelessWidget {
                 _RarityBadge(text: arabic ? 'إبيك' : 'EPIC'),
                 const Spacer(),
                 Text(
-                  category,
+                  category.toUpperCase(),
                   style: const TextStyle(
+                    color: Color(0xFFBCC6D3),
                     fontSize: 9,
-                    letterSpacing: 1.8,
-                    color: Color(0x99FFFFFF),
-                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.45,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ],
             ),
           ),
           Center(
+            child: Container(
+              width: 198,
+              height: 198,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF182237),
+                border: Border.all(
+                  color: const Color(0xFFCAA755),
+                  width: 2,
+                ),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x55000000),
+                    blurRadius: 30,
+                    offset: Offset(0, 14),
+                  ),
+                ],
+              ),
+              child: const Center(
+                child: Text(
+                  'STQ',
+                  style: TextStyle(
+                    color: Color(0xFFF1D98C),
+                    fontSize: 46,
+                    letterSpacing: 4,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 70,
+            left: 32,
+            right: 32,
             child: Column(
-              mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  width: 132,
-                  height: 132,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: const RadialGradient(
-                      colors: [
-                        Color(0xFFFFF0AF),
-                        Color(0xFFFFC34D),
-                        Color(0xFF7A4DFF),
-                      ],
-                      stops: [0.0, 0.58, 1.0],
-                    ),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x6658E4FF),
-                        blurRadius: 36,
-                        spreadRadius: 2,
-                      ),
-                      BoxShadow(
-                        color: Color(0x554E3B9A),
-                        blurRadius: 50,
-                        spreadRadius: -6,
-                      ),
-                    ],
-                  ),
-                  child: Container(
-                    margin: const EdgeInsets.all(7),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: const Color(0xFF111935),
-                      border: Border.all(
-                        color: const Color(0xA6FFE19A),
-                        width: 1.4,
-                      ),
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'STQ',
-                        style: TextStyle(
-                          fontSize: 34,
-                          letterSpacing: 1.8,
-                          color: Color(0xFFFFE7A0),
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
                 Text(
-                  arabic ? 'اسرق السؤال' : 'STEAL THE',
+                  arabic ? 'اسرق السؤال' : 'STEAL THE QUESTION',
+                  textAlign: TextAlign.center,
                   style: const TextStyle(
-                    letterSpacing: 3.6,
-                    fontSize: 11,
-                    color: Color(0xFF74E8FF),
+                    color: Color(0xFFF1D98C),
+                    fontSize: 13,
+                    letterSpacing: 2.1,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 7),
                 Text(
-                  arabic ? 'الأسئلة' : 'QUESTIONS',
+                  arabic ? 'بطاقة من مجموعتك' : 'A CARD FROM YOUR COLLECTION',
+                  textAlign: TextAlign.center,
                   style: const TextStyle(
-                    letterSpacing: 3.0,
-                    fontSize: 27,
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 13,
-                    vertical: 7,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0x241D2447),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0x3DFFE07A)),
-                  ),
-                  child: Text(
-                    arabic ? 'بطاقة نادرة' : 'COLLECTIBLE QUESTION',
-                    style: const TextStyle(
-                      fontSize: 8,
-                      letterSpacing: 1.35,
-                      color: Color(0xD1FFFFFF),
-                      fontWeight: FontWeight.w900,
-                    ),
+                    color: Color(0xFF9EACBD),
+                    fontSize: 8,
+                    letterSpacing: 1.25,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ],
             ),
           ),
           const Positioned(
-            left: 22,
+            left: 24,
             bottom: 20,
             child: Text(
               'STQ • 001',
               style: TextStyle(
-                fontSize: 9,
-                letterSpacing: 1.8,
-                color: Color(0x66FFFFFF),
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ),
-          Positioned(
-            right: 20,
-            bottom: 18,
-            child: Text(
-              arabic ? 'مجموعة 01' : 'COLLECTION 01',
-              style: const TextStyle(
+                color: Color(0x638999AB),
                 fontSize: 8,
-                letterSpacing: 1.3,
-                color: Color(0x59FFFFFF),
+                letterSpacing: 1.6,
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -1165,141 +1281,104 @@ class _QuestionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _CardShell(
-      faceColor: const Color(0xFF141A37),
+      faceColor: const Color(0xFFF2E8CF),
       borderGradient: const [
-        Color(0xFFFFD66F),
-        Color(0xFF55E4FF),
-        Color(0xFF8F63FF),
-        Color(0xFFFFC84D),
+        Color(0xFFE0C477),
+        Color(0xFF8A9BA9),
+        Color(0xFFE0C477),
       ],
-      width: 400,
-      height: 520,
+      width: 390,
+      height: 510,
+      light: true,
       child: Stack(
         fit: StackFit.expand,
         children: [
           const CustomPaint(painter: _CardFacePainter()),
           Padding(
-            padding: const EdgeInsets.fromLTRB(22, 18, 22, 18),
+            padding: const EdgeInsets.fromLTRB(22, 20, 22, 20),
             child: Column(
               crossAxisAlignment:
                   arabic ? CrossAxisAlignment.end : CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    _RarityBadge(text: arabic ? 'إبيك' : 'EPIC'),
-                    const SizedBox(width: 9),
-                    Expanded(
-                      child: Text(
-                        arabic ? 'سؤال تنافسي' : 'COMPETITIVE QUESTION',
-                        textAlign: arabic ? TextAlign.right : TextAlign.left,
-                        style: TextStyle(
-                          fontSize: 8,
-                          letterSpacing: arabic ? .1 : 1.35,
-                          color: const Color(0x8EFFFFFF),
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
+                    _RarityBadge(
+                      text: arabic ? 'إبيك' : 'EPIC',
+                      light: true,
                     ),
-                    _TimerRing(seconds: seconds),
+                    const Spacer(),
+                    _TimerRing(seconds: seconds, light: true),
                   ],
                 ),
-                const SizedBox(height: 15),
+                const SizedBox(height: 12),
                 Row(
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 11,
-                        vertical: 6,
+                        horizontal: 10,
+                        vertical: 5,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0x25FFD66F),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0x5CFFD66F)),
+                        color: const Color(0xFFE6D4A6),
+                        borderRadius: BorderRadius.circular(7),
                       ),
                       child: Text(
                         arabic ? question.categoryAr : question.categoryEn,
                         style: const TextStyle(
+                          color: Color(0xFF465267),
                           fontSize: 8,
-                          color: Color(0xFFFFD878),
+                          letterSpacing: .9,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
                     ),
                     const Spacer(),
                     Text(
-                      _questionNo(0) + ' / ' + kTotalQuestions.toString(),
+                      arabic ? 'بطاقة سؤال' : 'QUESTION CARD',
                       style: const TextStyle(
+                        color: Color(0xFF85765A),
                         fontSize: 8,
-                        letterSpacing: 1.35,
-                        color: Color(0x66FFFFFF),
+                        letterSpacing: 1.15,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 13),
+                const SizedBox(height: 16),
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(18, 18, 18, 19),
+                  padding: const EdgeInsets.fromLTRB(17, 17, 17, 18),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Color(0xE92B3561),
-                        Color(0xF0181F42),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(23),
+                    color: const Color(0xFFF8F1DE),
+                    borderRadius: BorderRadius.circular(15),
                     border: Border.all(
-                      color: const Color(0x5E9BEFFF),
-                      width: 1,
+                      color: const Color(0xFFD0BC87),
+                      width: 1.2,
                     ),
                     boxShadow: const [
                       BoxShadow(
-                        color: Color(0x35000000),
-                        blurRadius: 22,
-                        offset: Offset(0, 10),
+                        color: Color(0x1E453B2A),
+                        blurRadius: 14,
+                        offset: Offset(0, 7),
                       ),
                     ],
                   ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    textDirection:
-                        arabic ? TextDirection.rtl : TextDirection.ltr,
+                  child: Column(
                     children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        margin: EdgeInsets.only(
-                          right: arabic ? 0 : 12,
-                          left: arabic ? 12 : 0,
-                        ),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: const LinearGradient(
-                            colors: [
-                              Color(0xFFFFDF7C),
-                              Color(0xFFB66BFF),
-                            ],
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.question_mark_rounded,
-                          color: Color(0xFF121731),
-                          size: 21,
-                        ),
+                      const Icon(
+                        Icons.help_outline_rounded,
+                        color: Color(0xFFAF8941),
+                        size: 26,
                       ),
-                      Expanded(
-                        child: Text(
-                          arabic ? question.ar : question.en,
-                          textAlign: arabic ? TextAlign.right : TextAlign.left,
-                          style: const TextStyle(
-                            color: Color(0xFFF9F5EA),
-                            fontSize: 24,
-                            height: 1.18,
-                            fontWeight: FontWeight.w900,
-                          ),
+                      const SizedBox(height: 9),
+                      Text(
+                        arabic ? question.ar : question.en,
+                        textAlign: arabic ? TextAlign.right : TextAlign.center,
+                        style: const TextStyle(
+                          color: Color(0xFF1E2838),
+                          fontSize: 22,
+                          height: 1.16,
+                          fontWeight: FontWeight.w900,
                         ),
                       ),
                     ],
@@ -1322,59 +1401,37 @@ class _QuestionCard extends StatelessWidget {
                           locked: locked,
                           onTap: () => onAnswer(i),
                         ),
-                        if (i != 2) const SizedBox(height: 8),
+                        if (i != 2) const SizedBox(height: 7),
                       ],
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 8),
                       AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 180),
+                        duration: const Duration(milliseconds: 160),
                         child: locked
-                            ? Container(
+                            ? Text(
+                                correct
+                                    ? (arabic ? 'إجابة صحيحة' : 'CORRECT')
+                                    : (arabic ? 'إجابة خاطئة' : 'WRONG'),
                                 key: ValueKey<String>(
                                   'state-' + correct.toString(),
                                 ),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 7,
-                                ),
-                                decoration: BoxDecoration(
+                                style: TextStyle(
                                   color: correct
-                                      ? const Color(0x2538E2AE)
-                                      : const Color(0x25FF6985),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: correct
-                                        ? const Color(0x5E38E2AE)
-                                        : const Color(0x5EFF6985),
-                                  ),
-                                ),
-                                child: Text(
-                                  correct
-                                      ? (arabic
-                                          ? 'إجابة صحيحة'
-                                          : 'CORRECT • KEEP GOING')
-                                      : (arabic
-                                          ? 'إجابة خاطئة'
-                                          : 'WRONG • NEXT CARD'),
-                                  style: TextStyle(
-                                    fontSize: 9,
-                                    letterSpacing: arabic ? .05 : 1.15,
-                                    color: correct
-                                        ? const Color(0xFF72F2C0)
-                                        : const Color(0xFFFF879A),
-                                    fontWeight: FontWeight.w900,
-                                  ),
+                                      ? const Color(0xFF2D8C6B)
+                                      : const Color(0xFFB44E5A),
+                                  fontSize: 9,
+                                  letterSpacing: 1.5,
+                                  fontWeight: FontWeight.w900,
                                 ),
                               )
                             : Text(
                                 arabic
-                                    ? 'اختر إجابة قبل انتهاء العداد'
-                                    : 'LOCK AN ANSWER BEFORE THE TIMER ENDS',
+                                    ? 'اختر إجابة قبل انتهاء الوقت'
+                                    : 'CHOOSE BEFORE TIME RUNS OUT',
                                 key: const ValueKey<String>('hint'),
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
+                                style: const TextStyle(
+                                  color: Color(0xFF87785C),
                                   fontSize: 8,
-                                  letterSpacing: arabic ? .05 : 1.1,
-                                  color: const Color(0x78FFFFFF),
+                                  letterSpacing: 1.05,
                                   fontWeight: FontWeight.w800,
                                 ),
                               ),
@@ -1388,10 +1445,6 @@ class _QuestionCard extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  String _questionNo(int offset) {
-    return (offset + 1).toString().padLeft(2, '0');
   }
 }
 
@@ -1418,7 +1471,7 @@ class _CardShell extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(34),
+        borderRadius: BorderRadius.circular(22),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -1426,32 +1479,26 @@ class _CardShell extends StatelessWidget {
         ),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x99000000),
-            blurRadius: 42,
-            offset: Offset(0, 24),
-          ),
-          BoxShadow(
-            color: Color(0x3358E4FF),
+            color: Color(0x78000000),
             blurRadius: 30,
-            spreadRadius: -8,
-            offset: Offset(0, 4),
+            offset: Offset(0, 17),
           ),
         ],
       ),
-      padding: const EdgeInsets.all(3),
+      padding: const EdgeInsets.all(4),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(31),
+          borderRadius: BorderRadius.circular(18),
           color: faceColor,
           border: Border.all(
             color: light
-                ? const Color(0x66FFFFFF)
-                : const Color(0x45FFFFFF),
+                ? const Color(0xFFB69C67)
+                : const Color(0x4BFFFFFF),
             width: 1,
           ),
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(30),
+          borderRadius: BorderRadius.circular(17),
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -1485,44 +1532,35 @@ class _RarityBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFFFE78A),
-            Color(0xFFBD7BDE),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(12),
+        color: light
+            ? const Color(0xFFDDBE6A)
+            : const Color(0xFF2B344A),
+        borderRadius: BorderRadius.circular(7),
         border: Border.all(
-          color: const Color(0xA6FFF1B2),
-          width: 1,
+          color: light
+              ? const Color(0xFF8F6C2E)
+              : const Color(0xFF9A7A3F),
         ),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x55FFD76A),
-            blurRadius: 18,
-            spreadRadius: -5,
-          ),
-        ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            Icons.diamond_rounded,
+            Icons.diamond_outlined,
             size: 11,
             color: light
-                ? const Color(0xFF6F4518)
-                : const Color(0xFF261A3F),
+                ? const Color(0xFF614715)
+                : const Color(0xFFE4C67F),
           ),
           const SizedBox(width: 5),
           Text(
             text,
-            style: const TextStyle(
+            style: TextStyle(
+              color: light
+                  ? const Color(0xFF614715)
+                  : const Color(0xFFE9D69E),
               fontSize: 8,
               letterSpacing: 1.2,
-              color: Color(0xFF2A193B),
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -1544,8 +1582,8 @@ class _TimerRing extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Color accent = seconds <= 5
-        ? const Color(0xFFFF6B85)
-        : const Color(0xFF59E5FF);
+        ? const Color(0xFFC45560)
+        : const Color(0xFF2D9EAA);
 
     return Container(
       width: 58,
@@ -1553,18 +1591,13 @@ class _TimerRing extends StatelessWidget {
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: const Color(0x20101632),
+        color: light
+            ? const Color(0xFFF8F0DD)
+            : const Color(0xFF182236),
         border: Border.all(
-          color: const Color(0x4CFFFFFF),
-          width: 1,
+          color: const Color(0xFFAF965C),
+          width: 1.2,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: accent.withValues(alpha: .20),
-            blurRadius: 18,
-            spreadRadius: -3,
-          ),
-        ],
       ),
       child: Stack(
         fit: StackFit.expand,
@@ -1572,36 +1605,19 @@ class _TimerRing extends StatelessWidget {
           CircularProgressIndicator(
             value: seconds / kSecondsPerQuestion,
             strokeWidth: 4,
-            backgroundColor: light
-                ? const Color(0x33211D30)
-                : const Color(0x33FFFFFF),
+            backgroundColor: const Color(0x2A6D6A62),
             valueColor: AlwaysStoppedAnimation<Color>(accent),
           ),
           Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  seconds.toString(),
-                  style: TextStyle(
-                    color: light ? const Color(0xFF171C32) : Colors.white,
-                    fontSize: 15,
-                    height: 1,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                Text(
-                  'SEC',
-                  style: TextStyle(
-                    color: light
-                        ? const Color(0xFF7C7080)
-                        : const Color(0x73FFFFFF),
-                    fontSize: 6,
-                    letterSpacing: 1.1,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ],
+            child: Text(
+              seconds.toString(),
+              style: TextStyle(
+                color: light
+                    ? const Color(0xFF202939)
+                    : const Color(0xFFF1E5C9),
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
         ],
@@ -1634,91 +1650,109 @@ class _ChoiceButton extends StatelessWidget {
     final bool showCorrect = locked && correct;
     final bool showWrong = locked && selected && !correct;
 
-    Color border = const Color(0x334E5C8B);
-    Color top = const Color(0xCC26325E);
-    Color bottom = const Color(0xE6151B39);
-    Color labelFill = const Color(0x25FFFFFF);
-    Color textColor = const Color(0xFFF7F3E8);
-    Color accent = const Color(0xFF64DFF8);
+    Color fill = const Color(0xFF233047);
+    Color border = const Color(0xFF536276);
+    Color accent = const Color(0xFFD9B45C);
 
     if (showCorrect) {
-      border = const Color(0xB34BE4B1);
-      top = const Color(0xCC1E564B);
-      bottom = const Color(0xEE14332F);
-      accent = const Color(0xFF76F5C2);
+      fill = const Color(0xFF214A43);
+      border = const Color(0xFF58B89C);
+      accent = const Color(0xFF7DE0C2);
     } else if (showWrong) {
-      border = const Color(0xB3FF6C86);
-      top = const Color(0xCC5A263B);
-      bottom = const Color(0xEE351625);
-      accent = const Color(0xFFFF8398);
+      fill = const Color(0xFF512D38);
+      border = const Color(0xFFC76A78);
+      accent = const Color(0xFFFF9DAA);
     } else if (selected) {
-      border = const Color(0xC85DE5FF);
-      top = const Color(0xCC275A73);
-      bottom = const Color(0xEE172D47);
-      accent = const Color(0xFF8CEBFF);
+      fill = const Color(0xFF294B5C);
+      border = const Color(0xFF6CC3D0);
+      accent = const Color(0xFF94E9F3);
     }
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: locked ? null : onTap,
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(10),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 170),
-          curve: Curves.easeOutCubic,
-          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [top, bottom],
-            ),
-            borderRadius: BorderRadius.circular(15),
+            color: fill,
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: border,
-              width: selected ? 1.5 : 1,
+              width: selected ? 1.6 : 1.0,
             ),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x33000000),
-                blurRadius: 10,
-                offset: Offset(0, 5),
-              ),
-            ],
           ),
           child: Row(
             textDirection: arabic ? TextDirection.rtl : TextDirection.ltr,
             children: [
-              if (!arabic) ...[
-                _ChoiceBadge(label: label, accent: accent, fill: labelFill),
-                const SizedBox(width: 10),
-              ],
+              _ChoiceBadge(
+                label: label,
+                accent: accent,
+              ),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   text,
                   textAlign: arabic ? TextAlign.right : TextAlign.left,
-                  style: TextStyle(
-                    color: textColor,
+                  style: const TextStyle(
+                    color: Color(0xFFF7F0DD),
                     fontSize: 14,
                     height: 1.05,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
-              if (arabic) ...[
-                const SizedBox(width: 10),
-                _ChoiceBadge(label: label, accent: accent, fill: labelFill),
-              ],
-              if (showCorrect) ...[
-                const SizedBox(width: 6),
-                Icon(Icons.check_circle_rounded, color: accent, size: 18),
-              ],
-              if (showWrong) ...[
-                const SizedBox(width: 5),
-                Icon(Icons.close_rounded, color: accent, size: 20),
-              ],
+              if (showCorrect)
+                Icon(
+                  Icons.check_rounded,
+                  color: accent,
+                  size: 19,
+                ),
+              if (showWrong)
+                Icon(
+                  Icons.close_rounded,
+                  color: accent,
+                  size: 19,
+                ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ChoiceBadge extends StatelessWidget {
+  const _ChoiceBadge({
+    required this.label,
+    required this.accent,
+  });
+
+  final String label;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 31,
+      height: 31,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: const Color(0xFF182235),
+        border: Border.all(
+          color: accent,
+          width: 1.2,
+        ),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: accent,
+          fontSize: 11,
+          fontWeight: FontWeight.w900,
         ),
       ),
     );
@@ -1781,58 +1815,331 @@ class _DeckRail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0x2A0C1730),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: .09),
-        ),
+        color: const Color(0x9E151E30),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0x355F7188)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            arabic ? 'بطاقاتي' : 'MY DECK',
-            style: TextStyle(
-              fontSize: 9,
-              letterSpacing: arabic ? .2 : 1.5,
-              color: Colors.white.withValues(alpha: .55),
+            arabic ? 'سطحك' : 'YOUR DECK',
+            style: const TextStyle(
+              color: Color(0xFFB9A87B),
+              fontSize: 8,
+              letterSpacing: 1.3,
               fontWeight: FontWeight.w900,
             ),
           ),
           const SizedBox(width: 9),
           for (int i = 0; i < size; i++)
-            Container(
-              width: i == active ? 27 : 19,
-              height: i == active ? 35 : 27,
-              margin: const EdgeInsets.symmetric(horizontal: 2),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(7),
-                gradient: LinearGradient(
-                  colors: i < kTotalQuestions
-                      ? const [Color(0xFF4C719D), Color(0xFF223553)]
-                      : const [Color(0xFF3A395A), Color(0xFF24213D)],
-                ),
-                border: Border.all(
-                  color: i == active
-                      ? const Color(0xFF72E7FF)
-                      : Colors.white.withValues(alpha: .07),
-                ),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                (i + 1).toString(),
-                style: TextStyle(
-                  fontSize: 8,
-                  color: i == active
-                      ? const Color(0xFFC7F7FF)
-                      : Colors.white.withValues(alpha: .55),
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
+            _MiniDeckCard(
+              active: i == active,
+              number: i + 1,
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _MiniDeckCard extends StatelessWidget {
+  const _MiniDeckCard({
+    required this.active,
+    required this.number,
+  });
+
+  final bool active;
+  final int number;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      width: active ? 25 : 18,
+      height: active ? 34 : 27,
+      margin: const EdgeInsets.symmetric(horizontal: 2),
+      decoration: BoxDecoration(
+        color: active
+            ? const Color(0xFF36505C)
+            : const Color(0xFF263348),
+        borderRadius: BorderRadius.circular(5),
+        border: Border.all(
+          color: active
+              ? const Color(0xFFD4AF61)
+              : const Color(0xFF53657B),
+          width: active ? 1.4 : .8,
+        ),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        number.toString(),
+        style: TextStyle(
+          color: active
+              ? const Color(0xFFF3D88F)
+              : const Color(0xFFAAB4C3),
+          fontSize: 8,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+}
+
+class _DeckStack extends StatelessWidget {
+  const _DeckStack({required this.mine});
+  final bool mine;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 270,
+      child: Align(
+        alignment: mine ? Alignment.centerLeft : Alignment.centerRight,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 150,
+              height: 190,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Positioned(
+                    left: 23,
+                    top: 12,
+                    child: Transform.rotate(
+                      angle: mine ? -.12 : .12,
+                      child: const _StackCard(depth: 3),
+                    ),
+                  ),
+                  Positioned(
+                    left: 15,
+                    top: 6,
+                    child: Transform.rotate(
+                      angle: mine ? -.06 : .06,
+                      child: const _StackCard(depth: 2),
+                    ),
+                  ),
+                  Transform.rotate(
+                    angle: mine ? -.015 : .015,
+                    child: const _StackCard(depth: 1),
+                  ),
+                ],
+              ),
+            ),
+            Text(
+              mine ? 'YOUR CARDS' : 'RIVAL CARDS',
+              style: const TextStyle(
+                color: Color(0xFFA7B1C0),
+                fontSize: 8,
+                letterSpacing: 1.2,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '10',
+              style: TextStyle(
+                color: mine
+                    ? const Color(0xFF7FD8E4)
+                    : const Color(0xFFDB8A92),
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StackCard extends StatelessWidget {
+  const _StackCard({required this.depth});
+  final int depth;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 112,
+      height: 160,
+      decoration: BoxDecoration(
+        color: const Color(0xFF202B40),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF8A7140)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x55000000),
+            blurRadius: 14,
+            offset: Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Text(
+          'STQ',
+          style: TextStyle(
+            color: depth == 1
+                ? const Color(0xFFE7CE87)
+                : const Color(0xFF708196),
+            fontSize: depth == 1 ? 25 : 19,
+            letterSpacing: 2.4,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MiniDeckCard extends StatelessWidget {
+  const _MiniDeckCard({
+    required this.active,
+    required this.number,
+  });
+
+  final bool active;
+  final int number;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      width: active ? 25 : 18,
+      height: active ? 34 : 27,
+      margin: const EdgeInsets.symmetric(horizontal: 2),
+      decoration: BoxDecoration(
+        color: active
+            ? const Color(0xFF36505C)
+            : const Color(0xFF263348),
+        borderRadius: BorderRadius.circular(5),
+        border: Border.all(
+          color: active
+              ? const Color(0xFFD4AF61)
+              : const Color(0xFF53657B),
+          width: active ? 1.4 : .8,
+        ),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        number.toString(),
+        style: TextStyle(
+          color: active
+              ? const Color(0xFFF3D88F)
+              : const Color(0xFFAAB4C3),
+          fontSize: 8,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+}
+
+class _DeckStack extends StatelessWidget {
+  const _DeckStack({required this.mine});
+  final bool mine;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 270,
+      child: Align(
+        alignment: mine ? Alignment.centerLeft : Alignment.centerRight,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 150,
+              height: 190,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Positioned(
+                    left: 23,
+                    top: 12,
+                    child: Transform.rotate(
+                      angle: mine ? -.12 : .12,
+                      child: const _StackCard(depth: 3),
+                    ),
+                  ),
+                  Positioned(
+                    left: 15,
+                    top: 6,
+                    child: Transform.rotate(
+                      angle: mine ? -.06 : .06,
+                      child: const _StackCard(depth: 2),
+                    ),
+                  ),
+                  Transform.rotate(
+                    angle: mine ? -.015 : .015,
+                    child: const _StackCard(depth: 1),
+                  ),
+                ],
+              ),
+            ),
+            Text(
+              mine ? 'YOUR CARDS' : 'RIVAL CARDS',
+              style: const TextStyle(
+                color: Color(0xFFA7B1C0),
+                fontSize: 8,
+                letterSpacing: 1.2,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '10',
+              style: TextStyle(
+                color: mine
+                    ? const Color(0xFF7FD8E4)
+                    : const Color(0xFFDB8A92),
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StackCard extends StatelessWidget {
+  const _StackCard({required this.depth});
+  final int depth;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 112,
+      height: 160,
+      decoration: BoxDecoration(
+        color: const Color(0xFF202B40),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF8A7140)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x55000000),
+            blurRadius: 14,
+            offset: Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Text(
+          'STQ',
+          style: TextStyle(
+            color: depth == 1
+                ? const Color(0xFFE7CE87)
+                : const Color(0xFF708196),
+            fontSize: depth == 1 ? 25 : 19,
+            letterSpacing: 2.4,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
       ),
     );
   }
@@ -1857,82 +2164,131 @@ class _StealCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double lift = selected ? -12 * animation : 0;
+    final double lift = selected ? -10 * animation : 0;
+
     return Transform.translate(
       offset: Offset(0, lift),
       child: GestureDetector(
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
-          width: 122,
-          height: 164,
+          width: 118,
+          height: 158,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF6B84A9),
-                Color(0xFF293956),
-                Color(0xFF221A43),
-              ],
-            ),
+            color: selected
+                ? const Color(0xFF2E4357)
+                : const Color(0xFF243247),
+            borderRadius: BorderRadius.circular(13),
             border: Border.all(
               color: selected
-                  ? const Color(0xFFFFD66B)
-                  : Colors.white.withValues(alpha: .10),
+                  ? const Color(0xFFE0BE67)
+                  : const Color(0xFF5D6B7C),
               width: selected ? 2 : 1,
             ),
-            boxShadow: [
-              if (selected)
-                const BoxShadow(
-                  color: Color(0x6054DFFF),
-                  blurRadius: 28,
-                  spreadRadius: -5,
-                ),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x50000000),
+                blurRadius: 15,
+                offset: Offset(0, 9),
+              ),
             ],
           ),
-          child: revealed
-              ? const Center(
-                  child: Icon(
-                    Icons.style_rounded,
-                    color: Color(0xFFFFD66B),
-                    size: 40,
-                  ),
-                )
-              : Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.lock_outline_rounded,
-                      color: Color(0xFF7DEAFF),
-                      size: 30,
-                    ),
-                    const SizedBox(height: 9),
-                    Text(
-                      (arabic ? 'بطاقة ' : 'CARD ') + (index + 1).toString(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 9,
-                        letterSpacing: 1.1,
-                        fontWeight: FontWeight.w900,
+          child: Stack(
+            children: [
+              const Positioned.fill(
+                child: CustomPaint(painter: _SmallCardBackPainter()),
+              ),
+              Center(
+                child: revealed
+                    ? const Text(
+                        'STQ',
+                        style: TextStyle(
+                          color: Color(0xFFEED48B),
+                          fontSize: 28,
+                          letterSpacing: 2,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      )
+                    : Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text(
+                            'STQ',
+                            style: TextStyle(
+                              color: Color(0xFFD8BF7E),
+                              fontSize: 24,
+                              letterSpacing: 2,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            (arabic ? 'بطاقة ' : 'CARD ') + (index + 1).toString(),
+                            style: const TextStyle(
+                              color: Color(0xFFB8C3D0),
+                              fontSize: 8,
+                              letterSpacing: 1.0,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      arabic ? 'اضغط للاختيار' : 'TAP TO PICK',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: .45),
-                        fontSize: 8,
-                        letterSpacing: 1.0,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
-                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
+  }
+}
+
+class _SmallCardBackPainter extends CustomPainter {
+  const _SmallCardBackPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Paint p = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1
+      ..color = const Color(0x355E748C);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(9, 9, size.width - 18, size.height - 18),
+        const Radius.circular(10),
+      ),
+      p,
+    );
+    canvas.drawCircle(size.center(Offset.zero), size.width * .23, p);
+    final Paint gold = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1
+      ..color = const Color(0x4CA98C45);
+    canvas.drawCircle(size.center(Offset.zero), size.width * .32, gold);
+  }
+}
+
+class _SmallCardBackPainter extends CustomPainter {
+  const _SmallCardBackPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Paint p = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1
+      ..color = const Color(0x355E748C);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(9, 9, size.width - 18, size.height - 18),
+        const Radius.circular(10),
+      ),
+      p,
+    );
+    canvas.drawCircle(size.center(Offset.zero), size.width * .23, p);
+    final Paint gold = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1
+      ..color = const Color(0x4CA98C45);
+    canvas.drawCircle(size.center(Offset.zero), size.width * .32, gold);
   }
 }
 
@@ -2187,68 +2543,60 @@ class _CardFacePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final Paint halo = Paint()
-      ..shader = const RadialGradient(
-        colors: [
-          Color(0x543F58C8),
-          Color(0x00141A37),
-        ],
-      ).createShader(
-        Rect.fromCircle(
-          center: Offset(size.width * .55, size.height * .48),
-          radius: size.width * .78,
-        ),
-      );
-    canvas.drawRect(Offset.zero & size, halo);
-
-    final Paint cyan = Paint()
+    final Paint line = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1
-      ..color = const Color(0x274DE6FF);
-    final Paint gold = Paint()
+      ..color = const Color(0x3C8B7441);
+
+    final Paint faint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.1
-      ..color = const Color(0x2DFFD66F);
+      ..strokeWidth = 1
+      ..color = const Color(0x1E59667A);
 
-    for (double r = 120; r < size.width * .75; r += 32) {
-      canvas.drawCircle(
-        Offset(size.width * .5, size.height * .53),
-        r,
-        cyan,
-      );
-    }
-
-    for (int i = 0; i < 7; i++) {
-      final double y = 98 + i * 58;
+    for (double y = 88; y < size.height - 28; y += 62) {
       canvas.drawLine(
-        Offset(16, y),
-        Offset(size.width - 16, y),
-        cyan,
+        Offset(18, y),
+        Offset(size.width - 18, y),
+        faint,
       );
     }
 
-    final Path left = Path()
-      ..moveTo(0, 122)
-      ..lineTo(42, 96)
-      ..lineTo(68, 122)
-      ..lineTo(42, 150)
-      ..close();
-    canvas.drawPath(left, gold);
-
-    final Path right = Path()
-      ..moveTo(size.width, 165)
-      ..lineTo(size.width - 42, 139)
-      ..lineTo(size.width - 68, 165)
-      ..lineTo(size.width - 42, 191)
-      ..close();
-    canvas.drawPath(right, cyan);
-
-    final Paint micro = Paint()..color = const Color(0x24FFFFFF);
-    for (int i = 0; i < 18; i++) {
-      final double x = 14 + (i * 37) % (size.width.toInt() - 28);
-      final double y = 70 + (i * 53) % (size.height.toInt() - 110);
-      canvas.drawCircle(Offset(x, y), i.isEven ? 1.2 : .7, micro);
+    final Offset c = Offset(size.width * .5, size.height * .52);
+    for (double r = 115; r < 200; r += 27) {
+      canvas.drawCircle(c, r, faint);
     }
+
+    final Path diamond = Path()
+      ..moveTo(c.dx, c.dy - 60)
+      ..lineTo(c.dx + 60, c.dy)
+      ..lineTo(c.dx, c.dy + 60)
+      ..lineTo(c.dx - 60, c.dy)
+      ..close();
+    canvas.drawPath(diamond, line);
+
+    final Paint corner = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.6
+      ..color = const Color(0x7A9E7A42);
+
+    _corner(canvas, corner, const Offset(13, 13), 1, 1);
+    _corner(canvas, corner, Offset(size.width - 13, 13), -1, 1);
+    _corner(canvas, corner, const Offset(13, size.height - 13), 1, -1);
+    _corner(canvas, corner, Offset(size.width - 13, size.height - 13), -1, -1);
+  }
+
+  void _corner(
+    Canvas canvas,
+    Paint paint,
+    Offset p,
+    double sx,
+    double sy,
+  ) {
+    final Path path = Path()
+      ..moveTo(p.dx, p.dy + 18 * sy)
+      ..lineTo(p.dx, p.dy)
+      ..lineTo(p.dx + 18 * sx, p.dy);
+    canvas.drawPath(path, paint);
   }
 
   @override
@@ -2261,49 +2609,35 @@ class _CardBackPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final Offset c = size.center(Offset.zero);
-    final Paint cyan = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.15
-      ..color = const Color(0x3A48E3FF);
-    final Paint violet = Paint()
+    final Paint line = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1
-      ..color = const Color(0x32B36DFF);
+      ..color = const Color(0x3F6E849B);
     final Paint gold = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.35
-      ..color = const Color(0x34FFD56A);
+      ..strokeWidth = 1.2
+      ..color = const Color(0x5B9C7A3E);
 
-    for (double r = 48; r < size.width * .76; r += 31) {
-      canvas.drawCircle(c, r, cyan);
+    for (double r = 48; r < size.width * .66; r += 28) {
+      canvas.drawCircle(c, r, line);
     }
 
-    for (int i = 0; i < 14; i++) {
-      final double a = math.pi * 2 * i / 14;
-      final Offset inner = c + Offset(math.cos(a), math.sin(a)) * 76;
-      final Offset outer = c + Offset(math.cos(a), math.sin(a)) * size.width * .55;
-      canvas.drawLine(inner, outer, violet);
+    for (int i = 0; i < 12; i++) {
+      final double a = math.pi * 2 * i / 12;
+      canvas.drawLine(
+        c + Offset(math.cos(a), math.sin(a)) * 74,
+        c + Offset(math.cos(a), math.sin(a)) * size.width * .5,
+        gold,
+      );
     }
 
-    final Path diamond = Path()
-      ..moveTo(c.dx, c.dy - 154)
-      ..lineTo(c.dx + 154, c.dy)
-      ..lineTo(c.dx, c.dy + 154)
-      ..lineTo(c.dx - 154, c.dy)
+    final Path outer = Path()
+      ..moveTo(c.dx, c.dy - 152)
+      ..lineTo(c.dx + 152, c.dy)
+      ..lineTo(c.dx, c.dy + 152)
+      ..lineTo(c.dx - 152, c.dy)
       ..close();
-    canvas.drawPath(diamond, gold);
-
-    final Paint edge = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1
-      ..color = const Color(0x35FFFFFF);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(16, 16, size.width - 32, size.height - 32),
-        const Radius.circular(27),
-      ),
-      edge,
-    );
+    canvas.drawPath(outer, gold);
   }
 
   @override
@@ -2317,48 +2651,42 @@ class _CardFramePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final Paint p = Paint()
+    final Paint outer = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1
-      ..color = const Color(0x4594EFFF);
+      ..color = light
+          ? const Color(0x4A8C744A)
+          : const Color(0x4A92A5BB);
 
-    final RRect r = RRect.fromRectAndRadius(
-      Offset.zero & size,
-      const Radius.circular(29),
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(10, 10, size.width - 20, size.height - 20),
+        const Radius.circular(14),
+      ),
+      outer,
     );
-    canvas.drawRRect(r.deflate(9), p);
 
     final Paint gold = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.7
-      ..color = const Color(0x5DFFD66F);
+      ..strokeWidth = 1.4
+      ..color = light
+          ? const Color(0x6D9C7A3E)
+          : const Color(0x638E7139);
 
-    final List<Offset> corners = [
-      const Offset(30, 30),
-      Offset(size.width - 30, 30),
-      const Offset(30, 490),
-      Offset(size.width - 30, 490),
-    ];
-
-    for (final Offset p0 in corners) {
+    for (final Offset p0 in [
+      const Offset(27, 27),
+      Offset(size.width - 27, 27),
+      const Offset(27, 483),
+      Offset(size.width - 27, 483),
+    ]) {
       final double sx = p0.dx < size.width / 2 ? 1 : -1;
       final double sy = p0.dy < size.height / 2 ? 1 : -1;
       final Path path = Path()
-        ..moveTo(p0.dx, p0.dy + 20 * sy)
+        ..moveTo(p0.dx, p0.dy + 17 * sy)
         ..lineTo(p0.dx, p0.dy)
-        ..lineTo(p0.dx + 20 * sx, p0.dy);
+        ..lineTo(p0.dx + 17 * sx, p0.dy);
       canvas.drawPath(path, gold);
     }
-
-    final Paint side = Paint()
-      ..color = const Color(0x1F6DE7FF);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(7, 7, size.width - 14, size.height - 14),
-        const Radius.circular(27),
-      ),
-      side,
-    );
   }
 
   @override
@@ -2371,61 +2699,95 @@ class _AmbientLights extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IgnorePointer(
-      child: Stack(
-        children: [
-          Positioned(
-            top: -150,
-            left: -130,
-            child: Container(
-              width: 430,
-              height: 430,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    Color(0x5363E5FF),
-                    Color(0x00142C54),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            top: 80,
-            right: -140,
-            child: Container(
-              width: 430,
-              height: 430,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    Color(0x4E9D63FF),
-                    Color(0x003D2B79),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -190,
-            left: 140,
-            child: Container(
-              width: 520,
-              height: 520,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    Color(0x3ED2A14D),
-                    Color(0x0010214A),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
+      child: CustomPaint(
+        painter: const _ArenaBackdropPainter(),
+        size: Size.infinite,
       ),
     );
   }
+}
+
+class _ArenaBackdropPainter extends CustomPainter {
+  const _ArenaBackdropPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Paint top = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Color(0xFF162237),
+          Color(0xFF0F1726),
+        ],
+      ).createShader(Offset.zero & size);
+    canvas.drawRect(Offset.zero & size, top);
+
+    final Paint floor = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Color(0x00111A29),
+          Color(0xB20B101A),
+        ],
+      ).createShader(
+        Rect.fromLTWH(0, size.height * .55, size.width, size.height * .45),
+      );
+    canvas.drawRect(
+      Rect.fromLTWH(0, size.height * .55, size.width, size.height * .45),
+      floor,
+    );
+
+    final Paint grid = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1
+      ..color = const Color(0x203F5972);
+
+    for (int i = -8; i <= 8; i++) {
+      final double x = size.width / 2 + i * 74;
+      canvas.drawLine(
+        Offset(size.width / 2, size.height * .58),
+        Offset(x + i * 28, size.height),
+        grid,
+      );
+    }
+
+    for (int i = 0; i < 6; i++) {
+      final double y = size.height * .62 + i * 42;
+      canvas.drawLine(
+        Offset(size.width * .08, y),
+        Offset(size.width * .92, y),
+        grid,
+      );
+    }
+
+    final Paint frame = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.6
+      ..color = const Color(0x305F7890);
+
+    final RRect stage = RRect.fromRectAndRadius(
+      Rect.fromLTWH(
+        16,
+        16,
+        size.width - 32,
+        size.height - 32,
+      ),
+      const Radius.circular(18),
+    );
+    canvas.drawRRect(stage, frame);
+
+    final Path centerMark = Path()
+      ..moveTo(size.width * .5, size.height * .13)
+      ..lineTo(size.width * .5 + 24, size.height * .16)
+      ..lineTo(size.width * .5, size.height * .19)
+      ..lineTo(size.width * .5 - 24, size.height * .16)
+      ..close();
+    final Paint mark = Paint()..color = const Color(0x3ABF9B4F);
+    canvas.drawPath(centerMark, mark);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
