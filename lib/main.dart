@@ -17,489 +17,662 @@ class StealTheQuestionsApp extends StatelessWidget {
       title: 'STEAL THE QUESTIONS',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        brightness: Brightness.dark,
+        brightness: Brightness.light,
         useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFF0B1020),
         fontFamily: 'Arial',
+        scaffoldBackgroundColor: const Color(0xFF0D1630),
       ),
-      home: const GamePrototype(),
+      home: const DuelDesignPrototype(),
     );
   }
 }
 
-class GamePrototype extends StatefulWidget {
-  const GamePrototype({super.key});
-
-  @override
-  State<GamePrototype> createState() => _GamePrototypeState();
-}
-
-enum _Screen { duel, steal, done }
-
-class _Question {
-  const _Question({
-    required this.text,
-    required this.answers,
-    required this.correct,
-    required this.category,
+class _QuestionData {
+  const _QuestionData({
+    required this.en,
+    required this.ar,
+    required this.enAnswers,
+    required this.arAnswers,
+    required this.correctIndex,
+    required this.categoryEn,
+    required this.categoryAr,
   });
 
-  final String text;
-  final List<String> answers;
-  final int correct;
-  final String category;
+  final String en;
+  final String ar;
+  final List<String> enAnswers;
+  final List<String> arAnswers;
+  final int correctIndex;
+  final String categoryEn;
+  final String categoryAr;
 }
 
-class _GamePrototypeState extends State<GamePrototype>
+class DuelDesignPrototype extends StatefulWidget {
+  const DuelDesignPrototype({super.key});
+
+  @override
+  State<DuelDesignPrototype> createState() => _DuelDesignPrototypeState();
+}
+
+enum _Stage { duel, result, steal, claimed }
+
+class _DuelDesignPrototypeState extends State<DuelDesignPrototype>
     with TickerProviderStateMixin {
-  static const int questionsPerDuel = 7;
+  static const int totalQuestions = 7;
   static const int deckSize = 10;
   static const int secondsPerQuestion = 20;
 
-  static const _questions = <_Question>[
-    _Question(
-      text: 'Which planet is known as the Red Planet?',
-      answers: ['Mars', 'Venus', 'Jupiter'],
-      correct: 0,
-      category: 'SCIENCE',
+  static const List<_QuestionData> _questions = <_QuestionData>[
+    _QuestionData(
+      en: 'Which planet is known as the Red Planet?',
+      ar: 'أي كوكب يُعرف بالكوكب الأحمر؟',
+      enAnswers: ['Mars', 'Venus', 'Jupiter'],
+      arAnswers: ['المريخ', 'الزهرة', 'المشتري'],
+      correctIndex: 0,
+      categoryEn: 'SCIENCE',
+      categoryAr: 'علوم',
     ),
-    _Question(
-      text: 'What is the largest ocean on Earth?',
-      answers: ['Atlantic', 'Pacific', 'Indian'],
-      correct: 1,
-      category: 'GEOGRAPHY',
+    _QuestionData(
+      en: 'What is the largest ocean on Earth?',
+      ar: 'ما هو أكبر محيط على الأرض؟',
+      enAnswers: ['Atlantic Ocean', 'Pacific Ocean', 'Indian Ocean'],
+      arAnswers: ['الأطلسي', 'الهادئ', 'الهندي'],
+      correctIndex: 1,
+      categoryEn: 'GEOGRAPHY',
+      categoryAr: 'جغرافيا',
     ),
-    _Question(
-      text: 'How many continents are there?',
-      answers: ['5', '6', '7'],
-      correct: 2,
-      category: 'WORLD',
+    _QuestionData(
+      en: 'How many continents are there?',
+      ar: 'كم عدد القارات في العالم؟',
+      enAnswers: ['5', '6', '7'],
+      arAnswers: ['5', '6', '7'],
+      correctIndex: 2,
+      categoryEn: 'WORLD',
+      categoryAr: 'العالم',
     ),
-    _Question(
-      text: 'Which animal is the fastest on land?',
-      answers: ['Lion', 'Cheetah', 'Horse'],
-      correct: 1,
-      category: 'NATURE',
+    _QuestionData(
+      en: 'Which animal is the fastest on land?',
+      ar: 'ما أسرع حيوان على اليابسة؟',
+      enAnswers: ['Lion', 'Cheetah', 'Horse'],
+      arAnswers: ['الأسد', 'الفهد', 'الحصان'],
+      correctIndex: 1,
+      categoryEn: 'NATURE',
+      categoryAr: 'طبيعة',
     ),
-    _Question(
-      text: 'Which language has the most native speakers?',
-      answers: ['Spanish', 'English', 'Mandarin'],
-      correct: 2,
-      category: 'CULTURE',
+    _QuestionData(
+      en: 'Which language has the most native speakers?',
+      ar: 'ما اللغة التي لديها أكبر عدد من المتحدثين الأصليين؟',
+      enAnswers: ['Spanish', 'English', 'Mandarin'],
+      arAnswers: ['الإسبانية', 'الإنجليزية', 'الماندرين'],
+      correctIndex: 2,
+      categoryEn: 'CULTURE',
+      categoryAr: 'ثقافة',
     ),
-    _Question(
-      text: 'Which country is home to the city of Kyoto?',
-      answers: ['China', 'Japan', 'Thailand'],
-      correct: 1,
-      category: 'TRAVEL',
+    _QuestionData(
+      en: 'Which country is home to Kyoto?',
+      ar: 'في أي دولة تقع مدينة كيوتو؟',
+      enAnswers: ['China', 'Japan', 'Thailand'],
+      arAnswers: ['الصين', 'اليابان', 'تايلاند'],
+      correctIndex: 1,
+      categoryEn: 'TRAVEL',
+      categoryAr: 'سفر',
     ),
-    _Question(
-      text: 'What is the hardest natural substance?',
-      answers: ['Iron', 'Diamond', 'Quartz'],
-      correct: 1,
-      category: 'SCIENCE',
+    _QuestionData(
+      en: 'What is the hardest natural substance?',
+      ar: 'ما أقسى مادة طبيعية؟',
+      enAnswers: ['Iron', 'Diamond', 'Quartz'],
+      arAnswers: ['الحديد', 'الألماس', 'الكوارتز'],
+      correctIndex: 1,
+      categoryEn: 'SCIENCE',
+      categoryAr: 'علوم',
     ),
   ];
 
-  final _opponentCards = List.generate(
-    deckSize,
-    (index) => 'CARD \${{index + 1}',
-  );
-
-  late final AnimationController _cardFlip;
-  late final AnimationController _cardEnter;
-  late final AnimationController _result;
-  late final AnimationController _steal;
+  late final AnimationController _flip;
+  late final AnimationController _enter;
+  late final AnimationController _pulse;
+  late final AnimationController _stealIn;
   Timer? _timer;
 
-  _Screen _screen = _Screen.duel;
+  bool _arabic = false;
+  _Stage _stage = _Stage.duel;
   int _questionIndex = 0;
   int _seconds = secondsPerQuestion;
-  int _yourScore = 0;
+  int _score = 0;
   int _rivalScore = 0;
   int _selected = -1;
   bool _locked = false;
-  bool _showResult = false;
-  bool _wasCorrect = false;
+  bool _correct = false;
   int _stolenIndex = -1;
-  bool _revealedSteal = false;
 
-  _Question get _question => _questions[_questionIndex];
+  _QuestionData get _question => _questions[_questionIndex];
 
   @override
   void initState() {
     super.initState();
-    _cardFlip = AnimationController(
+    _flip = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 520),
+      duration: const Duration(milliseconds: 620),
     );
-    _cardEnter = AnimationController(
+    _enter = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 420),
     );
-    _result = AnimationController(
+    _pulse = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 260),
+      duration: const Duration(milliseconds: 650),
     );
-    _steal = AnimationController(
+    _stealIn = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 700),
+      duration: const Duration(milliseconds: 720),
     );
-    _startQuestion(first: true);
+    _startQuestion();
   }
 
   @override
   void dispose() {
     _timer?.cancel();
-    _cardFlip.dispose();
-    _cardEnter.dispose();
-    _result.dispose();
-    _steal.dispose();
+    _flip.dispose();
+    _enter.dispose();
+    _pulse.dispose();
+    _stealIn.dispose();
     super.dispose();
   }
 
-  void _startQuestion({bool first = false}) {
+  void _startQuestion() {
     _timer?.cancel();
     setState(() {
       _seconds = secondsPerQuestion;
       _selected = -1;
       _locked = false;
-      _showResult = false;
+      _correct = false;
     });
-    _cardFlip
+    _flip
       ..reset()
       ..forward();
-    _cardEnter
+    _enter
       ..reset()
       ..forward();
-    if (!first) {
-      _result.reset();
-    }
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted || _locked || _screen != _Screen.duel) return;
+      if (!mounted || _locked || _stage != _Stage.duel) {
+        return;
+      }
       if (_seconds <= 1) {
         timer.cancel();
-        _submitAnswer(-1);
+        _answer(-1);
       } else {
-        setState(() => _seconds--);
+        setState(() {
+          _seconds -= 1;
+        });
       }
     });
   }
 
-  Future<void> _submitAnswer(int answer) async {
-    if (_locked || _screen != _Screen.duel) return;
-    _timer?.cancel();
-    await SystemSound.play(SystemSoundType.click);
-    await HapticFeedback.selectionClick();
-
-    final correct = answer == _question.correct;
-    setState(() {
-      _selected = answer;
-      _locked = true;
-      _showResult = true;
-      _wasCorrect = correct;
-      if (correct) _yourScore++;
-    });
-    _result.forward(from: 0);
-
-    await Future<void>.delayed(const Duration(milliseconds: 780));
-    if (!mounted) return;
-
-    if (_questionIndex >= questionsPerDuel - 1) {
-      setState(() => _screen = _Screen.steal);
-      _steal.forward(from: 0);
+  Future<void> _answer(int value) async {
+    if (_locked || _stage != _Stage.duel) {
       return;
     }
 
-    setState(() => _questionIndex++);
+    _timer?.cancel();
+    await HapticFeedback.selectionClick();
+
+    final bool isCorrect = value == _question.correctIndex;
+    setState(() {
+      _selected = value;
+      _locked = true;
+      _correct = isCorrect;
+      if (isCorrect) {
+        _score += 1;
+      }
+      if (!isCorrect && _questionIndex.isEven) {
+        _rivalScore = math.min(totalQuestions, _rivalScore + 1);
+      }
+    });
+
+    _pulse
+      ..reset()
+      ..forward();
+
+    await Future<void>.delayed(const Duration(milliseconds: 950));
+    if (!mounted) {
+      return;
+    }
+
+    if (_questionIndex == totalQuestions - 1) {
+      setState(() {
+        _stage = _Stage.result;
+      });
+      return;
+    }
+
+    setState(() {
+      _questionIndex += 1;
+    });
     _startQuestion();
   }
 
-  void _chooseSteal(int index) {
-    if (_revealedSteal) return;
-    SystemSound.play(SystemSoundType.click);
+  void _beginSteal() {
+    setState(() {
+      _stage = _Stage.steal;
+      _stolenIndex = -1;
+    });
+    _stealIn
+      ..reset()
+      ..forward();
+  }
+
+  void _selectSteal(int index) {
+    if (_stolenIndex != -1) {
+      return;
+    }
     HapticFeedback.mediumImpact();
     setState(() {
       _stolenIndex = index;
-      _revealedSteal = true;
     });
-    _steal.forward(from: 0);
+    _stealIn
+      ..reset()
+      ..forward();
   }
 
-  void _finishSteal() {
-    setState(() => _screen = _Screen.done);
+  void _claimCard() {
     HapticFeedback.heavyImpact();
+    setState(() {
+      _stage = _Stage.claimed;
+    });
   }
 
-  void _restart() {
+  void _reset() {
     _timer?.cancel();
     setState(() {
-      _screen = _Screen.duel;
+      _stage = _Stage.duel;
       _questionIndex = 0;
       _seconds = secondsPerQuestion;
-      _yourScore = 0;
+      _score = 0;
       _rivalScore = 0;
       _selected = -1;
       _locked = false;
-      _showResult = false;
-      _wasCorrect = false;
+      _correct = false;
       _stolenIndex = -1;
-      _revealedSteal = false;
     });
-    _startQuestion(first: true);
+    _startQuestion();
+  }
+
+  void _toggleLanguage() {
+    setState(() {
+      _arabic = !_arabic;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF0C1730),
-              Color(0xFF17133A),
-              Color(0xFF0B1020),
-            ],
+    return Directionality(
+      textDirection: _arabic ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        body: DecoratedBox(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFF142C54),
+                Color(0xFF3D2B79),
+                Color(0xFF10214A),
+              ],
+            ),
           ),
-        ),
-        child: SafeArea(
           child: Stack(
             children: [
-              const _BackgroundGlow(),
-              if (_screen == _Screen.duel) _buildDuel(),
-              if (_screen == _Screen.steal) _buildSteal(),
-              if (_screen == _Screen.done) _buildDone(),
+              const _AmbientLights(),
+              SafeArea(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 360),
+                  child: _buildStage(),
+                ),
+              ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  Widget _buildStage() {
+    switch (_stage) {
+      case _Stage.duel:
+        return _buildDuel();
+      case _Stage.result:
+        return _buildResult();
+      case _Stage.steal:
+        return _buildSteal();
+      case _Stage.claimed:
+        return _buildClaimed();
+    }
   }
 
   Widget _buildDuel() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact = constraints.maxHeight < 760;
-        return Column(
-          children: [
-            Padding(
-              padding: EdgeInsets.fromLTRB(18, compact ? 10 : 18, 18, 0),
-              child: _DuelHeader(
-                yourScore: _yourScore,
-                rivalScore: _rivalScore,
-                questionNumber: _questionIndex + 1,
-              ),
-            ),
-            SizedBox(height: compact ? 8 : 18),
-            Expanded(
-              child: Center(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(18, 0, 18, 14),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 920),
-                    child: Column(
-                      children: [
-                        AnimatedBuilder(
-                          animation: Listenable.merge(
-                            [_cardFlip, _cardEnter, _result],
-                          ),
-                          builder: (context, child) {
-                            final enter = Curves.easeOutCubic.transform(
-                              _cardEnter.value,
-                            );
-                            final flip = _cardFlip.value;
-                            final result = Curves.easeOutCubic.transform(
-                              _result.value,
-                            );
-                            final scale = 0.965 + (0.035 * enter);
-                            final y = 26 * (1 - enter);
-                            final shake = _showResult && !_wasCorrect
-                                ? math.sin(result * math.pi * 5) * 4
-                                : 0.0;
-                            return Transform.translate(
-                              offset: Offset(shake, y),
-                              child: Transform.scale(
-                                scale: scale,
-                                child: Transform(
-                                  alignment: Alignment.center,
-                                  transform: Matrix4.identity()
-                                    ..setEntry(3, 2, 0.0012)
-                                    ..rotateY(math.pi * flip),
-                                  child: flip < 0.5
-                                      ? _CardBack(
-                                          category: _question.category,
-                                          compact: compact,
-                                        )
-                                      : Transform(
-                                          alignment: Alignment.center,
-                                          transform:
-                                              Matrix4.rotationY(math.pi),
-                                          child: _QuestionCard(
-                                            question: _question,
-                                            seconds: _seconds,
-                                            selected: _selected,
-                                            locked: _locked,
-                                            correctIndex: _question.correct,
-                                            compact: compact,
-                                            onAnswer: _submitAnswer,
-                                            showResult: _showResult,
-                                            wasCorrect: _wasCorrect,
-                                          ),
-                                        ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        _DeckRail(size: deckSize, active: _questionIndex),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
+    final bool compact = MediaQuery.sizeOf(context).height < 760;
+    final String progress = (_questionIndex + 1).toString() +
+        ' / ' +
+        totalQuestions.toString();
 
-  Widget _buildSteal() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final wide = constraints.maxWidth > 760;
-          return Column(
-            children: [
-              _StealHeader(
-                yourScore: _yourScore,
-                rivalScore: _rivalScore,
-              ),
-              const SizedBox(height: 18),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 980),
-                    child: Column(
-                      children: [
-                        _StealTitle(
-                          revealed: _revealedSteal,
-                          wide: wide,
-                        ),
-                        const SizedBox(height: 16),
-                        AnimatedBuilder(
-                          animation: _steal,
-                          builder: (context, _) {
-                            return Wrap(
-                              alignment: WrapAlignment.center,
-                              spacing: 12,
-                              runSpacing: 12,
-                              children: [
-                                for (int i = 0; i < _opponentCards.length; i++)
-                                  _StealCard(
-                                    index: i,
-                                    selected: _stolenIndex == i,
-                                    revealed:
-                                        _revealedSteal && _stolenIndex == i,
-                                    animationValue: _steal.value,
-                                    onTap: () => _chooseSteal(i),
-                                  ),
-                              ],
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 20),
-                        if (_revealedSteal)
-                          _StealConfirm(
-                            cardIndex: _stolenIndex,
-                            onDone: _finishSteal,
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildDone() {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 520),
-          padding: const EdgeInsets.all(30),
-          decoration: BoxDecoration(
-            color: const Color(0xE9121A2E),
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(color: Colors.white.withValues(alpha: .09)),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x66000000),
-                blurRadius: 50,
-                offset: Offset(0, 24),
-              ),
-            ],
+    return Column(
+      key: const ValueKey<String>('duel'),
+      children: [
+        Padding(
+          padding: EdgeInsets.fromLTRB(18, compact ? 10 : 18, 18, 0),
+          child: _ArenaHeader(
+            arabic: _arabic,
+            score: _score,
+            rivalScore: _rivalScore,
+            progress: progress,
+            onLanguage: _toggleLanguage,
           ),
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 980),
+                child: Column(
+                  children: [
+                    _BattleLine(
+                      arabic: _arabic,
+                      deckSize: deckSize,
+                    ),
+                    const SizedBox(height: 12),
+                    AnimatedBuilder(
+                      animation: Listenable.merge([_flip, _enter, _pulse]),
+                      builder: (context, child) {
+                        final double enter = Curves.easeOutCubic.transform(_enter.value);
+                        final double pulse = Curves.easeOutCubic.transform(_pulse.value);
+                        final double flip = _flip.value;
+                        final double scale = 0.95 + (0.05 * enter) + (0.012 * pulse);
+                        final double y = 26 * (1 - enter);
+                        final double shake =
+                            _locked && !_correct
+                                ? math.sin(pulse * math.pi * 6) * 4
+                                : 0;
+
+                        return Transform.translate(
+                          offset: Offset(shake, y),
+                          child: Transform.scale(
+                            scale: scale,
+                            child: Transform(
+                              alignment: Alignment.center,
+                              transform: Matrix4.identity()
+                                ..setEntry(3, 2, 0.0013)
+                                ..rotateY(math.pi * flip),
+                              child: flip < 0.5
+                                  ? _CardBack(
+                                      arabic: _arabic,
+                                      category: _arabic
+                                          ? _question.categoryAr
+                                          : _question.categoryEn,
+                                    )
+                                  : Transform(
+                                      alignment: Alignment.center,
+                                      transform: Matrix4.rotationY(math.pi),
+                                      child: _QuestionCard(
+                                        arabic: _arabic,
+                                        question: _question,
+                                        seconds: _seconds,
+                                        selected: _selected,
+                                        locked: _locked,
+                                        correct: _correct,
+                                        onAnswer: _answer,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    _DeckRail(
+                      active: _questionIndex,
+                      size: deckSize,
+                      arabic: _arabic,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildResult() {
+    final bool won = _score >= _rivalScore;
+    return Center(
+      key: const ValueKey<String>('result'),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(22),
+        child: _GlassPanel(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const _MedalIcon(),
+              _RoundCrown(won: won),
               const SizedBox(height: 16),
-              const Text(
-                'CARD STOLEN',
-                style: TextStyle(
-                  fontSize: 14,
+              Text(
+                _arabic ? 'انتهت المواجهة' : 'DUEL COMPLETE',
+                style: const TextStyle(
+                  fontSize: 13,
                   letterSpacing: 2.2,
                   fontWeight: FontWeight.w900,
                   color: Color(0xFFFFD66B),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               Text(
-                'You stole CARD \${{_stolenIndex + 1}',
-                textAlign: TextAlign.center,
+                _score.toString() + '  —  ' + _rivalScore.toString(),
                 style: const TextStyle(
-                  fontSize: 26,
+                  fontSize: 52,
                   fontWeight: FontWeight.w900,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
-                'Your next duel starts with a bigger collection.',
+                won
+                    ? (_arabic ? 'لقد فزت. حان وقت السرقة.' : 'You won. Time to steal.')
+                    : (_arabic ? 'هذه الجولة للخصم.' : 'This round goes to the rival.'),
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: .55),
-                  height: 1.4,
+                  color: Colors.white.withValues(alpha: .74),
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: won ? _beginSteal : _reset,
+                  icon: Icon(won ? Icons.auto_awesome : Icons.refresh_rounded),
+                  label: Text(won
+                      ? (_arabic ? 'ابدأ السرقة' : 'START STEAL')
+                      : (_arabic ? 'مواجهة جديدة' : 'NEW DUEL')),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFFFFD66B),
+                    foregroundColor: const Color(0xFF241D10),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(17),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSteal() {
+    return Column(
+      key: const ValueKey<String>('steal'),
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 0),
+          child: Row(
+            children: [
+              Icon(
+                Icons.lock_open_rounded,
+                color: const Color(0xFFFFD66B),
+                size: 28,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                _arabic ? 'مرحلة السرقة' : 'STEAL PHASE',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.8,
+                ),
+              ),
+              const Spacer(),
+              _Pill(
+                text: _arabic ? '40 ثانية' : '40 SEC',
+                color: const Color(0xFFFFD66B),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        Expanded(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(18, 0, 18, 20),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1040),
+                child: Column(
+                  children: [
+                    Text(
+                      _arabic ? 'اختر بطاقة واحدة من خصمك' : 'CHOOSE ONE CARD FROM YOUR RIVAL',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w900,
+                        shadows: const [
+                          Shadow(
+                            color: Color(0x5538DFFF),
+                            blurRadius: 18,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _arabic
+                          ? 'هذه البطاقة ستنتقل إلى مجموعتك.'
+                          : 'This card will move into your collection.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: .62),
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+                    AnimatedBuilder(
+                      animation: _stealIn,
+                      builder: (context, child) {
+                        final double v = Curves.easeOutBack.transform(
+                          _stealIn.value,
+                        );
+                        return Wrap(
+                          alignment: WrapAlignment.center,
+                          spacing: 12,
+                          runSpacing: 14,
+                          children: List<Widget>.generate(
+                            deckSize,
+                            (index) => _StealCard(
+                              index: index,
+                              selected: _stolenIndex == index,
+                              revealed: _stolenIndex == index,
+                              animation: v,
+                              onTap: () => _selectSteal(index),
+                              arabic: _arabic,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    if (_stolenIndex != -1) ...[
+                      const SizedBox(height: 22),
+                      _StealAction(
+                        index: _stolenIndex,
+                        arabic: _arabic,
+                        onClaim: _claimCard,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildClaimed() {
+    return Center(
+      key: const ValueKey<String>('claimed'),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(22),
+        child: _GlassPanel(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const _GoldenSeal(),
+              const SizedBox(height: 18),
+              Text(
+                _arabic ? 'تمت السرقة' : 'CARD STOLEN',
+                style: const TextStyle(
+                  color: Color(0xFFFFD66B),
+                  fontSize: 14,
+                  letterSpacing: 2.4,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _arabic
+                    ? 'أصبحت البطاقة رقم ' + (_stolenIndex + 1).toString() + ' ملكك.'
+                    : 'CARD ' + (_stolenIndex + 1).toString() + ' IS YOURS.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _arabic
+                    ? 'تمت إضافة بطاقة جديدة إلى مجموعتك.'
+                    : 'A new card has been added to your collection.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: .62),
                 ),
               ),
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
-                  onPressed: _restart,
+                  onPressed: _reset,
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFFFFD66B),
-                    foregroundColor: const Color(0xFF171114),
-                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    backgroundColor: const Color(0xFF6FE3FF),
+                    foregroundColor: const Color(0xFF071522),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(17),
                     ),
                   ),
-                  child: const Text(
-                    'PLAY NEXT DUEL',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.1,
-                    ),
+                  child: Text(
+                    _arabic ? 'المواجهة التالية' : 'NEXT DUEL',
+                    style: const TextStyle(fontWeight: FontWeight.w900),
                   ),
                 ),
               ),
@@ -511,87 +684,96 @@ class _GamePrototypeState extends State<GamePrototype>
   }
 }
 
-class _DuelHeader extends StatelessWidget {
-  const _DuelHeader({
-    required this.yourScore,
+class _ArenaHeader extends StatelessWidget {
+  const _ArenaHeader({
+    required this.arabic,
+    required this.score,
     required this.rivalScore,
-    required this.questionNumber,
+    required this.progress,
+    required this.onLanguage,
   });
 
-  final int yourScore;
+  final bool arabic;
+  final int score;
   final int rivalScore;
-  final int questionNumber;
+  final String progress;
+  final VoidCallback onLanguage;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        _HeaderBrand(),
-        const Spacer(),
-        _ScorePill(
-          label: 'YOU',
-          value: yourScore,
-          accent: const Color(0xFF6EE7FF),
-        ),
-        const SizedBox(width: 8),
-        Container(
-          width: 32,
-          height: 32,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white.withValues(alpha: .06),
-            border: Border.all(color: Colors.white.withValues(alpha: .08)),
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            questionNumber.toString(),
-            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
-          ),
-        ),
-        const SizedBox(width: 8),
-        _ScorePill(
-          label: 'RIVAL',
-          value: rivalScore,
-          accent: const Color(0xFFFF79A9),
-        ),
-      ],
-    );
-  }
-}
-
-class _HeaderBrand extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            gradient: const LinearGradient(
-              colors: [Color(0xFF71E5FF), Color(0xFFAD73FF)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            boxShadow: const [
-              BoxShadow(color: Color(0x355CD9FF), blurRadius: 20),
+        Expanded(
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(15),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF7EE8FF), Color(0xFFB47CFF)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x5539D9FF),
+                      blurRadius: 20,
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.style_rounded,
+                  color: Color(0xFF091326),
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Flexible(
+                child: Text(
+                  'STEAL THE\nQUESTIONS',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    height: 0.95,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.6,
+                  ),
+                ),
+              ),
             ],
           ),
-          child: const Icon(
-            Icons.layers_rounded,
-            color: Color(0xFF08101D),
-            size: 20,
-          ),
         ),
-        const SizedBox(width: 10),
-        const Text(
-          'STEAL THE\nQUESTIONS',
-          style: TextStyle(
-            fontSize: 10,
-            height: 0.95,
-            letterSpacing: 1.4,
-            fontWeight: FontWeight.w900,
+        _ScoreBox(
+          label: arabic ? 'أنت' : 'YOU',
+          value: score,
+          accent: const Color(0xFF70E7FF),
+        ),
+        const SizedBox(width: 7),
+        _Pill(text: progress, color: Colors.white70),
+        const SizedBox(width: 7),
+        _ScoreBox(
+          label: arabic ? 'خصم' : 'RIVAL',
+          value: rivalScore,
+          accent: const Color(0xFFFF8CB4),
+        ),
+        const SizedBox(width: 7),
+        OutlinedButton(
+          onPressed: onLanguage,
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size(54, 40),
+            side: BorderSide(color: Colors.white.withValues(alpha: .16)),
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(13),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+          ),
+          child: Text(
+            arabic ? 'EN' : 'ع',
+            style: const TextStyle(
+              fontWeight: FontWeight.w900,
+            ),
           ),
         ),
       ],
@@ -599,8 +781,8 @@ class _HeaderBrand extends StatelessWidget {
   }
 }
 
-class _ScorePill extends StatelessWidget {
-  const _ScorePill({
+class _ScoreBox extends StatelessWidget {
+  const _ScoreBox({
     required this.label,
     required this.value,
     required this.accent,
@@ -613,30 +795,172 @@ class _ScorePill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(13),
-        color: const Color(0x73151E33),
+        color: const Color(0x3816243F),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.white.withValues(alpha: .07)),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      child: Column(
         children: [
           Text(
             label,
             style: TextStyle(
-              fontSize: 9,
-              letterSpacing: 1.2,
+              fontSize: 8,
+              letterSpacing: 1.1,
               color: accent,
               fontWeight: FontWeight.w900,
             ),
           ),
-          const SizedBox(width: 7),
+          const SizedBox(height: 2),
           Text(
             value.toString(),
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+            ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _BattleLine extends StatelessWidget {
+  const _BattleLine({
+    required this.arabic,
+    required this.deckSize,
+  });
+
+  final bool arabic;
+  final int deckSize;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const _PlayerBadge(
+          name: 'YOU',
+          active: true,
+        ),
+        const Spacer(),
+        Column(
+          children: [
+            Text(
+              arabic ? 'المواجهة' : 'CARD DUEL',
+              style: TextStyle(
+                fontSize: 10,
+                letterSpacing: 1.8,
+                color: Colors.white.withValues(alpha: .58),
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '10 ' + (arabic ? 'بطاقات' : 'CARDS') + '  •  7 ' +
+                  (arabic ? 'أسئلة' : 'QUESTIONS'),
+              style: TextStyle(
+                fontSize: 9,
+                letterSpacing: 1.0,
+                color: Colors.white.withValues(alpha: .4),
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+        const Spacer(),
+        const _PlayerBadge(
+          name: 'RIVAL',
+          active: false,
+        ),
+      ],
+    );
+  }
+}
+
+class _PlayerBadge extends StatelessWidget {
+  const _PlayerBadge({
+    required this.name,
+    required this.active,
+  });
+
+  final String name;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        if (!active) ...[
+          const _Avatar(
+            active: false,
+          ),
+          const SizedBox(width: 7),
+        ],
+        Column(
+          crossAxisAlignment: active
+              ? CrossAxisAlignment.start
+              : CrossAxisAlignment.end,
+          children: [
+            Text(
+              name,
+              style: TextStyle(
+                fontSize: 9,
+                letterSpacing: 1.2,
+                color: active
+                    ? const Color(0xFF70E7FF)
+                    : const Color(0xFFFF8CB4),
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              active ? 'COLLECTOR' : 'RIVAL',
+              style: TextStyle(
+                fontSize: 8,
+                color: Colors.white.withValues(alpha: .35),
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+        if (active) ...[
+          const SizedBox(width: 7),
+          const _Avatar(
+            active: true,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _Avatar extends StatelessWidget {
+  const _Avatar({required this.active});
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 31,
+      height: 31,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: const Color(0x50121B32),
+        border: Border.all(
+          color: active
+              ? const Color(0xFF70E7FF)
+              : const Color(0xFFFF8CB4),
+          width: 1.4,
+        ),
+      ),
+      alignment: Alignment.center,
+      child: Icon(
+        active ? Icons.person_rounded : Icons.shield_rounded,
+        size: 16,
+        color: active
+            ? const Color(0xFF70E7FF)
+            : const Color(0xFFFF8CB4),
       ),
     );
   }
@@ -644,91 +968,128 @@ class _ScorePill extends StatelessWidget {
 
 class _CardBack extends StatelessWidget {
   const _CardBack({
+    required this.arabic,
     required this.category,
-    required this.compact,
   });
 
+  final bool arabic;
   final String category;
-  final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    return _SignatureCardShell(
-      child: SizedBox(
-        width: compact ? 318 : 390,
-        height: compact ? 440 : 500,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            const CustomPaint(painter: _CardPatternPainter()),
-            Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 74,
-                    height: 74,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withValues(alpha: .05),
-                      border: Border.all(
-                        color: const Color(0xFF6FE3FF).withValues(alpha: .55),
-                        width: 1.5,
-                      ),
-                    ),
-                    child: const Icon(
-                      Icons.style_rounded,
-                      color: Color(0xFFFFD66B),
-                      size: 32,
-                    ),
+    return _CardShell(
+      faceColor: const Color(0xFF121D38),
+      borderGradient: const [
+        Color(0xFF71E4FF),
+        Color(0xFFD49B4A),
+        Color(0xFF9C73FF),
+      ],
+      width: 400,
+      height: 520,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          const CustomPaint(
+            painter: _HoloPatternPainter(),
+          ),
+          Positioned(
+            top: 20,
+            left: 22,
+            right: 22,
+            child: Row(
+              children: [
+                const _RarityBadge(text: 'EPIC'),
+                const Spacer(),
+                Text(
+                  category,
+                  style: const TextStyle(
+                    fontSize: 9,
+                    letterSpacing: 1.8,
+                    color: Color(0x99FFFFFF),
+                    fontWeight: FontWeight.w900,
                   ),
-                  const SizedBox(height: 18),
-                  const Text(
-                    'STEAL THE',
-                    style: TextStyle(
-                      letterSpacing: 3,
-                      fontSize: 12,
-                      color: Color(0xFF83E9FF),
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const Text(
-                    'QUESTIONS',
-                    style: TextStyle(
-                      letterSpacing: 2.2,
-                      fontSize: 23,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    category,
-                    style: TextStyle(
-                      letterSpacing: 2,
-                      fontSize: 10,
-                      color: Colors.white.withValues(alpha: .4),
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Positioned(left: 24, top: 24, child: _RarityBadge(text: 'EPIC')),
-            const Positioned(
-              right: 24,
-              bottom: 24,
-              child: Text(
-                'QUESTION CARD',
-                style: TextStyle(
-                  fontSize: 9,
-                  letterSpacing: 1.4,
-                  color: Color(0x66FFFFFF),
-                  fontWeight: FontWeight.w800,
                 ),
+              ],
+            ),
+          ),
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 104,
+                  height: 104,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF8EF3FF), Color(0xFFA977FF)],
+                    ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x8852DDFF),
+                        blurRadius: 35,
+                        spreadRadius: -6,
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.style_rounded,
+                    color: Color(0xFF081329),
+                    size: 48,
+                  ),
+                ),
+                const SizedBox(height: 22),
+                const Text(
+                  'STEAL THE',
+                  style: TextStyle(
+                    letterSpacing: 4.0,
+                    fontSize: 12,
+                    color: Color(0xFF75E8FF),
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                const Text(
+                  'QUESTIONS',
+                  style: TextStyle(
+                    letterSpacing: 2.6,
+                    fontSize: 25,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  width: 86,
+                  height: 1,
+                  color: const Color(0x66FFD66B),
+                ),
+                const SizedBox(height: 13),
+                Text(
+                  arabic ? 'بطاقة سؤال' : 'QUESTION CARD',
+                  style: const TextStyle(
+                    fontSize: 10,
+                    letterSpacing: 1.9,
+                    color: Color(0x99FFFFFF),
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Positioned(
+            right: 22,
+            bottom: 20,
+            child: Text(
+              'STQ / 001',
+              style: TextStyle(
+                fontSize: 9,
+                letterSpacing: 1.7,
+                color: Color(0x66FFFFFF),
+                fontWeight: FontWeight.w900,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -736,181 +1097,196 @@ class _CardBack extends StatelessWidget {
 
 class _QuestionCard extends StatelessWidget {
   const _QuestionCard({
+    required this.arabic,
     required this.question,
     required this.seconds,
     required this.selected,
     required this.locked,
-    required this.correctIndex,
-    required this.compact,
+    required this.correct,
     required this.onAnswer,
-    required this.showResult,
-    required this.wasCorrect,
   });
 
-  final _Question question;
+  final bool arabic;
+  final _QuestionData question;
   final int seconds;
   final int selected;
   final bool locked;
-  final int correctIndex;
-  final bool compact;
+  final bool correct;
   final ValueChanged<int> onAnswer;
-  final bool showResult;
-  final bool wasCorrect;
 
   @override
   Widget build(BuildContext context) {
-    return _SignatureCardShell(
-      child: SizedBox(
-        width: compact ? 318 : 390,
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(
-            compact ? 18 : 24,
-            compact ? 18 : 24,
-            compact ? 18 : 24,
-            compact ? 18 : 22,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  const _RarityBadge(text: 'EPIC'),
-                  const Spacer(),
-                  _TimerBadge(seconds: seconds),
-                ],
-              ),
-              const SizedBox(height: 18),
-              Text(
-                question.category,
-                style: TextStyle(
-                  fontSize: 9,
-                  letterSpacing: 2.3,
-                  color: Colors.white.withValues(alpha: .42),
-                  fontWeight: FontWeight.w900,
+    return _CardShell(
+      faceColor: const Color(0xFFF8F4EA),
+      borderGradient: const [
+        Color(0xFFFFD56A),
+        Color(0xFF73E8FF),
+        Color(0xFF9A74FF),
+      ],
+      width: 400,
+      height: 520,
+      light: true,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 22, 24, 24),
+        child: Column(
+          crossAxisAlignment:
+              arabic ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                _RarityBadge(
+                  text: arabic ? 'إبيك' : 'EPIC',
+                  light: true,
                 ),
-              ),
-              const SizedBox(height: 9),
-              Text(
-                question.text,
-                style: TextStyle(
-                  fontSize: compact ? 21 : 25,
-                  height: 1.16,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.35,
-                ),
-              ),
-              const SizedBox(height: 20),
-              for (int i = 0; i < 3; i++) ...[
-                _Choice(
-                  label: String.fromCharCode(65 + i),
-                  text: question.answers[i],
-                  selected: selected == i,
-                  correct: correctIndex == i,
-                  locked: locked,
-                  onTap: () => onAnswer(i),
-                ),
-                if (i != 2) const SizedBox(height: 9),
+                const Spacer(),
+                _TimerRing(seconds: seconds, light: true),
               ],
-              const SizedBox(height: 15),
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 180),
-                child: showResult
-                    ? Row(
-                        key: ValueKey(
-                          question.text + wasCorrect.toString(),
-                        ),
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            wasCorrect ? Icons.bolt_rounded : Icons.close_rounded,
-                            size: 17,
-                            color: wasCorrect
-                                ? const Color(0xFF5DE5B1)
-                                : const Color(0xFFFF6F86),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            wasCorrect ? 'CORRECT' : 'WRONG',
-                            style: TextStyle(
-                              color: wasCorrect
-                                  ? const Color(0xFF5DE5B1)
-                                  : const Color(0xFFFF6F86),
-                              fontSize: 10,
-                              letterSpacing: 1.8,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ],
-                      )
-                    : Text(
-                        'Answer before time runs out',
-                        key: const ValueKey('hint'),
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.white.withValues(alpha: .34),
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              arabic ? question.categoryAr : question.categoryEn,
+              textAlign: arabic ? TextAlign.right : TextAlign.left,
+              style: TextStyle(
+                fontSize: 9,
+                letterSpacing: arabic ? .4 : 2.2,
+                color: const Color(0xFF776C5A),
+                fontWeight: FontWeight.w900,
               ),
+            ),
+            const SizedBox(height: 9),
+            Text(
+              arabic ? question.ar : question.en,
+              textAlign: arabic ? TextAlign.right : TextAlign.left,
+              style: const TextStyle(
+                color: Color(0xFF151B2C),
+                fontSize: 25,
+                height: 1.17,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const Spacer(),
+            for (int i = 0; i < 3; i++) ...[
+              _ChoiceButton(
+                arabic: arabic,
+                label: String.fromCharCode(65 + i),
+                text: arabic
+                    ? question.arAnswers[i]
+                    : question.enAnswers[i],
+                selected: selected == i,
+                correct: question.correctIndex == i,
+                locked: locked,
+                onTap: () => onAnswer(i),
+              ),
+              if (i != 2) const SizedBox(height: 9),
             ],
-          ),
+            const SizedBox(height: 14),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 180),
+              child: locked
+                  ? Row(
+                      key: ValueKey<String>(
+                        'state-' + correct.toString(),
+                      ),
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          correct
+                              ? Icons.check_circle_rounded
+                              : Icons.error_rounded,
+                          size: 18,
+                          color: correct
+                              ? const Color(0xFF1EAF82)
+                              : const Color(0xFFDB526A),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          correct
+                              ? (arabic ? 'إجابة صحيحة' : 'CORRECT')
+                              : (arabic ? 'إجابة خاطئة' : 'WRONG'),
+                          style: TextStyle(
+                            fontSize: 10,
+                            letterSpacing: arabic ? .1 : 2.0,
+                            color: correct
+                                ? const Color(0xFF159873)
+                                : const Color(0xFFD84B62),
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ],
+                    )
+                  : Text(
+                      arabic
+                          ? 'أجب قبل انتهاء الوقت'
+                          : 'ANSWER BEFORE TIME RUNS OUT',
+                      key: const ValueKey<String>('hint'),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 9,
+                        letterSpacing: arabic ? .1 : 1.4,
+                        color: const Color(0xFF8D8372),
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _SignatureCardShell extends StatelessWidget {
-  const _SignatureCardShell({required this.child});
+class _CardShell extends StatelessWidget {
+  const _CardShell({
+    required this.child,
+    required this.faceColor,
+    required this.borderGradient,
+    required this.width,
+    required this.height,
+    this.light = false,
+  });
+
   final Widget child;
+  final Color faceColor;
+  final List<Color> borderGradient;
+  final double width;
+  final double height;
+  final bool light;
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
+    return Container(
+      width: width,
+      height: height,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(31),
-        gradient: const LinearGradient(
+        borderRadius: BorderRadius.circular(32),
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF405372),
-            Color(0xFFB18B52),
-            Color(0xFF2E3F5A),
-          ],
+          colors: borderGradient,
         ),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color(0x66000000),
+            color: const Color(0xB5000000),
             blurRadius: 48,
-            offset: Offset(0, 24),
+            offset: const Offset(0, 24),
           ),
-          BoxShadow(
-            color: Color(0x2637D6FF),
-            blurRadius: 40,
-            spreadRadius: -10,
-          ),
+          if (!light)
+            const BoxShadow(
+              color: Color(0x4548DFFF),
+              blurRadius: 36,
+              spreadRadius: -6,
+            ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(1.2),
+      padding: const EdgeInsets.all(2),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(30),
+          color: faceColor,
+        ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(30),
-          child: DecoratedBox(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFF182746),
-                  Color(0xFF10182B),
-                  Color(0xFF151333),
-                ],
-              ),
-            ),
-            child: child,
-          ),
+          child: child,
         ),
       ),
     );
@@ -918,24 +1294,37 @@ class _SignatureCardShell extends StatelessWidget {
 }
 
 class _RarityBadge extends StatelessWidget {
-  const _RarityBadge({required this.text});
+  const _RarityBadge({
+    required this.text,
+    this.light = false,
+  });
+
   final String text;
+  final bool light;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0x23FFD66C),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0x77FFD66C)),
+        color: light
+            ? const Color(0xFFF0D89A)
+            : const Color(0x22FFD66B),
+        borderRadius: BorderRadius.circular(11),
+        border: Border.all(
+          color: light
+              ? const Color(0xFFB68B38)
+              : const Color(0x66FFD66B),
+        ),
       ),
       child: Text(
         text,
-        style: const TextStyle(
-          color: Color(0xFFFFD66B),
+        style: TextStyle(
           fontSize: 9,
-          letterSpacing: 1.6,
+          letterSpacing: 1.45,
+          color: light
+              ? const Color(0xFF76541A)
+              : const Color(0xFFFFD66B),
           fontWeight: FontWeight.w900,
         ),
       ),
@@ -943,32 +1332,44 @@ class _RarityBadge extends StatelessWidget {
   }
 }
 
-class _TimerBadge extends StatelessWidget {
-  const _TimerBadge({required this.seconds});
+class _TimerRing extends StatelessWidget {
+  const _TimerRing({
+    required this.seconds,
+    this.light = false,
+  });
+
   final int seconds;
+  final bool light;
 
   @override
   Widget build(BuildContext context) {
-    final urgent = seconds <= 5;
-    final accent =
-        urgent ? const Color(0xFFFF6F86) : const Color(0xFF6FE3FF);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(11),
-        color: accent.withValues(alpha: .08),
-        border: Border.all(color: accent.withValues(alpha: .45)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+    final Color accent = seconds <= 5
+        ? const Color(0xFFE95C71)
+        : const Color(0xFF29B9DA);
+
+    return SizedBox(
+      width: 58,
+      height: 58,
+      child: Stack(
+        fit: StackFit.expand,
         children: [
-          Icon(Icons.timer_outlined, size: 15, color: accent),
-          const SizedBox(width: 5),
-          Text(
-            seconds.toString().padLeft(2, '0'),
-            style: TextStyle(
-              color: accent,
-              fontWeight: FontWeight.w900,
+          CircularProgressIndicator(
+            value: seconds / secondsPerQuestion,
+            strokeWidth: 4.5,
+            backgroundColor:
+                light ? const Color(0xFFDCD5C7) : const Color(0x261A2440),
+            valueColor: AlwaysStoppedAnimation<Color>(accent),
+          ),
+          Center(
+            child: Text(
+              seconds.toString(),
+              style: TextStyle(
+                color: light
+                    ? const Color(0xFF15203A)
+                    : Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+              ),
             ),
           ),
         ],
@@ -977,8 +1378,9 @@ class _TimerBadge extends StatelessWidget {
   }
 }
 
-class _Choice extends StatelessWidget {
-  const _Choice({
+class _ChoiceButton extends StatelessWidget {
+  const _ChoiceButton({
+    required this.arabic,
     required this.label,
     required this.text,
     required this.selected,
@@ -987,6 +1389,7 @@ class _Choice extends StatelessWidget {
     required this.onTap,
   });
 
+  final bool arabic;
   final String label;
   final String text;
   final bool selected;
@@ -996,20 +1399,22 @@ class _Choice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final showCorrect = locked && correct;
-    final showWrong = locked && selected && !correct;
+    final bool showCorrect = locked && correct;
+    final bool showWrong = locked && selected && !correct;
 
-    Color border = Colors.white.withValues(alpha: .08);
-    Color bg = const Color(0x161A263D);
+    Color bg = const Color(0xFFF0EBDE);
+    Color border = const Color(0xFFD9D1C0);
+    Color textColor = const Color(0xFF1A2031);
+
     if (showCorrect) {
-      border = const Color(0xFF55DFAB);
-      bg = const Color(0x1555DFAB);
+      bg = const Color(0xFFDFF5EC);
+      border = const Color(0xFF4CC89A);
     } else if (showWrong) {
-      border = const Color(0xFFFF6E82);
-      bg = const Color(0x16FF6E82);
+      bg = const Color(0xFFFBE1E6);
+      border = const Color(0xFFE86D82);
     } else if (selected) {
-      border = const Color(0xFF76DFFF);
-      bg = const Color(0x1576DFFF);
+      bg = const Color(0xFFD9F3F8);
+      border = const Color(0xFF4CCAE7);
     }
 
     return Material(
@@ -1019,38 +1424,55 @@ class _Choice extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
             color: bg,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: border),
+            border: Border.all(color: border, width: 1.2),
           ),
           child: Row(
+            textDirection: arabic ? TextDirection.rtl : TextDirection.ltr,
             children: [
               Container(
-                width: 32,
-                height: 32,
+                width: 34,
+                height: 34,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: .055),
+                  color: const Color(0x160F1830),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
                   label,
-                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900),
+                  style: const TextStyle(
+                    color: Color(0xFF2A344B),
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
               const SizedBox(width: 11),
               Expanded(
                 child: Text(
                   text,
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                  textAlign: arabic ? TextAlign.right : TextAlign.left,
+                  style: const TextStyle(
+                    color: Color(0xFF1A2031),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
               if (showCorrect)
-                const Icon(Icons.check_circle_rounded, size: 19, color: Color(0xFF55DFAB)),
+                const Icon(
+                  Icons.check_circle_rounded,
+                  color: Color(0xFF30B88B),
+                  size: 20,
+                ),
               if (showWrong)
-                const Icon(Icons.cancel_rounded, size: 19, color: Color(0xFFFF6E82)),
+                const Icon(
+                  Icons.cancel_rounded,
+                  color: Color(0xFFE26379),
+                  size: 20,
+                ),
             ],
           ),
         ),
@@ -1060,120 +1482,72 @@ class _Choice extends StatelessWidget {
 }
 
 class _DeckRail extends StatelessWidget {
-  const _DeckRail({required this.size, required this.active});
-  final int size;
-  final int active;
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      alignment: WrapAlignment.center,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        Text(
-          'YOUR DECK',
-          style: TextStyle(
-            fontSize: 9,
-            letterSpacing: 1.7,
-            color: Colors.white.withValues(alpha: .36),
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        const SizedBox(width: 10),
-        for (int i = 0; i < size; i++)
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            width: i == active ? 23 : 18,
-            height: i == active ? 31 : 27,
-            margin: const EdgeInsets.symmetric(horizontal: 2),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(6),
-              gradient: LinearGradient(
-                colors: i < 7
-                    ? const [Color(0xFF4C6D98), Color(0xFF233552)]
-                    : const [Color(0xFF252B45), Color(0xFF191C31)],
-              ),
-              border: Border.all(
-                color: i == active
-                    ? const Color(0xFF6EE7FF)
-                    : Colors.white.withValues(alpha: .06),
-              ),
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              (i + 1).toString(),
-              style: TextStyle(
-                fontSize: 8,
-                color: i == active ? const Color(0xFFB5F4FF) : Colors.white54,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _StealHeader extends StatelessWidget {
-  const _StealHeader({
-    required this.yourScore,
-    required this.rivalScore,
+  const _DeckRail({
+    required this.active,
+    required this.size,
+    required this.arabic,
   });
 
-  final int yourScore;
-  final int rivalScore;
+  final int active;
+  final int size;
+  final bool arabic;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Icon(Icons.bolt_rounded, color: Color(0xFFFFD66B), size: 26),
-        const SizedBox(width: 8),
-        const Text(
-          'DUEL COMPLETE',
-          style: TextStyle(fontSize: 12, letterSpacing: 2, fontWeight: FontWeight.w900),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: const Color(0x2A0C1730),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: .09),
         ),
-        const Spacer(),
-        Text(
-          '$yourScore  —  $rivalScore',
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-        ),
-      ],
-    );
-  }
-}
-
-class _StealTitle extends StatelessWidget {
-  const _StealTitle({required this.revealed, required this.wide});
-  final bool revealed;
-  final bool wide;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(
-          revealed ? 'CARD CLAIMED' : 'STEAL ONE CARD',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: wide ? 30 : 25,
-            fontWeight: FontWeight.w900,
-            letterSpacing: -.6,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            arabic ? 'بطاقاتي' : 'MY DECK',
+            style: TextStyle(
+              fontSize: 9,
+              letterSpacing: arabic ? .2 : 1.5,
+              color: Colors.white.withValues(alpha: .55),
+              fontWeight: FontWeight.w900,
+            ),
           ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          revealed
-              ? 'The card is moving to your collection.'
-              : 'Choose one card from the rival’s ten-card deck.',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: .52),
-            fontSize: 12,
-            height: 1.4,
-          ),
-        ),
-      ],
+          const SizedBox(width: 9),
+          for (int i = 0; i < size; i++)
+            Container(
+              width: i == active ? 27 : 19,
+              height: i == active ? 35 : 27,
+              margin: const EdgeInsets.symmetric(horizontal: 2),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(7),
+                gradient: LinearGradient(
+                  colors: i < totalQuestions
+                      ? const [Color(0xFF4C719D), Color(0xFF223553)]
+                      : const [Color(0xFF3A395A), Color(0xFF24213D)],
+                ),
+                border: Border.all(
+                  color: i == active
+                      ? const Color(0xFF72E7FF)
+                      : Colors.white.withValues(alpha: .07),
+                ),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                (i + 1).toString(),
+                style: TextStyle(
+                  fontSize: 8,
+                  color: i == active
+                      ? const Color(0xFFC7F7FF)
+                      : Colors.white.withValues(alpha: .55),
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -1183,113 +1557,130 @@ class _StealCard extends StatelessWidget {
     required this.index,
     required this.selected,
     required this.revealed,
-    required this.animationValue,
+    required this.animation,
     required this.onTap,
+    required this.arabic,
   });
 
   final int index;
   final bool selected;
   final bool revealed;
-  final double animationValue;
+  final double animation;
   final VoidCallback onTap;
+  final bool arabic;
 
   @override
   Widget build(BuildContext context) {
-    final lift = selected ? -10.0 * animationValue : 0.0;
+    final double lift = selected ? -12 * animation : 0;
     return Transform.translate(
       offset: Offset(0, lift),
       child: GestureDetector(
         onTap: onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 190),
-          width: 116,
-          height: 155,
+          duration: const Duration(milliseconds: 180),
+          width: 122,
+          height: 164,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(19),
-            gradient: LinearGradient(
+            borderRadius: BorderRadius.circular(20),
+            gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: revealed
-                  ? const [Color(0xFF233D4A), Color(0xFF0E1A26)]
-                  : const [Color(0xFF293A5D), Color(0xFF151C31)],
+              colors: [
+                Color(0xFF6B84A9),
+                Color(0xFF293956),
+                Color(0xFF221A43),
+              ],
             ),
             border: Border.all(
               color: selected
                   ? const Color(0xFFFFD66B)
-                  : Colors.white.withValues(alpha: .08),
+                  : Colors.white.withValues(alpha: .10),
               width: selected ? 2 : 1,
             ),
             boxShadow: [
               if (selected)
                 const BoxShadow(
-                  color: Color(0x3856DFFF),
-                  blurRadius: 24,
-                  spreadRadius: -6,
+                  color: Color(0x6054DFFF),
+                  blurRadius: 28,
+                  spreadRadius: -5,
                 ),
             ],
           ),
-          child: Center(
-            child: revealed
-                ? const Icon(
+          child: revealed
+              ? const Center(
+                  child: Icon(
                     Icons.style_rounded,
                     color: Color(0xFFFFD66B),
-                    size: 32,
-                  )
-                : Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.help_outline_rounded,
-                        color: Color(0xFF75DFFF),
-                        size: 28,
-                      ),
-                      const SizedBox(height: 9),
-                      Text(
-                        'CARD \${{index + 1}',
-                        style: const TextStyle(
-                          fontSize: 9,
-                          letterSpacing: 1.1,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white54,
-                        ),
-                      ),
-                    ],
+                    size: 40,
                   ),
-          ),
+                )
+              : Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.lock_outline_rounded,
+                      color: Color(0xFF7DEAFF),
+                      size: 30,
+                    ),
+                    const SizedBox(height: 9),
+                    Text(
+                      (arabic ? 'بطاقة ' : 'CARD ') + (index + 1).toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        letterSpacing: 1.1,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      arabic ? 'اضغط للاختيار' : 'TAP TO PICK',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: .45),
+                        fontSize: 8,
+                        letterSpacing: 1.0,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
         ),
       ),
     );
   }
 }
 
-class _StealConfirm extends StatelessWidget {
-  const _StealConfirm({
-    required this.cardIndex,
-    required this.onDone,
+class _StealAction extends StatelessWidget {
+  const _StealAction({
+    required this.index,
+    required this.arabic,
+    required this.onClaim,
   });
 
-  final int cardIndex;
-  final VoidCallback onDone;
+  final int index;
+  final bool arabic;
+  final VoidCallback onClaim;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      constraints: const BoxConstraints(maxWidth: 580),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        color: const Color(0xAE101928),
+        color: const Color(0xC0162137),
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(color: const Color(0x55FFD66B)),
       ),
       child: Row(
         children: [
-          const _MedalIcon(size: 46),
-          const SizedBox(width: 12),
+          const _GoldenSeal(size: 54),
+          const SizedBox(width: 13),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'CARD \${{cardIndex + 1}  •  EPIC',
+                  arabic ? 'بطاقة محددة' : 'CARD SELECTED',
                   style: const TextStyle(
                     color: Color(0xFFFFD66B),
                     fontSize: 10,
@@ -1299,22 +1690,30 @@ class _StealConfirm extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'CARD \${{cardIndex + 1} is yours.',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                  arabic
+                      ? 'هل تريد سرقة البطاقة ' + (index + 1).toString() + '؟'
+                      : 'Steal card ' + (index + 1).toString() + '?',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ],
             ),
           ),
           FilledButton(
-            onPressed: onDone,
+            onPressed: onClaim,
             style: FilledButton.styleFrom(
               backgroundColor: const Color(0xFFFFD66B),
-              foregroundColor: const Color(0xFF171114),
-              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+              foregroundColor: const Color(0xFF241D10),
+              padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 13),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
             ),
-            child: const Text(
-              'TAKE IT',
-              style: TextStyle(fontWeight: FontWeight.w900),
+            child: Text(
+              arabic ? 'اسرقها' : 'STEAL',
+              style: const TextStyle(fontWeight: FontWeight.w900),
             ),
           ),
         ],
@@ -1323,8 +1722,103 @@ class _StealConfirm extends StatelessWidget {
   }
 }
 
-class _MedalIcon extends StatelessWidget {
-  const _MedalIcon({this.size = 62});
+class _Pill extends StatelessWidget {
+  const _Pill({
+    required this.text,
+    required this.color,
+  });
+
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: Colors.white.withValues(alpha: .055),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: .09),
+        ),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color,
+          fontSize: 9,
+          letterSpacing: 1.1,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+}
+
+class _GlassPanel extends StatelessWidget {
+  const _GlassPanel({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 540),
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(32),
+        color: const Color(0xDE15213B),
+        border: Border.all(color: Colors.white.withValues(alpha: .10)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0xA8000000),
+            blurRadius: 55,
+            offset: Offset(0, 26),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
+class _RoundCrown extends StatelessWidget {
+  const _RoundCrown({required this.won});
+
+  final bool won;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 78,
+      height: 78,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: won
+              ? const [Color(0xFFFFEEAA), Color(0xFFFFB83D)]
+              : const [Color(0xFFC3CAD6), Color(0xFF6D7484)],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: won ? const Color(0x66FFCE5A) : const Color(0x332B3550),
+            blurRadius: 28,
+          ),
+        ],
+      ),
+      alignment: Alignment.center,
+      child: Icon(
+        won ? Icons.emoji_events_rounded : Icons.shield_rounded,
+        size: 39,
+        color: won ? const Color(0xFF473517) : const Color(0xFF1F2A3E),
+      ),
+    );
+  }
+}
+
+class _GoldenSeal extends StatelessWidget {
+  const _GoldenSeal({this.size = 68});
+
   final double size;
 
   @override
@@ -1335,30 +1829,75 @@ class _MedalIcon extends StatelessWidget {
       decoration: const BoxDecoration(
         shape: BoxShape.circle,
         gradient: LinearGradient(
-          colors: [Color(0xFFFFE89A), Color(0xFFFFB739)],
+          colors: [Color(0xFFFFF0AE), Color(0xFFFFB83A)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         boxShadow: [
           BoxShadow(
-            color: Color(0x44FFCF54),
-            blurRadius: 24,
-            spreadRadius: -3,
+            color: Color(0x66FFD46A),
+            blurRadius: 26,
+            spreadRadius: -4,
           ),
         ],
       ),
       alignment: Alignment.center,
       child: Icon(
         Icons.auto_awesome_rounded,
-        color: const Color(0xFF322514),
-        size: 29,
+        color: Color(0xFF4A3414),
+        size: 30,
       ),
     );
   }
 }
 
-class _BackgroundGlow extends StatelessWidget {
-  const _BackgroundGlow();
+class _HoloPatternPainter extends CustomPainter {
+  const _HoloPatternPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Offset c = size.center(Offset.zero);
+    final Paint line = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1
+      ..color = const Color(0x287EEAFF);
+
+    final Paint soft = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4
+      ..color = const Color(0x1BFFD66B);
+
+    for (double r = 70; r < size.width; r += 52) {
+      canvas.drawCircle(c, r, line);
+    }
+
+    for (int i = 0; i < 16; i++) {
+      final double a = (math.pi * 2 * i) / 16;
+      canvas.drawLine(
+        c + Offset(math.cos(a), math.sin(a)) * 40,
+        c + Offset(math.cos(a), math.sin(a)) * size.width,
+        soft,
+      );
+    }
+
+    final Path diamond = Path()
+      ..moveTo(c.dx, c.dy - 72)
+      ..lineTo(c.dx + 72, c.dy)
+      ..lineTo(c.dx, c.dy + 72)
+      ..lineTo(c.dx - 72, c.dy)
+      ..close();
+
+    canvas.drawPath(diamond, line);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    return false;
+  }
+}
+
+class _AmbientLights extends StatelessWidget {
+  const _AmbientLights();
 
   @override
   Widget build(BuildContext context) {
@@ -1366,29 +1905,52 @@ class _BackgroundGlow extends StatelessWidget {
       child: Stack(
         children: [
           Positioned(
-            top: -170,
-            left: -110,
+            top: -150,
+            left: -130,
             child: Container(
-              width: 420,
-              height: 420,
+              width: 430,
+              height: 430,
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
-                  colors: [Color(0x3059D8FF), Color(0x000B1020)],
+                  colors: [
+                    Color(0x5363E5FF),
+                    Color(0x00142C54),
+                  ],
                 ),
               ),
             ),
           ),
           Positioned(
-            right: -150,
-            bottom: -170,
+            top: 80,
+            right: -140,
             child: Container(
-              width: 470,
-              height: 470,
+              width: 430,
+              height: 430,
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
-                  colors: [Color(0x2E9D61FF), Color(0x000B1020)],
+                  colors: [
+                    Color(0x4E9D63FF),
+                    Color(0x003D2B79),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -190,
+            left: 140,
+            child: Container(
+              width: 520,
+              height: 520,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    Color(0x3ED2A14D),
+                    Color(0x0010214A),
+                  ],
                 ),
               ),
             ),
@@ -1397,43 +1959,4 @@ class _BackgroundGlow extends StatelessWidget {
       ),
     );
   }
-}
-
-class _CardPatternPainter extends CustomPainter {
-  const _CardPatternPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = size.center(Offset.zero);
-    final ring = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.1
-      ..color = const Color(0x267DE5FF);
-    final line = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1
-      ..color = const Color(0x18FFFFFF);
-
-    for (double r = 48; r < size.width; r += 54) {
-      canvas.drawCircle(center, r, ring);
-    }
-
-    for (int i = 0; i < 12; i++) {
-      final a = (math.pi * 2 / 12) * i;
-      final p1 = center + Offset(math.cos(a), math.sin(a)) * 44;
-      final p2 = center + Offset(math.cos(a), math.sin(a)) * size.width;
-      canvas.drawLine(p1, p2, line);
-    }
-
-    final diamond = Path()
-      ..moveTo(center.dx, center.dy - 62)
-      ..lineTo(center.dx + 62, center.dy)
-      ..lineTo(center.dx, center.dy + 62)
-      ..lineTo(center.dx - 62, center.dy)
-      ..close();
-    canvas.drawPath(diamond, ring);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
