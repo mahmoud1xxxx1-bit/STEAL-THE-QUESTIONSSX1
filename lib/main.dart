@@ -4,6 +4,9 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+const int kTotalQuestions = 7;
+const int kSecondsPerQuestion = 20;
+
 void main() {
   runApp(const StealTheQuestionsApp());
 }
@@ -1354,7 +1357,7 @@ class _TimerRing extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           CircularProgressIndicator(
-            value: seconds / secondsPerQuestion,
+            value: seconds / kSecondsPerQuestion,
             strokeWidth: 4.5,
             backgroundColor:
                 light ? const Color(0xFFDCD5C7) : const Color(0x261A2440),
@@ -1524,7 +1527,7 @@ class _DeckRail extends StatelessWidget {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(7),
                 gradient: LinearGradient(
-                  colors: i < totalQuestions
+                  colors: i < kTotalQuestions
                       ? const [Color(0xFF4C719D), Color(0xFF223553)]
                       : const [Color(0xFF3A395A), Color(0xFF24213D)],
                 ),
