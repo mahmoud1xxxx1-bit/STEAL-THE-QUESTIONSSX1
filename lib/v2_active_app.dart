@@ -554,6 +554,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
         arabic: _arabic,
         profile: profile,
         busy: _busy,
+        editDeck: _editDeck,
         setActiveDeck: _setActiveDeck,
       ),
       _PlayV2(
@@ -562,8 +563,9 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
         busy: _busy,
         botStatus: _botStatus,
         matchmaking: _matchmaking,
-        refreshBot: _startBotStatus,
+        startBot: _startBotRound,
         startOrCheckMatchmaking: _startOrCheckMatchmaking,
+        cancelMatchmaking: _cancelMatchmaking,
       ),
       _ProfileV2(
         arabic: _arabic,
@@ -573,6 +575,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
         busy: _busy,
         refresh: _refreshProfile,
         refreshSubscription: _refreshSubscription,
+        equipPrestige: _equipPrestige,
       ),
     ];
 
@@ -610,7 +613,22 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
             ],
           ),
         ),
-        body: IndexedStack(index: _tab, children: screens),
+        body: Column(
+          children: [
+            if (_notice != null)
+              MaterialBanner(
+                content: Text(_notice!),
+                actions: [
+                  TextButton(
+                    onPressed: () => setState(() => _notice = null),
+                    child: Text(_arabic ? 'إخفاء' : 'Dismiss'),
+                  ),
+                ],
+              ),
+            if (_busy) const LinearProgressIndicator(minHeight: 2),
+            Expanded(child: IndexedStack(index: _tab, children: screens)),
+          ],
+        ),
         bottomNavigationBar: NavigationBar(
           selectedIndex: _tab,
           onDestinationSelected: (value) => setState(() => _tab = value),
@@ -718,11 +736,13 @@ class _DecksV2 extends StatelessWidget {
     required this.arabic,
     required this.profile,
     required this.busy,
+    required this.editDeck,
     required this.setActiveDeck,
   });
   final bool arabic;
   final PlayerProfileV2 profile;
   final bool busy;
+  final Future<void> Function(int index) editDeck;
   final Future<void> Function(int index) setActiveDeck;
 
   @override
@@ -741,6 +761,11 @@ class _DecksV2 extends StatelessWidget {
                 Expanded(child: Text('${arabic ? 'مجموعة' : 'Deck'} ${index + 1}', style: const TextStyle(color: _ink, fontWeight: FontWeight.w900))),
                 Text('${deck.length}/$kDeckSizeV2', style: const TextStyle(color: _purple, fontWeight: FontWeight.w900)),
                 const SizedBox(width: 8),
+                IconButton(
+                  tooltip: arabic ? 'تعديل المجموعة' : 'Edit deck',
+                  onPressed: busy ? null : () => editDeck(index),
+                  icon: const Icon(Icons.edit_outlined),
+                ),
                 IconButton(
                   tooltip: arabic ? 'تفعيل المجموعة' : 'Set active deck',
                   onPressed: busy || active || !PlayerDeckV2(deck).isValid(profile.ownedPackIds)
@@ -768,16 +793,18 @@ class _PlayV2 extends StatelessWidget {
     required this.busy,
     required this.botStatus,
     required this.matchmaking,
-    required this.refreshBot,
+    required this.startBot,
     required this.startOrCheckMatchmaking,
+    required this.cancelMatchmaking,
   });
   final bool arabic;
   final PlayerProfileV2 profile;
   final bool busy;
   final BotStatusV2? botStatus;
   final MatchmakingStatusV2? matchmaking;
-  final VoidCallback refreshBot;
+  final VoidCallback startBot;
   final VoidCallback startOrCheckMatchmaking;
+  final VoidCallback cancelMatchmaking;
 
   @override
   Widget build(BuildContext context) {
@@ -800,9 +827,9 @@ class _PlayV2 extends StatelessWidget {
           const SizedBox(height: 12),
           if (needsBot)
             FilledButton.icon(
-              onPressed: busy ? null : refreshBot,
+              onPressed: busy ? null : startBot,
               icon: const Icon(Icons.smart_toy_rounded),
-              label: Text(arabic ? 'تحقق من مسار البوت' : 'Check bot path'),
+              label: Text(arabic ? 'ابدأ جولة البوت' : 'Start bot round'),
             )
           else
             FilledButton.icon(
@@ -811,6 +838,11 @@ class _PlayV2 extends StatelessWidget {
               label: Text(searching
                   ? (arabic ? 'تحقق من الخصم' : 'Check opponent')
                   : (arabic ? 'ابدأ البحث' : 'Find opponent')),
+            ),
+          if (searching)
+            TextButton(
+              onPressed: busy ? null : cancelMatchmaking,
+              child: Text(arabic ? 'إلغاء البحث' : 'Cancel search'),
             ),
           if (botStatus != null) ...[
             const SizedBox(height: 8),
@@ -839,6 +871,7 @@ class _ProfileV2 extends StatelessWidget {
     required this.busy,
     required this.refresh,
     required this.refreshSubscription,
+    required this.equipPrestige,
   });
   final bool arabic;
   final PlayerProfileV2 profile;
@@ -847,6 +880,7 @@ class _ProfileV2 extends StatelessWidget {
   final bool busy;
   final VoidCallback refresh;
   final VoidCallback refreshSubscription;
+  final VoidCallback equipPrestige;
 
   @override
   Widget build(BuildContext context) {
@@ -866,7 +900,13 @@ class _ProfileV2 extends StatelessWidget {
           _StatRow(label: arabic ? 'اللقب الحالي' : 'Current title', value: profile.currentTitleKey ?? '—'),
           _StatRow(label: arabic ? 'الإطار الحالي' : 'Current frame', value: profile.currentFrameKey ?? '—'),
           const SizedBox(height: 6),
-          TextButton.icon(onPressed: busy ? null : refresh, icon: const Icon(Icons.refresh_rounded), label: Text(arabic ? 'تحديث الملف' : 'Refresh profile')),
+          Wrap(
+            spacing: 8,
+            children: [
+              TextButton.icon(onPressed: busy ? null : refresh, icon: const Icon(Icons.refresh_rounded), label: Text(arabic ? 'تحديث الملف' : 'Refresh profile')),
+              OutlinedButton(onPressed: busy ? null : equipPrestige, child: Text(arabic ? 'جهز أفضل Prestige' : 'Equip best prestige')),
+            ],
+          ),
         ]),
       ),
       const SizedBox(height: 12),
