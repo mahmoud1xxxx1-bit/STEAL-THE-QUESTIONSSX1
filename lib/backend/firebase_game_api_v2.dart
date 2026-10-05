@@ -72,6 +72,16 @@ class StealConfirmationV2 {
   final PlayerProfileV2? winnerProfile;
 }
 
+class MatchmakingStatusV2 {
+  const MatchmakingStatusV2({required this.status, required this.duelId});
+
+  final String status;
+  final String? duelId;
+
+  bool get searching => status == 'searching';
+  bool get matched => status == 'matched' && duelId != null;
+}
+
 class FirebaseGameApiV2 {
   FirebaseGameApiV2({FirebaseFunctions? functions})
       : _functions = functions ?? FirebaseFunctions.instance;
@@ -104,6 +114,20 @@ class FirebaseGameApiV2 {
       'deckIndex': deckIndex,
     });
     return _profileFromResponse(response.data);
+  }
+
+  Future<MatchmakingStatusV2> findOrCreateDuel() async {
+    final response = await _functions.httpsCallable('findOrCreateDuelV2').call();
+    return _matchStatusFromResponse(response.data);
+  }
+
+  Future<MatchmakingStatusV2> loadMatchStatus() async {
+    final response = await _functions.httpsCallable('getMatchStatusV2').call();
+    return _matchStatusFromResponse(response.data);
+  }
+
+  Future<void> cancelMatchmaking() async {
+    await _functions.httpsCallable('cancelMatchmakingV2').call();
   }
 
   Future<WeeklyRankingV2> loadWeeklyRanking() async {
@@ -148,6 +172,14 @@ class FirebaseGameApiV2 {
       winnerProfile: profileRaw is Map
           ? PlayerProfileV2.fromMap(Map<String, dynamic>.from(profileRaw))
           : null,
+    );
+  }
+
+  MatchmakingStatusV2 _matchStatusFromResponse(dynamic raw) {
+    final data = _asMap(raw, 'Invalid matchmaking response.');
+    return MatchmakingStatusV2(
+      status: data['status'] as String? ?? 'idle',
+      duelId: data['duelId'] as String?,
     );
   }
 
