@@ -380,26 +380,61 @@ class _DecksV2 extends StatelessWidget {
 }
 
 class _PlayV2 extends StatelessWidget {
-  const _PlayV2({required this.arabic, required this.profile});
+  const _PlayV2({
+    required this.arabic,
+    required this.profile,
+    required this.busy,
+    required this.botStatus,
+    required this.matchmaking,
+    required this.refreshBot,
+    required this.startOrCheckMatchmaking,
+  });
   final bool arabic;
   final PlayerProfileV2 profile;
+  final bool busy;
+  final BotStatusV2? botStatus;
+  final MatchmakingStatusV2? matchmaking;
+  final VoidCallback refreshBot;
+  final VoidCallback startOrCheckMatchmaking;
 
   @override
   Widget build(BuildContext context) {
     final needsBot = profile.ownedCount < kDeckSizeV2;
+    final searching = matchmaking?.searching == true;
     return _Scroll(children: [
       _Section(title: arabic ? 'اللعب' : 'Play'),
       const SizedBox(height: 10),
       _Panel(
-        child: _Empty(
-          icon: needsBot ? Icons.smart_toy_rounded : Icons.flash_on_rounded,
-          title: needsBot ? (arabic ? 'مسار البوت' : 'Bot onboarding') : (arabic ? 'مسار PvP' : 'PvP path'),
-          text: needsBot
-              ? (arabic ? 'البوت هو المسار الصحيح حتى 10 بطاقات. التنفيذ Server-authoritative جاهز، لكن المحتوى لم يُدخل بعد.' : 'Bot is the correct path until 10 cards. The server-authoritative flow is ready, but content is intentionally not loaded yet.')
-              : (profile.activeDeckReady
-                  ? (arabic ? 'الملف والـDeck جاهزان لبدء Matchmaking V2.' : 'Profile and active deck are ready for V2 matchmaking.')
-                  : (arabic ? 'تحتاج Deck صالحة من 10 بطاقات مختلفة قبل PvP.' : 'A valid 10-card deck is required before PvP.')),
-        ),
+        child: Column(children: [
+          _Empty(
+            icon: needsBot ? Icons.smart_toy_rounded : Icons.flash_on_rounded,
+            title: needsBot ? (arabic ? 'مسار البوت' : 'Bot onboarding') : (arabic ? 'مسار PvP' : 'PvP path'),
+            text: needsBot
+                ? (arabic ? 'البوت مربوط الآن بالسيرفر وسيعمل فور إضافة المحتوى.' : 'Bot onboarding is now wired to the server and will run as soon as content is added.')
+                : (profile.activeDeckReady
+                    ? (arabic ? 'الـDeck جاهزة وMatchmaking مربوط بالسيرفر.' : 'The active deck is ready and matchmaking is wired to the server.')
+                    : (arabic ? 'تحتاج Deck صالحة من 10 بطاقات مختلفة قبل PvP.' : 'A valid 10-card deck is required before PvP.')),
+          ),
+          const SizedBox(height: 12),
+          if (needsBot)
+            FilledButton.icon(
+              onPressed: busy ? null : refreshBot,
+              icon: const Icon(Icons.smart_toy_rounded),
+              label: Text(arabic ? 'تحقق من مسار البوت' : 'Check bot path'),
+            )
+          else
+            FilledButton.icon(
+              onPressed: busy || !profile.activeDeckReady ? null : startOrCheckMatchmaking,
+              icon: Icon(searching ? Icons.refresh_rounded : Icons.sports_esports_rounded),
+              label: Text(searching
+                  ? (arabic ? 'تحقق من الخصم' : 'Check opponent')
+                  : (arabic ? 'ابدأ البحث' : 'Find opponent')),
+            ),
+          if (botStatus != null) ...[
+            const SizedBox(height: 8),
+            Text('${botStatus!.ownedCount}/${botStatus!.targetCount}', style: const TextStyle(color: _purple, fontWeight: FontWeight.w900)),
+          ],
+        ]),
       ),
       const SizedBox(height: 12),
       _Panel(
@@ -414,13 +449,27 @@ class _PlayV2 extends StatelessWidget {
 }
 
 class _ProfileV2 extends StatelessWidget {
-  const _ProfileV2({required this.arabic, required this.profile});
+  const _ProfileV2({
+    required this.arabic,
+    required this.profile,
+    required this.ranking,
+    required this.subscription,
+    required this.busy,
+    required this.refresh,
+    required this.refreshSubscription,
+  });
   final bool arabic;
   final PlayerProfileV2 profile;
+  final WeeklyRankingV2? ranking;
+  final SubscriptionStatusV2? subscription;
+  final bool busy;
+  final VoidCallback refresh;
+  final VoidCallback refreshSubscription;
 
   @override
   Widget build(BuildContext context) {
     final total = profile.totalWins + profile.totalLosses + profile.totalDraws;
+    final top = ranking?.players.take(10).toList(growable: false) ?? const <WeeklyRankingPlayerV2>[];
     return _Scroll(children: [
       _Section(title: arabic ? 'الملف الشخصي' : 'Profile'),
       const SizedBox(height: 10),
@@ -432,9 +481,30 @@ class _ProfileV2 extends StatelessWidget {
           _StatRow(label: arabic ? 'تعادل' : 'Draws', value: '${profile.totalDraws}'),
           _StatRow(label: arabic ? 'إجمالي المباريات' : 'Total matches', value: '$total'),
           _StatRow(label: '🥇 / 🥈 / 🥉', value: '${profile.prestige.first} / ${profile.prestige.second} / ${profile.prestige.third}'),
-          _StatRow(label: arabic ? 'Decks المتاحة' : 'Deck slots', value: '${profile.entitlement.deckSlots}'),
-          _StatRow(label: arabic ? 'خيارات الإجابة' : 'Answer choices', value: '${profile.entitlement.answerChoices}'),
+          _StatRow(label: arabic ? 'اللقب الحالي' : 'Current title', value: profile.currentTitleKey ?? '—'),
+          _StatRow(label: arabic ? 'الإطار الحالي' : 'Current frame', value: profile.currentFrameKey ?? '—'),
+          const SizedBox(height: 6),
+          TextButton.icon(onPressed: busy ? null : refresh, icon: const Icon(Icons.refresh_rounded), label: Text(arabic ? 'تحديث الملف' : 'Refresh profile')),
         ]),
+      ),
+      const SizedBox(height: 12),
+      _Section(title: arabic ? 'الاشتراك' : 'Subscription'),
+      const SizedBox(height: 8),
+      _Panel(
+        child: Column(children: [
+          _StatRow(label: arabic ? 'الحالة' : 'Status', value: subscription?.active == true ? (arabic ? 'فعال' : 'Active') : (arabic ? 'مجاني' : 'Free')),
+          _StatRow(label: arabic ? 'Decks المتاحة' : 'Deck slots', value: '${subscription?.deckSlots ?? profile.entitlement.deckSlots}'),
+          _StatRow(label: arabic ? 'خيارات الإجابة' : 'Answer choices', value: '${subscription?.answerChoices ?? profile.entitlement.answerChoices}'),
+          FilledButton.tonal(onPressed: busy ? null : refreshSubscription, child: Text(arabic ? 'تحقق من الاشتراك عبر السيرفر' : 'Verify subscription')),
+        ]),
+      ),
+      const SizedBox(height: 12),
+      _Section(title: arabic ? 'الترتيب الأسبوعي' : 'Weekly ranking'),
+      const SizedBox(height: 8),
+      _Panel(
+        child: top.isEmpty
+            ? Text(arabic ? 'لا توجد نتائج بعد.' : 'No ranking results yet.', style: const TextStyle(color: _muted))
+            : Column(children: top.map((p) => _StatRow(label: '#${p.rank} ${p.displayName}', value: '${p.weeklyPoints} · ${p.weeklyWins}W')).toList(growable: false)),
       ),
     ]);
   }
