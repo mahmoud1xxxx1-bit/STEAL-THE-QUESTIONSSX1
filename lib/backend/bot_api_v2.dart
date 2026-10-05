@@ -69,8 +69,10 @@ class BotApiV2 {
     );
   }
 
-  Future<BotRoundV2> startRound() async {
-    final response = await _functions.httpsCallable('startBotRoundV2').call();
+  Future<BotRoundV2> startRound({required bool arabic}) async {
+    final response = await _functions.httpsCallable('startBotRoundV2').call({
+      'language': arabic ? 'ar' : 'en',
+    });
     final raw = _map(response.data);
     return BotRoundV2(
       roundId: raw['roundId'] as String? ?? '',
