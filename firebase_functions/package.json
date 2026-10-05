@@ -7,7 +7,7 @@
   },
   "main": "index.js",
   "scripts": {
-    "lint": "node --check index.js && node --check core_engine_v2.js && node --check question_data.js"
+    "lint": "node --check index.js && node --check core_engine_v2.js && node --check player_profile_v2.js && node --check player_profile_v2_test.js && node --check question_data.js && node player_profile_v2_test.js"
   },
   "dependencies": {
     "firebase-admin": "^13.5.0",
