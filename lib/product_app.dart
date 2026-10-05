@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 
 import 'backend/firebase_bootstrap.dart';
@@ -2629,6 +2630,7 @@ class _MoreTile extends StatelessWidget {
           trailing: const Icon(Icons.chevron_right_rounded),
         ),
       );
+}
 
 class _Pill extends StatelessWidget {
   const _Pill({required this.label, required this.positive});
@@ -2651,6 +2653,7 @@ class _Pill extends StatelessWidget {
           ),
         ),
       );
+}
 
 void _showError(BuildContext context, Object error) {
   ScaffoldMessenger.of(context).showSnackBar(

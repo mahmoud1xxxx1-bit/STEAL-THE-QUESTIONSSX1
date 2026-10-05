@@ -140,7 +140,7 @@ exports.startBotRound = onCall(async (request) => {
     status: 'open'
   });
 
-  const p = publicQuestion(cardId);
+  const p = publicQuestion(questionCardId);
   return {
     roundId,
     questionId: p.questionId,
@@ -582,6 +582,13 @@ exports.resolveDuel = onCall(async (request) => {
     const secret = secretSnap.data();
     const resolved = finalizeResult(duel, secret, Date.now());
 
+    const p1Ref = userRef(duel.p1Uid);
+    const p2Ref = userRef(duel.p2Uid);
+    const [p1Snap, p2Snap] = await Promise.all([tx.get(p1Ref), tx.get(p2Ref)]);
+    if (!p1Snap.exists || !p2Snap.exists) throw new HttpsError('not-found', 'Duel players not found.');
+    const [p1Snap, p2Snap] = await Promise.all([tx.get(p1Ref), tx.get(p2Ref)]);
+    if (!p1Snap.exists || !p2Snap.exists) throw new HttpsError('not-found', 'Duel players not found.');
+
     tx.update(secretRef, {
       p1Answers: resolved.p1Filled,
       p2Answers: resolved.p2Filled
@@ -600,11 +607,6 @@ exports.resolveDuel = onCall(async (request) => {
       loserUid: resolved.loserUid,
       resultAt: Timestamp.now()
     });
-
-    const p1Ref = userRef(duel.p1Uid);
-    const p2Ref = userRef(duel.p2Uid);
-    const [p1Snap, p2Snap] = await Promise.all([tx.get(p1Ref), tx.get(p2Ref)]);
-    if (!p1Snap.exists || !p2Snap.exists) throw new HttpsError('not-found', 'Duel players not found.');
 
     tx.update(p1Ref, {
       wins: Number(p1Snap.data().wins || 0) + (resolved.winnerUid === duel.p1Uid ? 1 : 0),
