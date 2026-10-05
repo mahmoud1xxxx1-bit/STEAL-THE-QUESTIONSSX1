@@ -41,7 +41,7 @@ class PlayerSessionV2 {
   Future<void> replaceOwnedPacks(Iterable<String> packIds) async {
     profile.ownedPackIds
       ..clear()
-      ..addAll(packIds.map(String));
+      ..addAll(packIds.map((id) => id.toString()));
 
     for (var i = 0; i < profile.decks.length; i++) {
       final deck = profile.decks[i];
