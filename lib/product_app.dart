@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
 
 import 'backend/firebase_bootstrap.dart';
 import 'backend/firebase_game_api.dart';
@@ -1480,6 +1481,7 @@ class _DuelPageState extends State<_DuelPage> {
   int? revealedSlot;
   Map<String, dynamic>? reveal;
   bool stealDone = false;
+  bool remoteRefreshed = false;
   int localDeadline = kFullDuelSeconds;
 
   @override
@@ -1497,6 +1499,10 @@ class _DuelPageState extends State<_DuelPage> {
         duel = state;
         loading = false;
       });
+      if (state['status'] == 'finished' && !remoteRefreshed) {
+        remoteRefreshed = true;
+        await widget.player._loadRemote();
+      }
       final startedAt = _readDate(state['startedAt']);
       if (startedAt != null) {
         final elapsed = DateTime.now().difference(startedAt).inSeconds;
