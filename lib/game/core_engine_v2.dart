@@ -3,8 +3,7 @@ import 'dart:math';
 /// Core rules for the new STEAL THE QUESTIONS model.
 ///
 /// Important: this file contains NO real questions. Real content will be
-/// supplied later and loaded into [ContentCatalog].
-library;
+/// supplied later and loaded into [ContentCatalogV2].
 
 const int kDeckSizeV2 = 10;
 const int kDuelCardsV2 = 7;
