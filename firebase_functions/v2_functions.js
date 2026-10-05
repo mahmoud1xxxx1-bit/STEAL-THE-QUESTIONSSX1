@@ -2,20 +2,9 @@
 
 const admin = require('firebase-admin');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
-const {
-  emptyProfileV2,
-  normalizeProfileV2,
-  saveDeckV2,
-} = require('./player_profile_v2');
-const {
-  DECK_SIZE,
-  validateDeck,
-  weekKey,
-} = require('./core_engine_v2');
-const {
-  applySteal,
-  stealablePackIds,
-} = require('./duel_engine_v2');
+const { emptyProfileV2, normalizeProfileV2, saveDeckV2 } = require('./player_profile_v2');
+const { DECK_SIZE, validateDeck, weekKey } = require('./core_engine_v2');
+const { applySteal, stealablePackIds } = require('./duel_engine_v2');
 
 const db = admin.firestore();
 const { Timestamp } = admin.firestore;
@@ -31,21 +20,15 @@ function userRef(uid) {
 }
 
 function profileFromUserData(data) {
-  if (data && data.profileV2 && typeof data.profileV2 === 'object') {
-    return normalizeProfileV2(data.profileV2);
-  }
+  if (data && data.profileV2 && typeof data.profileV2 === 'object') return normalizeProfileV2(data.profileV2);
   return emptyProfileV2();
 }
 
 function sanitizeDecksAfterOwnershipChange(profile) {
   const next = normalizeProfileV2(profile);
-  next.decks = next.decks.map((deck) =>
-    validateDeck(deck, next.ownedPackIds) ? deck : []
-  );
+  next.decks = next.decks.map((deck) => validateDeck(deck, next.ownedPackIds) ? deck : []);
   const slots = next.subscriptionActive ? 5 : 2;
-  if (next.activeDeckIndex < 0 || next.activeDeckIndex >= slots) {
-    next.activeDeckIndex = 0;
-  }
+  if (next.activeDeckIndex < 0 || next.activeDeckIndex >= slots) next.activeDeckIndex = 0;
   return next;
 }
 
@@ -80,11 +63,8 @@ const getProfileV2 = onCall(async (request) => {
 const saveDeckV2Callable = onCall(async (request) => {
   const uid = authUid(request);
   const deckIndex = Number(request.data && request.data.deckIndex);
-  const packIds = Array.isArray(request.data && request.data.packIds)
-    ? request.data.packIds.map(String)
-    : [];
+  const packIds = Array.isArray(request.data && request.data.packIds) ? request.data.packIds.map(String) : [];
   const ref = userRef(uid);
-
   const profile = await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     if (!snap.exists) throw new HttpsError('not-found', 'Profile not found.');
@@ -95,14 +75,9 @@ const saveDeckV2Callable = onCall(async (request) => {
     } catch (_) {
       throw new HttpsError('failed-precondition', 'Deck must contain exactly 10 distinct owned cards in an unlocked slot.');
     }
-    tx.update(ref, {
-      profileV2: next,
-      schemaVersion: 2,
-      updatedAt: Timestamp.now(),
-    });
+    tx.update(ref, { profileV2: next, schemaVersion: 2, updatedAt: Timestamp.now() });
     return next;
   });
-
   return { ok: true, profile };
 });
 
@@ -110,7 +85,6 @@ const setActiveDeckV2 = onCall(async (request) => {
   const uid = authUid(request);
   const deckIndex = Number(request.data && request.data.deckIndex);
   const ref = userRef(uid);
-
   const profile = await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     if (!snap.exists) throw new HttpsError('not-found', 'Profile not found.');
@@ -123,14 +97,9 @@ const setActiveDeckV2 = onCall(async (request) => {
       throw new HttpsError('failed-precondition', 'Active deck must contain exactly 10 distinct owned cards.');
     }
     const next = { ...current, activeDeckIndex: deckIndex };
-    tx.update(ref, {
-      profileV2: next,
-      schemaVersion: 2,
-      updatedAt: Timestamp.now(),
-    });
+    tx.update(ref, { profileV2: next, schemaVersion: 2, updatedAt: Timestamp.now() });
     return next;
   });
-
   return { ok: true, profile };
 });
 
@@ -144,7 +113,6 @@ const getWeeklyRankingV2 = onCall(async (request) => {
     .orderBy('uid', 'asc')
     .limit(100)
     .get();
-
   return {
     weekKey: key,
     players: snap.docs.map((doc, index) => {
@@ -169,29 +137,18 @@ const getStealOptionsV2 = onCall(async (request) => {
   const uid = authUid(request);
   const duelId = String(request.data && request.data.duelId || '').trim();
   if (!duelId) throw new HttpsError('invalid-argument', 'duelId is required.');
-
   const duelRef = db.collection('duelsV2').doc(duelId);
   const secretRef = db.collection('duelSecretsV2').doc(duelId);
-  const [duelSnap, secretSnap, winnerSnap] = await Promise.all([
-    duelRef.get(),
-    secretRef.get(),
-    userRef(uid).get(),
-  ]);
-
+  const [duelSnap, secretSnap, winnerSnap] = await Promise.all([duelRef.get(), secretRef.get(), userRef(uid).get()]);
   if (!duelSnap.exists || !secretSnap.exists) throw new HttpsError('not-found', 'Duel not found.');
   if (!winnerSnap.exists) throw new HttpsError('not-found', 'Winner profile not found.');
   const duel = duelSnap.data();
   if (duel.status !== 'finished' || duel.result === 'draw' || duel.winnerUid !== uid) {
     throw new HttpsError('permission-denied', 'Only the finished duel winner can select a card.');
   }
-  if (duel.stealConfirmed === true) {
-    return { packIds: [], alreadyConfirmed: true };
-  }
-
+  if (duel.stealConfirmed === true) return { packIds: [], alreadyConfirmed: true };
   const secret = secretSnap.data();
-  const opponentDeckPackIds = Array.isArray(secret.loserDeckPackIds)
-    ? secret.loserDeckPackIds.map(String)
-    : [];
+  const opponentDeckPackIds = Array.isArray(secret.loserDeckPackIds) ? secret.loserDeckPackIds.map(String) : [];
   const winnerProfile = profileFromUserData(winnerSnap.data());
   let packIds;
   try {
@@ -207,7 +164,6 @@ const confirmStealV2 = onCall(async (request) => {
   const duelId = String(request.data && request.data.duelId || '').trim();
   const packId = String(request.data && request.data.packId || '').trim();
   if (!duelId || !packId) throw new HttpsError('invalid-argument', 'duelId and packId are required.');
-
   const duelRef = db.collection('duelsV2').doc(duelId);
   const secretRef = db.collection('duelSecretsV2').doc(duelId);
 
@@ -215,18 +171,14 @@ const confirmStealV2 = onCall(async (request) => {
     const duelSnap = await tx.get(duelRef);
     const secretSnap = await tx.get(secretRef);
     if (!duelSnap.exists || !secretSnap.exists) throw new HttpsError('not-found', 'Duel not found.');
-
     const duel = duelSnap.data();
     if (duel.status !== 'finished' || duel.result === 'draw' || duel.winnerUid !== uid) {
       throw new HttpsError('permission-denied', 'Only the finished duel winner can transfer a card.');
     }
-    if (duel.stealConfirmed === true) {
-      return { ok: true, alreadyConfirmed: true, packId: duel.stolenPackId || null };
-    }
+    if (duel.stealConfirmed === true) return { ok: true, alreadyConfirmed: true, packId: duel.stolenPackId || null };
 
     const loserUid = String(duel.loserUid || '');
     if (!loserUid || loserUid === uid) throw new HttpsError('failed-precondition', 'Invalid duel loser.');
-
     const winnerRef = userRef(uid);
     const loserRef = userRef(loserUid);
     const winnerSnap = await tx.get(winnerRef);
@@ -236,46 +188,22 @@ const confirmStealV2 = onCall(async (request) => {
     const winner = profileFromUserData(winnerSnap.data());
     const loser = profileFromUserData(loserSnap.data());
     const secret = secretSnap.data();
-    const opponentDeckPackIds = Array.isArray(secret.loserDeckPackIds)
-      ? secret.loserDeckPackIds.map(String)
-      : [];
-
+    const opponentDeckPackIds = Array.isArray(secret.loserDeckPackIds) ? secret.loserDeckPackIds.map(String) : [];
     let transfer;
     try {
-      transfer = applySteal({
-        packId,
-        winnerOwnedPackIds: winner.ownedPackIds,
-        loserOwnedPackIds: loser.ownedPackIds,
-        opponentDeckPackIds,
-      });
+      transfer = applySteal({ packId, winnerOwnedPackIds: winner.ownedPackIds, loserOwnedPackIds: loser.ownedPackIds, opponentDeckPackIds });
     } catch (_) {
       throw new HttpsError('failed-precondition', 'Selected card is not eligible for transfer.');
     }
 
-    const nextWinner = sanitizeDecksAfterOwnershipChange({
-      ...winner,
-      ownedPackIds: transfer.winnerOwnedPackIds,
-    });
-    const nextLoser = sanitizeDecksAfterOwnershipChange({
-      ...loser,
-      ownedPackIds: transfer.loserOwnedPackIds,
-    });
-
-    tx.update(winnerRef, {
-      profileV2: nextWinner,
-      schemaVersion: 2,
-      updatedAt: Timestamp.now(),
-    });
-    tx.update(loserRef, {
-      profileV2: nextLoser,
-      schemaVersion: 2,
-      updatedAt: Timestamp.now(),
-    });
-    tx.update(duelRef, {
-      stealConfirmed: true,
-      stolenPackId: packId,
-      stealConfirmedAt: Timestamp.now(),
-    });
+    const nextWinner = sanitizeDecksAfterOwnershipChange({ ...winner, ownedPackIds: transfer.winnerOwnedPackIds });
+    const nextLoser = sanitizeDecksAfterOwnershipChange({ ...loser, ownedPackIds: transfer.loserOwnedPackIds });
+    const now = Timestamp.now();
+    tx.update(winnerRef, { profileV2: nextWinner, activeDuelV2: null, schemaVersion: 2, updatedAt: now });
+    tx.update(loserRef, { profileV2: nextLoser, activeDuelV2: null, schemaVersion: 2, updatedAt: now });
+    tx.update(duelRef, { stealConfirmed: true, stolenPackId: packId, stealConfirmedAt: now, updatedAt: now });
+    tx.delete(db.collection('matchQueueV2').doc(uid));
+    tx.delete(db.collection('matchQueueV2').doc(loserUid));
 
     return {
       ok: true,
