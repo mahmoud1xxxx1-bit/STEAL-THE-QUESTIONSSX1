@@ -1,5 +1,6 @@
 import '../backend/bot_api_v2.dart';
 import '../backend/firebase_game_api_v2.dart';
+import '../backend/profile_features_api_v2.dart';
 import '../data/player_profile_store_v2.dart';
 import 'player_profile_v2.dart';
 
@@ -10,17 +11,21 @@ class OnlinePlayerSessionV2 {
     required this.store,
     required this.api,
     required this.botApi,
-  });
+    ProfileFeaturesApiV2? profileApi,
+  }) : profileApi = profileApi ?? ProfileFeaturesApiV2();
 
   final PlayerProfileStoreV2 store;
   final FirebaseGameApiV2 api;
   final BotApiV2 botApi;
+  final ProfileFeaturesApiV2 profileApi;
   PlayerProfileV2? _profile;
 
   bool get initialized => _profile != null;
   PlayerProfileV2 get profile {
     final value = _profile;
-    if (value == null) throw StateError('OnlinePlayerSessionV2 is not initialized.');
+    if (value == null) {
+      throw StateError('OnlinePlayerSessionV2 is not initialized.');
+    }
     return value;
   }
 
@@ -42,7 +47,10 @@ class OnlinePlayerSessionV2 {
   }
 
   Future<PlayerProfileV2> saveDeck(int deckIndex, List<String> packIds) async {
-    final remote = await api.saveDeck(deckIndex: deckIndex, packIds: packIds);
+    final remote = await api.saveDeck(
+      deckIndex: deckIndex,
+      packIds: packIds,
+    );
     _profile = remote;
     await store.save(remote);
     return remote;
@@ -59,14 +67,20 @@ class OnlinePlayerSessionV2 {
     required String cardId,
     required String questionId,
     required bool arabic,
-  }) => api.loadCustomWrongChoices(cardId: cardId, questionId: questionId, arabic: arabic);
+  }) =>
+      api.loadCustomWrongChoices(
+        cardId: cardId,
+        questionId: questionId,
+        arabic: arabic,
+      );
 
   Future<CustomWrongChoicesV2> saveCustomWrongChoices({
     required String cardId,
     required String questionId,
     required bool arabic,
     required List<String> choices,
-  }) => api.saveCustomWrongChoices(
+  }) =>
+      api.saveCustomWrongChoices(
         cardId: cardId,
         questionId: questionId,
         arabic: arabic,
@@ -91,21 +105,32 @@ class OnlinePlayerSessionV2 {
     return result;
   }
 
-  Future<MatchmakingStatusV2> startMatchmaking() => api.findOrCreateDuel();
-  Future<MatchmakingStatusV2> matchStatus() => api.loadMatchStatus();
-  Future<void> cancelMatchmaking() => api.cancelMatchmaking();
-  Future<DuelStateV2> duelState(String duelId) => api.loadDuelState(duelId);
+  Future<MatchmakingStatusV2> startMatchmaking() =>
+      api.findOrCreateDuel();
+
+  Future<MatchmakingStatusV2> matchStatus() =>
+      api.loadMatchStatus();
+
+  Future<void> cancelMatchmaking() =>
+      api.cancelMatchmaking();
+
+  Future<DuelStateV2> duelState(String duelId) =>
+      api.loadDuelState(duelId);
 
   Future<DuelStateV2> prepareDuelQuestions({
     required String duelId,
     required bool arabic,
   }) async {
-    final state = await api.prepareDuelQuestions(duelId: duelId, arabic: arabic);
+    final state = await api.prepareDuelQuestions(
+      duelId: duelId,
+      arabic: arabic,
+    );
     await refreshProfile();
     return state;
   }
 
-  Future<DuelQuestionV2> startNextQuestion(String duelId) => api.startNextQuestion(duelId);
+  Future<DuelQuestionV2> startNextQuestion(String duelId) =>
+      api.startNextQuestion(duelId);
 
   Future<DuelAnswerReceiptV2> submitAnswer({
     required String duelId,
@@ -124,13 +149,17 @@ class OnlinePlayerSessionV2 {
     return state;
   }
 
-  Future<StealOptionsV2> stealOptions(String duelId) => api.loadStealOptions(duelId);
+  Future<StealOptionsV2> stealOptions(String duelId) =>
+      api.loadStealOptions(duelId);
 
   Future<StealConfirmationV2> confirmSteal({
     required String duelId,
     required String packId,
   }) async {
-    final confirmation = await api.confirmSteal(duelId: duelId, packId: packId);
+    final confirmation = await api.confirmSteal(
+      duelId: duelId,
+      packId: packId,
+    );
     if (confirmation.winnerProfile != null) {
       _profile = confirmation.winnerProfile;
       await store.save(_profile!);
@@ -140,5 +169,36 @@ class OnlinePlayerSessionV2 {
     return confirmation;
   }
 
-  Future<WeeklyRankingV2> weeklyRanking() => api.loadWeeklyRanking();
+  Future<WeeklyRankingV2> weeklyRanking() =>
+      api.loadWeeklyRanking();
+
+  Future<PublicPlayerProfileV2> publicProfile({String? uid}) =>
+      profileApi.loadPublicProfile(uid: uid);
+
+  Future<PlayerProfileV2> equipPrestige({
+    String? titleKey,
+    String? frameKey,
+  }) async {
+    final remote = await profileApi.equipPrestige(
+      titleKey: titleKey,
+      frameKey: frameKey,
+    );
+    _profile = remote;
+    await store.save(remote);
+    return remote;
+  }
+
+  Future<SubscriptionStatusV2> subscriptionStatus() =>
+      profileApi.loadSubscriptionStatus();
+
+  Future<SubscriptionStatusV2> refreshSubscription() async {
+    final status = await profileApi.refreshSubscription();
+    if (status.profile != null) {
+      _profile = status.profile;
+      await store.save(_profile!);
+    } else {
+      await refreshProfile();
+    }
+    return status;
+  }
 }
