@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'football_design_app_v2.dart';
+import 'seven_categories_app.dart';
 
 void main() {
   runApp(const StealTheQuestionsApp());
@@ -110,7 +110,7 @@ class StealTheQuestionsApp extends StatelessWidget {
           linearTrackColor: Color(0xFFE3EBFA),
         ),
       ),
-      home: const FootballDesignAppV2(),
+      home: const SevenCategoriesApp(),
     );
   }
 }
