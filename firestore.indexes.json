@@ -8,6 +8,16 @@
         { "fieldPath": "wins", "order": "DESCENDING" },
         { "fieldPath": "uid", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "profileV2.weekKey", "order": "ASCENDING" },
+        { "fieldPath": "profileV2.weeklyPoints", "order": "DESCENDING" },
+        { "fieldPath": "profileV2.weeklyWins", "order": "DESCENDING" },
+        { "fieldPath": "uid", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
