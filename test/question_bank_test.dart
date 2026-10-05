@@ -20,7 +20,7 @@ void main() {
         expect(q.correctIndex, inInclusiveRange(0, 2));
         expect(q.answersEn[q.correctIndex], isNotEmpty);
         expect(q.answersAr[q.correctIndex], isNotEmpty);
-        expect(q.answers(arbic: false, weeklyPass: true), hasLength(4), reason: q.id);
+        expect(q.answers(arabic: false, weeklyPass: true), hasLength(4), reason: q.id);
       }
     });
   });
