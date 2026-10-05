@@ -4,12 +4,7 @@ const admin = require('firebase-admin');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { Timestamp } = admin.firestore;
 const { normalizeProfileV2, applyDuelResultV2 } = require('./player_profile_v2');
-const {
-  publicDuelState,
-  submitAnswer,
-  finalizeDuel,
-  validateQuestionPlan,
-} = require('./duel_lifecycle_v2');
+const { publicDuelState, submitAnswer, finalizeDuel, validateQuestionPlan } = require('./duel_lifecycle_v2');
 
 const db = admin.firestore();
 
@@ -59,9 +54,7 @@ const startNextQuestionV2 = onCall(async (request) => {
     const secret = secretSnap.data();
     ensureParticipant(duel, uid);
     if (duel.status === 'finished') throw new HttpsError('failed-precondition', 'Duel already finished.');
-    if (duel.questionPlanReady !== true) {
-      throw new HttpsError('failed-precondition', 'Question content has not been loaded yet.');
-    }
+    if (duel.questionPlanReady !== true) throw new HttpsError('failed-precondition', 'Question content has not been loaded yet.');
 
     const isP1 = uid === duel.p1Uid;
     const plan = isP1 ? secret.p1QuestionPlan : secret.p2QuestionPlan;
@@ -75,11 +68,7 @@ const startNextQuestionV2 = onCall(async (request) => {
     const activeStart = duel[startedKey];
     const now = Timestamp.now();
     if (!activeStart) {
-      tx.update(duelRef, {
-        status: duel.status === 'matched' ? 'playing' : duel.status,
-        [startedKey]: now,
-        updatedAt: now,
-      });
+      tx.update(duelRef, { status: duel.status === 'matched' ? 'playing' : duel.status, [startedKey]: now, updatedAt: now });
     }
 
     const item = plan[index];
@@ -129,21 +118,9 @@ const submitDuelAnswerV2 = onCall(async (request) => {
 
     const answersKey = isP1 ? 'p1Answers' : 'p2Answers';
     const answers = next[answersKey];
-    tx.update(duelRef, {
-      status: next.status,
-      [answersKey]: answers,
-      [startedKey]: null,
-      updatedAt: now,
-    });
-
+    tx.update(duelRef, { status: next.status, [answersKey]: answers, [startedKey]: null, updatedAt: now });
     const last = answers[answers.length - 1];
-    return {
-      ok: true,
-      correct: last.correct === true,
-      elapsedMs: last.elapsedMs,
-      answeredCount: answers.length,
-      totalQuestions: 7,
-    };
+    return { ok: true, correct: last.correct === true, elapsedMs: last.elapsedMs, answeredCount: answers.length, totalQuestions: 7 };
   });
 });
 
@@ -157,9 +134,7 @@ const finalizeDuelV2 = onCall(async (request) => {
     if (!duelSnap.exists) throw new HttpsError('not-found', 'Duel not found.');
     const duel = duelSnap.data();
     ensureParticipant(duel, uid);
-    if (duel.resultApplied === true && duel.status === 'finished') {
-      return publicDuelState(duel, uid);
-    }
+    if (duel.resultApplied === true && duel.status === 'finished') return publicDuelState(duel, uid);
 
     let finished;
     try {
@@ -171,12 +146,12 @@ const finalizeDuelV2 = onCall(async (request) => {
     const p1Ref = db.collection('users').doc(finished.p1Uid);
     const p2Ref = db.collection('users').doc(finished.p2Uid);
     const secretRef = db.collection('duelSecretsV2').doc(duelId);
+    const p1QueueRef = db.collection('matchQueueV2').doc(finished.p1Uid);
+    const p2QueueRef = db.collection('matchQueueV2').doc(finished.p2Uid);
     const p1Snap = await tx.get(p1Ref);
     const p2Snap = await tx.get(p2Ref);
     const secretSnap = await tx.get(secretRef);
-    if (!p1Snap.exists || !p2Snap.exists || !secretSnap.exists) {
-      throw new HttpsError('not-found', 'Duel player data is incomplete.');
-    }
+    if (!p1Snap.exists || !p2Snap.exists || !secretSnap.exists) throw new HttpsError('not-found', 'Duel player data is incomplete.');
 
     let p1Profile = profileFromUserData(p1Snap.data());
     let p2Profile = profileFromUserData(p2Snap.data());
@@ -187,23 +162,24 @@ const finalizeDuelV2 = onCall(async (request) => {
       p2Profile = applyDuelResultV2(p2Profile, 'draw');
       tx.update(p1Ref, { profileV2: p1Profile, activeDuelV2: null, updatedAt: now });
       tx.update(p2Ref, { profileV2: p2Profile, activeDuelV2: null, updatedAt: now });
+      tx.delete(p1QueueRef);
+      tx.delete(p2QueueRef);
     } else {
       const p1Won = finished.winnerUid === finished.p1Uid;
       p1Profile = applyDuelResultV2(p1Profile, p1Won ? 'win' : 'loss');
       p2Profile = applyDuelResultV2(p2Profile, p1Won ? 'loss' : 'win');
       const winnerRef = p1Won ? p1Ref : p2Ref;
       const loserRef = p1Won ? p2Ref : p1Ref;
+      const loserQueueRef = p1Won ? p2QueueRef : p1QueueRef;
       tx.update(p1Ref, { profileV2: p1Profile, updatedAt: now });
       tx.update(p2Ref, { profileV2: p2Profile, updatedAt: now });
       tx.update(loserRef, { activeDuelV2: null, updatedAt: now });
       tx.update(winnerRef, { activeDuelV2: duelId, updatedAt: now });
+      tx.delete(loserQueueRef);
 
       const secret = secretSnap.data();
       const loserDeckPackIds = p1Won ? secret.p2DeckPackIds : secret.p1DeckPackIds;
-      tx.update(secretRef, {
-        loserDeckPackIds: Array.isArray(loserDeckPackIds) ? loserDeckPackIds.map(String) : [],
-        updatedAt: now,
-      });
+      tx.update(secretRef, { loserDeckPackIds: Array.isArray(loserDeckPackIds) ? loserDeckPackIds.map(String) : [], updatedAt: now });
     }
 
     const duelUpdate = {
@@ -222,9 +198,4 @@ const finalizeDuelV2 = onCall(async (request) => {
   });
 });
 
-module.exports = {
-  getDuelStateV2,
-  startNextQuestionV2,
-  submitDuelAnswerV2,
-  finalizeDuelV2,
-};
+module.exports = { getDuelStateV2, startNextQuestionV2, submitDuelAnswerV2, finalizeDuelV2 };
