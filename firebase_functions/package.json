@@ -5,9 +5,9 @@
   "engines": {
     "node": "20"
   },
-  "main": "index.js",
+  "main": "main.js",
   "scripts": {
-    "lint": "node --check index.js && node --check core_engine_v2.js && node --check player_profile_v2.js && node --check player_profile_v2_test.js && node --check question_data.js && node player_profile_v2_test.js"
+    "lint": "node --check main.js && node --check index.js && node --check v2_functions.js && node --check core_engine_v2.js && node --check player_profile_v2.js && node --check player_profile_v2_test.js && node --check question_data.js && node player_profile_v2_test.js"
   },
   "dependencies": {
     "firebase-admin": "^13.5.0",
