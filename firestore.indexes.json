@@ -1,0 +1,14 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ownedCount", "order": "DESCENDING" },
+        { "fieldPath": "wins", "order": "DESCENDING" },
+        { "fieldPath": "uid", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
