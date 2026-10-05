@@ -1,36 +1,19 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:steal_the_questions/main.dart';
+import 'package:steal_the_questions/game/core_engine_v2.dart';
 
 void main() {
-  testWidgets('shows the product shell and onboarding gate', (tester) async {
-    await tester.pumpWidget(const StealTheQuestionsApp());
-    await tester.pumpAndSettle();
-
-    expect(find.text('STEAL THE QUESTIONS'), findsOneWidget);
-    expect(find.textContaining('10'), findsWidgets);
-    expect(find.text('COLLECTION'), findsWidgets);
-    expect(find.text('DECKS'), findsOneWidget);
-    expect(find.text('BOT TRAINING'), findsOneWidget);
+  test('seven category model is exposed', () {
+    expect(kCategoriesV2.length, 7);
+    expect(kCategoriesV2.map((c) => c.id).toSet().length, 7);
   });
 
-  testWidgets('navigation exposes collection, decks and play', (tester) async {
-    await tester.pumpWidget(const StealTheQuestionsApp());
-    await tester.pumpAndSettle();
+  test('subscription model keeps free and subscriber limits', () {
+    const free = SubscriptionEntitlementV2(active: false);
+    const subscriber = SubscriptionEntitlementV2(active: true);
 
-    await tester.tap(find.text('CARDS'));
-    await tester.pumpAndSettle();
-    expect(find.text('222 COLLECTIBLE QUESTIONS'), findsOneWidget);
-    expect(find.text('Q001'), findsOneWidget);
-    expect(find.text('Q222'), findsOneWidget);
-
-    await tester.tap(find.text('DECKS'));
-    await tester.pumpAndSettle();
-    expect(find.text('DECK 1'), findsOneWidget);
-    expect(find.text('DECK 5'), findsOneWidget);
-
-    await tester.tap(find.text('PLAY'));
-    await tester.pumpAndSettle();
-    expect(find.text('BOT TRAINING'), findsOneWidget);
-    expect(find.text('START ROUND'), findsOneWidget);
+    expect(free.deckSlots, 2);
+    expect(free.answerChoices, 3);
+    expect(subscriber.deckSlots, 5);
+    expect(subscriber.answerChoices, 4);
   });
 }
