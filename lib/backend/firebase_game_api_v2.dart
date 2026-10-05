@@ -132,6 +132,14 @@ class FirebaseGameApiV2 {
     return _duelStateFromResponse(response.data);
   }
 
+  Future<DuelStateV2> prepareDuelQuestions({required String duelId, required bool arabic}) async {
+    final response = await _functions.httpsCallable('prepareDuelQuestionsV2').call({
+      'duelId': duelId,
+      'language': arabic ? 'ar' : 'en',
+    });
+    return _duelStateFromResponse(response.data);
+  }
+
   Future<DuelQuestionV2> startNextQuestion(String duelId) async {
     final response = await _functions.httpsCallable('startNextQuestionV2').call({'duelId': duelId});
     final raw = _asMap(response.data, 'Invalid duel question response.');
