@@ -4,8 +4,22 @@ const crypto = require('crypto');
 const admin = require('firebase-admin');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { normalizeProfileV2 } = require('./player_profile_v2');
-const { normalizeRecent, recordRecent } = require('./core_engine_v2');
-const { botUnlocked, chooseRewardPack, resolveBotAnswer, awardPack } = require('./bot_engine_v2');
+const {
+  normalizeRecent,
+  recordRecent,
+  entitlement,
+  sampleUnique,
+} = require('./core_engine_v2');
+const {
+  validateQuestionDocument,
+  localizedQuestion,
+} = require('./content_contract_v2');
+const {
+  botUnlocked,
+  chooseRewardPack,
+  resolveBotAnswer,
+  awardPack,
+} = require('./bot_engine_v2');
 
 const db = admin.firestore();
 const { Timestamp } = admin.firestore;
@@ -22,7 +36,9 @@ function profileFromData(data) {
 
 async function loadEnabledCardIds() {
   const snap = await db.collection('cardsV2').where('enabled', '==', true).limit(500).get();
-  return snap.docs.map((doc) => doc.id);
+  return snap.docs
+    .filter((doc) => Number(doc.data().questionCount || 0) > 0)
+    .map((doc) => doc.id);
 }
 
 function chooseQuestionDoc(usableDocs, recentIds) {
@@ -37,30 +53,42 @@ function chooseQuestionDoc(usableDocs, recentIds) {
   return usableDocs[crypto.randomInt(usableDocs.length)];
 }
 
-async function loadQuestionForCard(cardId, recentIds) {
+function shuffle(values) {
+  const copy = [...values];
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = crypto.randomInt(i + 1);
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+async function loadQuestionForCard(cardId, recentIds, language, answerChoiceCount) {
   const snap = await db.collection('cardsV2').doc(cardId).collection('questions')
     .where('enabled', '==', true)
     .limit(100)
     .get();
   if (snap.empty) return null;
+
   const usable = snap.docs.filter((doc) => {
-    const data = doc.data();
-    return typeof data.prompt === 'string' &&
-      data.prompt.trim().length > 0 &&
-      Array.isArray(data.choices) &&
-      data.choices.length >= 2 &&
-      Number.isInteger(data.correctIndex) &&
-      data.correctIndex >= 0 &&
-      data.correctIndex < data.choices.length;
+    try {
+      return validateQuestionDocument(doc.id, cardId, doc.data());
+    } catch (_) {
+      return false;
+    }
   });
   if (!usable.length) return null;
+
   const chosen = chooseQuestionDoc(usable, recentIds);
-  const data = chosen.data();
+  const localized = localizedQuestion(chosen.data(), language);
+  const wrongs = sampleUnique(localized.wrongAnswers, answerChoiceCount - 1);
+  if (!wrongs) return null;
+  const choices = shuffle([localized.correct, ...wrongs]);
+
   return {
     questionId: chosen.id,
-    prompt: data.prompt,
-    choices: data.choices.map(String),
-    correctIndex: Number(data.correctIndex),
+    prompt: localized.prompt,
+    choices,
+    correctIndex: choices.indexOf(localized.correct),
   };
 }
 
@@ -92,6 +120,7 @@ const getBotStatusV2 = onCall(async (request) => {
 
 const startBotRoundV2 = onCall(async (request) => {
   const uid = authUid(request);
+  const language = request.data && request.data.language === 'en' ? 'en' : 'ar';
   const userRef = db.collection('users').doc(uid);
   const firstUserSnap = await userRef.get();
   if (!firstUserSnap.exists) throw new HttpsError('not-found', 'Profile not found.');
@@ -113,6 +142,7 @@ const startBotRoundV2 = onCall(async (request) => {
   const remaining = enabledCardIds.filter((id) => !profile.ownedPackIds.includes(id));
   if (!remaining.length) throw new HttpsError('failed-precondition', 'CONTENT_NOT_AVAILABLE');
 
+  const answerChoiceCount = entitlement(profile.subscriptionActive).answerChoices;
   const attempted = new Set();
   let cardId = null;
   let question = null;
@@ -121,7 +151,12 @@ const startBotRoundV2 = onCall(async (request) => {
     const chosen = chooseRewardPack(candidates, profile.ownedPackIds);
     if (!chosen) break;
     attempted.add(chosen);
-    const q = await loadQuestionForCard(chosen, profile.recentQuestionIds);
+    const q = await loadQuestionForCard(
+      chosen,
+      profile.recentQuestionIds,
+      language,
+      answerChoiceCount,
+    );
     if (q) {
       cardId = chosen;
       question = q;
@@ -138,6 +173,7 @@ const startBotRoundV2 = onCall(async (request) => {
     status: 'active',
     cardId,
     questionId: question.questionId,
+    language,
     prompt: question.prompt,
     choices: question.choices,
     correctIndex: question.correctIndex,
