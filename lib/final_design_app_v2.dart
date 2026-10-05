@@ -770,7 +770,7 @@ class AppHeading extends StatelessWidget {
 }
 
 class TitleRow extends StatelessWidget {
-  const TitleRow(this.title, [this.trailing], {super.key});
+  const TitleRow(this.title, [this.trailing]);
   final String title;
   final String? trailing;
   @override
