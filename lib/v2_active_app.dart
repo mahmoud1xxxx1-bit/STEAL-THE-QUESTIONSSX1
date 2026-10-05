@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 
+import 'backend/bot_api_v2.dart';
+import 'backend/firebase_game_api_v2.dart';
+import 'backend/online_runtime_v2.dart';
+import 'backend/profile_features_api_v2.dart';
 import 'data/player_profile_store_v2.dart';
 import 'game/core_engine_v2.dart';
+import 'game/online_player_session_v2.dart';
 import 'game/player_profile_v2.dart';
-import 'game/player_session_v2.dart';
 
 const _blue = Color(0xFF2E6BFF);
 const _purple = Color(0xFF7A48F5);
@@ -21,29 +25,116 @@ class StealQuestionsV2App extends StatefulWidget {
 }
 
 class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
-  late final PlayerSessionV2 _session;
+  OnlinePlayerSessionV2? _session;
   PlayerProfileV2? _profile;
+  WeeklyRankingV2? _ranking;
+  SubscriptionStatusV2? _subscription;
+  BotStatusV2? _botStatus;
+  MatchmakingStatusV2? _matchmaking;
   Object? _loadError;
   int _tab = 0;
   bool _arabic = true;
+  bool _busy = false;
 
   @override
   void initState() {
     super.initState();
-    _session = PlayerSessionV2(store: SharedPreferencesPlayerProfileStoreV2());
     _load();
   }
 
   Future<void> _load() async {
     try {
-      final profile = await _session.initialize();
+      final ready = await OnlineRuntimeV2.ensureReady();
+      if (!ready) throw StateError('Firebase V2 is unavailable.');
+      final session = OnlinePlayerSessionV2(
+        store: SharedPreferencesPlayerProfileStoreV2(),
+        api: FirebaseGameApiV2(),
+        botApi: BotApiV2(),
+      );
+      final profile = await session.initialize();
       if (!mounted) return;
-      setState(() => _profile = profile);
+      setState(() {
+        _session = session;
+        _profile = profile;
+      });
+      await _refreshRemote();
     } catch (error) {
       if (!mounted) return;
       setState(() => _loadError = error);
     }
   }
+
+  Future<void> _refreshRemote() async {
+    final session = _session;
+    if (session == null) return;
+    try {
+      final values = await Future.wait<dynamic>([
+        session.weeklyRanking(),
+        session.subscriptionStatus(),
+        session.botStatus(),
+        session.matchStatus(),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _ranking = values[0] as WeeklyRankingV2;
+        _subscription = values[1] as SubscriptionStatusV2;
+        _botStatus = values[2] as BotStatusV2;
+        _matchmaking = values[3] as MatchmakingStatusV2;
+      });
+    } catch (_) {
+      // The cached profile remains usable while a secondary panel refresh fails.
+    }
+  }
+
+  Future<void> _run(Future<void> Function() action) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await action();
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _refreshProfile() => _run(() async {
+        final session = _session!;
+        final profile = await session.refreshProfile();
+        if (!mounted) return;
+        setState(() => _profile = profile);
+        await _refreshRemote();
+      });
+
+  Future<void> _setActiveDeck(int index) => _run(() async {
+        final profile = await _session!.setActiveDeck(index);
+        if (!mounted) return;
+        setState(() => _profile = profile);
+      });
+
+  Future<void> _refreshSubscription() => _run(() async {
+        final status = await _session!.refreshSubscription();
+        if (!mounted) return;
+        setState(() {
+          _subscription = status;
+          _profile = _session!.profile;
+        });
+      });
+
+  Future<void> _startBotStatus() => _run(() async {
+        final status = await _session!.botStatus();
+        if (!mounted) return;
+        setState(() => _botStatus = status);
+      });
+
+  Future<void> _startOrCheckMatchmaking() => _run(() async {
+        var status = _matchmaking;
+        if (status == null || status.status == 'idle') {
+          status = await _session!.startMatchmaking();
+        } else if (status.searching) {
+          status = await _session!.matchStatus();
+        }
+        if (!mounted) return;
+        setState(() => _matchmaking = status);
+      });
 
   @override
   Widget build(BuildContext context) {
