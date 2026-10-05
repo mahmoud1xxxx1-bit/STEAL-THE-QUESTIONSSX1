@@ -10,6 +10,7 @@ const matchmakingV2 = require('./matchmaking_functions_v2');
 const duelV2 = require('./duel_functions_v2');
 const botV2 = require('./bot_functions_v2');
 const customAnswersV2 = require('./custom_answers_functions_v2');
+const profileFeaturesV2 = require('./profile_features_functions_v2');
 
 module.exports = {
   ...legacy,
@@ -18,4 +19,5 @@ module.exports = {
   ...duelV2,
   ...botV2,
   ...customAnswersV2,
+  ...profileFeaturesV2,
 };
