@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import 'backend/bot_api_v2.dart';
@@ -35,6 +36,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
   int _tab = 0;
   bool _arabic = true;
   bool _busy = false;
+  String? _notice;
 
   @override
   void initState() {
@@ -88,12 +90,36 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
 
   Future<void> _run(Future<void> Function() action) async {
     if (_busy) return;
-    setState(() => _busy = true);
+    setState(() {
+      _busy = true;
+      _notice = null;
+    });
     try {
       await action();
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _notice = _friendlyError(error));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  String _friendlyError(Object error) {
+    final value = error.toString();
+    if (value.contains('Question content has not been loaded') ||
+        value.contains('CONTENT_NOT_AVAILABLE')) {
+      return _arabic
+          ? 'المسار جاهز، لكنه ينتظر البطاقات والأسئلة التي سنضيفها في آخر مرحلة.'
+          : 'This flow is ready and only waits for cards/questions in the final content phase.';
+    }
+    if (value.contains('unauthenticated')) {
+      return _arabic
+          ? 'جلسة Firebase غير صالحة. أعد فتح التطبيق.'
+          : 'Firebase session is invalid. Reopen the app.';
+    }
+    return _arabic
+        ? 'تعذر تنفيذ العملية الآن.'
+        : 'The operation could not be completed.';
   }
 
   Future<void> _refreshProfile() => _run(() async {
@@ -110,22 +136,209 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
         setState(() => _profile = profile);
       });
 
+  Future<void> _saveDeck(int index, List<String> packIds) => _run(() async {
+        final profile = await _session!.saveDeck(index, packIds);
+        if (!mounted) return;
+        setState(() => _profile = profile);
+      });
+
+  Future<void> _editDeck(int index) async {
+    final profile = _profile;
+    if (profile == null) return;
+    final owned = profile.ownedPackIds.toList()..sort();
+    final selected = <String>{...profile.decks[index]};
+
+    final result = await showModalBottomSheet<List<String>>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: SizedBox(
+              height: MediaQuery.sizeOf(context).height * .68,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    (_arabic ? 'مجموعة ' : 'Deck ') +
+                        '${index + 1} · ${selected.length}/$kDeckSizeV2',
+                    style: const TextStyle(
+                      color: _ink,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: owned.isEmpty
+                        ? Center(
+                            child: Text(
+                              _arabic
+                                  ? 'لا توجد بطاقات بعد. سنضيف المحتوى في آخر مرحلة.'
+                                  : 'No cards yet. Content will be added last.',
+                              textAlign: TextAlign.center,
+                            ),
+                          )
+                        : ListView(
+                            children: owned.map((id) {
+                              final checked = selected.contains(id);
+                              return CheckboxListTile(
+                                value: checked,
+                                title: Text(id),
+                                onChanged: (value) {
+                                  setSheetState(() {
+                                    if (value == true &&
+                                        selected.length < kDeckSizeV2) {
+                                      selected.add(id);
+                                    } else if (value != true) {
+                                      selected.remove(id);
+                                    }
+                                  });
+                                },
+                              );
+                            }).toList(growable: false),
+                          ),
+                  ),
+                  FilledButton(
+                    onPressed: selected.length == kDeckSizeV2
+                        ? () => Navigator.pop(
+                              context,
+                              selected.toList(growable: false),
+                            )
+                        : null,
+                    child: Text(_arabic ? 'حفظ المجموعة' : 'Save deck'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    if (result != null) await _saveDeck(index, result);
+  }
+
   Future<void> _refreshSubscription() => _run(() async {
         final status = await _session!.refreshSubscription();
         if (!mounted) return;
         setState(() {
           _subscription = status;
           _profile = _session!.profile;
+          _notice = status.active
+              ? (_arabic
+                  ? 'تم تأكيد الاشتراك من السيرفر.'
+                  : 'Subscription verified by the server.')
+              : (_arabic
+                  ? 'لا يوجد اشتراك فعال موثق.'
+                  : 'No verified active subscription.');
         });
       });
 
-  Future<void> _startBotStatus() => _run(() async {
-        final status = await _session!.botStatus();
+  Future<void> _startBotRound() => _run(() async {
+        final session = _session!;
+        final status = await session.botStatus();
         if (!mounted) return;
         setState(() => _botStatus = status);
+
+        if (!status.botUnlocked) {
+          setState(() => _notice = _arabic
+              ? 'وصلت إلى 10 بطاقات. مسار البوت مغلق الآن.'
+              : 'You reached 10 cards. Bot onboarding is locked.');
+          return;
+        }
+        if (!status.contentAvailable) {
+          setState(() => _notice = _arabic
+              ? 'البوت جاهز بالكامل وينتظر المحتوى فقط.'
+              : 'Bot onboarding is fully ready and only waits for content.');
+          return;
+        }
+
+        final round = await session.startBotRound(arabic: _arabic);
+        if (!mounted) return;
+        final answer = await _answerDialog(
+          title: _arabic ? 'سؤال البوت' : 'Bot question',
+          prompt: round.prompt ?? '',
+          choices: round.choices,
+        );
+        if (answer == null) return;
+
+        final result = await session.submitBotAnswer(
+          roundId: round.roundId,
+          selectedIndex: answer,
+        );
+        if (!mounted) return;
+        setState(() {
+          _profile = result.profile;
+          _notice = result.correct
+              ? (result.awarded
+                  ? (_arabic
+                      ? 'إجابة صحيحة وتمت إضافة بطاقة جديدة.'
+                      : 'Correct. A new card was awarded.')
+                  : (_arabic ? 'إجابة صحيحة.' : 'Correct.'))
+              : (_arabic ? 'إجابة غير صحيحة.' : 'Incorrect.');
+        });
+        await _refreshRemote();
       });
 
+  Future<int?> _answerDialog({
+    required String title,
+    required String prompt,
+    required List<String> choices,
+  }) {
+    return showDialog<int>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: SizedBox(
+          width: 480,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                prompt,
+                style: const TextStyle(
+                  color: _ink,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ...List.generate(
+                choices.length,
+                (index) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: FilledButton.tonal(
+                    onPressed: () => Navigator.pop(context, index),
+                    child: Text(choices[index]),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(_arabic ? 'إغلاق' : 'Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _startOrCheckMatchmaking() => _run(() async {
+        final profile = _profile!;
+        if (!profile.pvpUnlocked || !profile.activeDeckReady) {
+          setState(() => _notice = _arabic
+              ? 'تحتاج 10 بطاقات وDeck نشطة صالحة قبل PvP.'
+              : 'You need 10 cards and a valid active deck before PvP.');
+          return;
+        }
+
         var status = _matchmaking;
         if (status == null || status.status == 'idle') {
           status = await _session!.startMatchmaking();
@@ -134,6 +347,175 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
         }
         if (!mounted) return;
         setState(() => _matchmaking = status);
+
+        if (status.matched && status.duelId != null) {
+          await _continueDuel(status.duelId!);
+        } else {
+          setState(() => _notice = _arabic
+              ? 'جاري البحث عن خصم. اضغط مرة أخرى للتحقق.'
+              : 'Searching for an opponent. Tap again to check.');
+        }
+      });
+
+  Future<void> _cancelMatchmaking() => _run(() async {
+        await _session!.cancelMatchmaking();
+        if (!mounted) return;
+        setState(() {
+          _matchmaking =
+              const MatchmakingStatusV2(status: 'idle', duelId: null);
+          _notice = _arabic ? 'تم إلغاء البحث.' : 'Search cancelled.';
+        });
+      });
+
+  Future<void> _continueDuel(String duelId) async {
+    final session = _session!;
+    var state = await session.prepareDuelQuestions(
+      duelId: duelId,
+      arabic: _arabic,
+    );
+    if (!mounted) return;
+
+    if (!state.questionPlanReady) {
+      setState(() => _notice = _arabic
+          ? 'تم تجهيز أسئلتك وننتظر تجهيز الخصم.'
+          : 'Your questions are ready. Waiting for the opponent.');
+      return;
+    }
+
+    while (true) {
+      final question = await session.startNextQuestion(duelId);
+      if (question.complete) break;
+      final publicQuestion =
+          question.publicQuestion ?? const <String, dynamic>{};
+      final choices = List<String>.from(
+        publicQuestion['choices'] as List? ?? const <dynamic>[],
+      );
+      final answer = await _answerDialog(
+        title: (_arabic ? 'السؤال ' : 'Question ') +
+            '${question.questionIndex + 1}/$kDuelCardsV2',
+        prompt: publicQuestion['prompt'] as String? ?? '',
+        choices: choices,
+      );
+      if (answer == null) {
+        setState(() => _notice = _arabic
+            ? 'المباراة محفوظة ويمكن متابعتها لاحقًا.'
+            : 'The duel is saved and can be resumed later.');
+        return;
+      }
+      await session.submitAnswer(
+        duelId: duelId,
+        questionIndex: question.questionIndex,
+        selectedIndex: answer,
+      );
+    }
+
+    state = await session.finalizeDuel(duelId);
+    if (!mounted) return;
+    setState(() => _profile = session.profile);
+
+    if (!state.finished) {
+      setState(() => _notice = _arabic
+          ? 'انتهت إجاباتك وننتظر الخصم.'
+          : 'Your answers are complete. Waiting for the opponent.');
+      return;
+    }
+
+    if (state.result == 'draw') {
+      setState(() => _notice = _arabic
+          ? 'تعادل. لا تتم سرقة أي بطاقة.'
+          : 'Draw. No card is stolen.');
+      await _refreshRemote();
+      return;
+    }
+
+    if (state.winnerUid == FirebaseAuth.instance.currentUser?.uid) {
+      await _chooseSteal(duelId);
+    } else {
+      setState(() => _notice = _arabic
+          ? 'انتهت المباراة بفوز الخصم.'
+          : 'The opponent won the duel.');
+    }
+    await _refreshRemote();
+  }
+
+  Future<void> _chooseSteal(String duelId) async {
+    final options = await _session!.stealOptions(duelId);
+    if (options.alreadyConfirmed || options.packIds.isEmpty) {
+      setState(() => _notice = _arabic
+          ? 'تم إنهاء نقل البطاقة.'
+          : 'Card transfer is already settled.');
+      return;
+    }
+
+    final selected = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text(
+          _arabic ? 'اختر بطاقة لسرقتها' : 'Choose a card to steal',
+        ),
+        content: SizedBox(
+          width: 420,
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: options.packIds
+                .map(
+                  (id) => ActionChip(
+                    label: Text(id),
+                    onPressed: () => Navigator.pop(context, id),
+                  ),
+                )
+                .toList(growable: false),
+          ),
+        ),
+      ),
+    );
+    if (selected == null) return;
+
+    final result = await _session!.confirmSteal(
+      duelId: duelId,
+      packId: selected,
+    );
+    if (!mounted) return;
+    setState(() {
+      _profile = _session!.profile;
+      _notice = (_arabic ? 'تمت سرقة البطاقة: ' : 'Stolen card: ') +
+          (result.packId ?? selected);
+    });
+  }
+
+  Future<void> _equipPrestige() => _run(() async {
+        final profile = _profile!;
+        String? title;
+        String? frame;
+        if (profile.prestige.first > 0) {
+          title = 'champion_of_the_week';
+          frame = 'weekly_gold_frame';
+        } else if (profile.prestige.second > 0) {
+          title = 'weekly_runner_up';
+          frame = 'weekly_silver_frame';
+        } else if (profile.prestige.third > 0) {
+          title = 'weekly_third_place';
+          frame = 'weekly_bronze_frame';
+        } else {
+          setState(() => _notice = _arabic
+              ? 'لم تُفتح جائزة Prestige بعد.'
+              : 'No prestige reward is unlocked yet.');
+          return;
+        }
+
+        final next = await _session!.equipPrestige(
+          titleKey: title,
+          frameKey: frame,
+        );
+        if (!mounted) return;
+        setState(() {
+          _profile = next;
+          _notice = _arabic
+              ? 'تم تجهيز أفضل لقب وإطار متاحين.'
+              : 'Best unlocked title and frame equipped.';
+        });
       });
 
   @override
