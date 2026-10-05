@@ -11,6 +11,7 @@ class BotRoundData {
     required this.questionAr,
     required this.answersEn,
     required this.answersAr,
+    this.rewardCardId,
   });
 
   final String roundId;
@@ -19,6 +20,7 @@ class BotRoundData {
   final String questionAr;
   final List<String> answersEn;
   final List<String> answersAr;
+  final String? rewardCardId;
 }
 
 class DuelStateData {
@@ -75,12 +77,19 @@ class FirebaseGameApi {
     return snap.data() ?? const <String, dynamic>{};
   }
 
+  Future<void> ensureProfile() async {
+    final call = functions.httpsCallable('ensureProfile');
+    await call.call();
+  }
+
   Future<void> signUp(String email, String password) async {
     await auth.createUserWithEmailAndPassword(email: email.trim(), password: password);
+    await ensureProfile();
   }
 
   Future<void> signIn(String email, String password) async {
     await auth.signInWithEmailAndPassword(email: email.trim(), password: password);
+    await ensureProfile();
   }
 
   Future<void> signOut() => auth.signOut();
