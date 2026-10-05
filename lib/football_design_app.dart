@@ -32,8 +32,8 @@ class _FootballDesignAppState extends State<FootballDesignApp> {
     super.dispose();
   }
 
-  void push(Widget page) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
+  void push(Widget screen) {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
   }
 
   @override
@@ -42,10 +42,7 @@ class _FootballDesignAppState extends State<FootballDesignApp> {
       animation: player,
       builder: (_, __) {
         if (player.loading) {
-          return const Scaffold(
-            backgroundColor: page,
-            body: Center(child: CircularProgressIndicator()),
-          );
+          return const Scaffold(backgroundColor: page, body: Center(child: CircularProgressIndicator()));
         }
 
         final screens = <Widget>[
@@ -95,14 +92,8 @@ class _FootballDesignAppState extends State<FootballDesignApp> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(
-                              'STEAL THE QUESTIONS',
-                              style: TextStyle(color: ink, fontSize: 14, fontWeight: FontWeight.w900),
-                            ),
-                            Text(
-                              'FOOTBALL EDITION',
-                              style: TextStyle(color: green, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 1.1),
-                            ),
+                            Text('STEAL THE QUESTIONS', style: TextStyle(color: ink, fontSize: 14, fontWeight: FontWeight.w900)),
+                            Text('FOOTBALL EDITION', style: TextStyle(color: green, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 1.1)),
                           ],
                         ),
                       ),
@@ -115,10 +106,7 @@ class _FootballDesignAppState extends State<FootballDesignApp> {
                       const SizedBox(width: 4),
                       IconButton(
                         onPressed: () => setState(() => arabic = !arabic),
-                        icon: Text(
-                          arabic ? 'EN' : 'ع',
-                          style: const TextStyle(color: blue, fontWeight: FontWeight.w900),
-                        ),
+                        icon: Text(arabic ? 'EN' : 'ع', style: const TextStyle(color: blue, fontWeight: FontWeight.w900)),
                       ),
                     ],
                   ),
@@ -138,31 +126,11 @@ class _FootballDesignAppState extends State<FootballDesignApp> {
               indicatorColor: const Color(0xFFEAEFFF),
               height: 68,
               destinations: [
-                NavigationDestination(
-                  icon: const Icon(Icons.home_outlined),
-                  selectedIcon: const Icon(Icons.home_rounded, color: blue),
-                  label: arabic ? 'الرئيسية' : 'Home',
-                ),
-                NavigationDestination(
-                  icon: const Icon(Icons.style_outlined),
-                  selectedIcon: const Icon(Icons.style_rounded, color: purple),
-                  label: arabic ? 'البطاقات' : 'Cards',
-                ),
-                NavigationDestination(
-                  icon: const Icon(Icons.layers_outlined),
-                  selectedIcon: const Icon(Icons.layers_rounded, color: Color(0xFFE0A000)),
-                  label: arabic ? 'المجموعات' : 'Decks',
-                ),
-                NavigationDestination(
-                  icon: const Icon(Icons.sports_soccer_outlined),
-                  selectedIcon: const Icon(Icons.sports_soccer_rounded, color: coral),
-                  label: arabic ? 'اللعب' : 'Play',
-                ),
-                NavigationDestination(
-                  icon: const Icon(Icons.more_horiz_rounded),
-                  selectedIcon: const Icon(Icons.more_horiz_rounded, color: blue),
-                  label: arabic ? 'المزيد' : 'More',
-                ),
+                NavigationDestination(icon: const Icon(Icons.home_outlined), selectedIcon: const Icon(Icons.home_rounded, color: blue), label: arabic ? 'الرئيسية' : 'Home'),
+                NavigationDestination(icon: const Icon(Icons.style_outlined), selectedIcon: const Icon(Icons.style_rounded, color: purple), label: arabic ? 'البطاقات' : 'Cards'),
+                NavigationDestination(icon: const Icon(Icons.layers_outlined), selectedIcon: const Icon(Icons.layers_rounded, color: Color(0xFFE0A000)), label: arabic ? 'المجموعات' : 'Decks'),
+                NavigationDestination(icon: const Icon(Icons.sports_soccer), selectedIcon: const Icon(Icons.sports_soccer_rounded, color: coral), label: arabic ? 'اللعب' : 'Play'),
+                NavigationDestination(icon: const Icon(Icons.more_horiz_rounded), selectedIcon: const Icon(Icons.more_horiz_rounded, color: blue), label: arabic ? 'المزيد' : 'More'),
               ],
             ),
           ),
@@ -195,12 +163,8 @@ class FootballHomeScreen extends StatelessWidget {
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(26),
-            gradient: const LinearGradient(
-              colors: [Color(0xFF4D8CFF), Color(0xFF8057F4)],
-            ),
-            boxShadow: const [
-              BoxShadow(color: Color(0x224C72FF), blurRadius: 18, offset: Offset(0, 8)),
-            ],
+            gradient: const LinearGradient(colors: [Color(0xFF4D8CFF), Color(0xFF8057F4)]),
+            boxShadow: const [BoxShadow(color: Color(0x224C72FF), blurRadius: 18, offset: Offset(0, 8))],
           ),
           child: Stack(
             children: [
@@ -208,11 +172,7 @@ class FootballHomeScreen extends StatelessWidget {
               PositionedDirectional(
                 end: -22,
                 top: -18,
-                child: Icon(
-                  Icons.sports_soccer_rounded,
-                  size: 150,
-                  color: Colors.white.withValues(alpha: .11),
-                ),
+                child: Icon(Icons.sports_soccer_rounded, size: 150, color: Colors.white.withValues(alpha: .11)),
               ),
               Padding(
                 padding: const EdgeInsets.all(22),
@@ -221,19 +181,13 @@ class FootballHomeScreen extends StatelessWidget {
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: .16),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
+                      decoration: BoxDecoration(color: Colors.white.withValues(alpha: .16), borderRadius: BorderRadius.circular(999)),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           const Icon(Icons.sports_soccer_rounded, color: Colors.white, size: 15),
                           const SizedBox(width: 6),
-                          Text(
-                            arabic ? 'نسخة كرة القدم' : 'FOOTBALL EDITION',
-                            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900),
-                          ),
+                          Text(arabic ? 'نسخة كرة القدم' : 'FOOTBALL EDITION', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900)),
                         ],
                       ),
                     ),
@@ -266,7 +220,7 @@ class FootballHomeScreen extends StatelessWidget {
             icon: Icons.sports_soccer_rounded,
             color: blue,
             title: arabic ? 'تدريب ضد البوت' : 'Bot training',
-            text: arabic ? 'اجمع بطاقاتك الأولى.' : 'Build your first cards.',
+            text: arabic ? 'اجمع البطاقات الأولى.' : 'Build your first cards.',
             onTap: () => push(BotPage(arabic: arabic, player: player)),
           ),
           b: ActionTile(
@@ -286,7 +240,7 @@ class FootballHomeScreen extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.stadium_rounded, color: green),
+                  const Icon(Icons.sports_score_rounded, color: green),
                   const SizedBox(width: 8),
                   Expanded(child: TitleRow(arabic ? 'تقدم المجموعة' : 'Collection progress', '${player.ownedCount}/$kTotalCards')),
                 ],
@@ -294,21 +248,7 @@ class FootballHomeScreen extends StatelessWidget {
               const SizedBox(height: 10),
               ClipRRect(
                 borderRadius: BorderRadius.circular(99),
-                child: LinearProgressIndicator(
-                  value: player.ownedCount / kTotalCards,
-                  minHeight: 9,
-                  backgroundColor: const Color(0xFFE4EAF4),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  RarityStat('EPIC', purple, player.ownedCards.where((e) => QuestionBank.byId(e).rarity == CardRarity.epic).length, kEpicCards),
-                  RarityStat('GOLD', const Color(0xFFE0A000), player.ownedCards.where((e) => QuestionBank.byId(e).rarity == CardRarity.gold).length, kGoldCards),
-                  RarityStat('LEGENDARY', coral, player.ownedCards.where((e) => QuestionBank.byId(e).rarity == CardRarity.legendary).length, kLegendaryCards),
-                ],
+                child: LinearProgressIndicator(value: player.ownedCount / kTotalCards, minHeight: 9, backgroundColor: const Color(0xFFE4EAF4)),
               ),
             ],
           ),
@@ -369,7 +309,7 @@ class FootballCollectionScreen extends StatelessWidget {
         const SizedBox(height: 8),
         AppHeading(
           arabic ? 'بطاقاتك' : 'Your cards',
-          arabic ? 'المملوكة في الأعلى. افتح أي بطاقة لتعديل خياراتها الخاطئة.' : 'Owned cards first. Open any card to customize its wrong choices.',
+          arabic ? 'افتح البطاقة لتعديل الخيارات الخاطئة. الإجابة الصحيحة تبقى ثابتة.' : 'Open a card to edit its wrong choices. The correct answer stays fixed.',
         ),
         const SizedBox(height: 12),
         AppPanel(
@@ -401,11 +341,6 @@ class FootballCollectionScreen extends StatelessWidget {
           FootballCardGrid(cards: owned, enabled: true, selected: const {}, onTap: (q) => showCard(context, q)),
         const SizedBox(height: 24),
         TitleRow(arabic ? 'لم تحصل عليها بعد' : 'Not earned yet', '${locked.length}'),
-        const SizedBox(height: 6),
-        Text(
-          arabic ? 'تبقى بالأسفل ولا تعرض تفاصيلها قبل امتلاكها.' : 'They stay below and hide details until earned.',
-          style: const TextStyle(color: muted, fontSize: 11, fontWeight: FontWeight.w600),
-        ),
         const SizedBox(height: 8),
         FootballCardGrid(cards: locked, enabled: false, selected: const {}, onTap: (_) {}),
       ],
@@ -417,13 +352,14 @@ class FootballCollectionScreen extends StatelessWidget {
     final key = choiceKey(q.id);
     final stored = savedChoices[key] ?? await prefs.getStringList(key);
     final needed = player.weeklyPass ? 4 : 3;
-    final values = List<String>.from(stored ?? <String>[...base, if (player.weeklyPass) (arabic ? q.passExtraAr : q.passExtraEn)]);
+    final values = List<String>.from(
+      stored ?? <String>[...base, if (player.weeklyPass) (arabic ? q.passExtraAr : q.passExtraEn)],
+    );
     while (values.length < needed) {
       values.add(arabic ? 'خيار جديد' : 'New choice');
     }
     if (values.length > needed) values.removeRange(needed, values.length);
     values[q.correctIndex] = base[q.correctIndex];
-
     final ctrls = values.map((value) => TextEditingController(text: value)).toList(growable: false);
     if (!context.mounted) return;
 
@@ -439,12 +375,7 @@ class FootballCollectionScreen extends StatelessWidget {
             children: [
               FootballCardBadge(q: q),
               const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  '${q.id} · ${rarityName(q.rarity)}',
-                  style: const TextStyle(color: ink, fontWeight: FontWeight.w900),
-                ),
-              ),
+              Expanded(child: Text('${q.id} · ${rarityName(q.rarity)}', style: const TextStyle(color: ink, fontWeight: FontWeight.w900))),
             ],
           ),
           content: ConstrainedBox(
@@ -453,10 +384,7 @@ class FootballCollectionScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    arabic ? q.questionAr : q.questionEn,
-                    style: const TextStyle(color: ink, fontSize: 18, height: 1.45, fontWeight: FontWeight.w900),
-                  ),
+                  Text(arabic ? q.questionAr : q.questionEn, style: const TextStyle(color: ink, fontSize: 18, height: 1.45, fontWeight: FontWeight.w900)),
                   const SizedBox(height: 12),
                   Container(
                     padding: const EdgeInsets.all(12),
@@ -465,26 +393,16 @@ class FootballCollectionScreen extends StatelessWidget {
                       children: [
                         const Icon(Icons.check_circle_rounded, color: green),
                         const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            base[q.correctIndex],
-                            style: const TextStyle(color: ink, fontWeight: FontWeight.w900),
-                          ),
-                        ),
+                        Expanded(child: Text(base[q.correctIndex], style: const TextStyle(color: ink, fontWeight: FontWeight.w900))),
                       ],
                     ),
                   ),
                   const SizedBox(height: 14),
                   Text(
                     player.weeklyPass
-                        ? (arabic ? '4 خيارات — غيّر 3 خيارات خاطئة' : '4 choices — edit 3 wrong choices')
-                        : (arabic ? '3 خيارات — غيّر خيارين خاطئين' : '3 choices — edit 2 wrong choices'),
+                        ? (arabic ? '4 خيارات — تستطيع تغيير 3 خيارات خاطئة' : '4 choices — edit 3 wrong choices')
+                        : (arabic ? '3 خيارات — تستطيع تغيير خيارين خاطئين' : '3 choices — edit 2 wrong choices'),
                     style: const TextStyle(color: ink, fontSize: 15, fontWeight: FontWeight.w900),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    arabic ? 'الإجابة الصحيحة ثابتة ولا يمكن تغييرها.' : 'The correct answer is fixed and cannot be changed.',
-                    style: const TextStyle(color: muted, fontSize: 10),
                   ),
                   const SizedBox(height: 9),
                   ...List.generate(
@@ -497,10 +415,7 @@ class FootballCollectionScreen extends StatelessWidget {
                         decoration: InputDecoration(
                           filled: true,
                           fillColor: i == q.correctIndex ? const Color(0xFFEAF9F2) : const Color(0xFFF6F8FC),
-                          prefixIcon: Icon(
-                            i == q.correctIndex ? Icons.check_rounded : Icons.edit_rounded,
-                            color: i == q.correctIndex ? green : blue,
-                          ),
+                          prefixIcon: Icon(i == q.correctIndex ? Icons.check_rounded : Icons.edit_rounded, color: i == q.correctIndex ? green : blue),
                           labelText: i == q.correctIndex
                               ? (arabic ? 'الإجابة الصحيحة' : 'Correct answer')
                               : '${arabic ? 'خيار خاطئ' : 'Wrong choice'} ${i + 1}${i == 3 ? ' · Monthly Pass' : ''}',
@@ -528,9 +443,8 @@ class FootballCollectionScreen extends StatelessWidget {
               onPressed: () async {
                 final next = ctrls.map((controller) => controller.text.trim()).toList(growable: false);
                 next[q.correctIndex] = base[q.correctIndex];
-                final normalized = next.map((e) => e.toLowerCase()).toList(growable: false);
-                final valid = next.every((e) => e.isNotEmpty) && normalized.toSet().length == normalized.length;
-                if (!valid) {
+                final normalized = next.map((value) => value.toLowerCase()).toList(growable: false);
+                if (next.any((value) => value.isEmpty) || normalized.toSet().length != normalized.length) {
                   ScaffoldMessenger.of(ctx).showSnackBar(
                     SnackBar(content: Text(arabic ? 'كل الخيارات مطلوبة ويجب أن تكون مختلفة.' : 'All choices are required and must be different.')),
                   );
@@ -573,7 +487,7 @@ class FootballDecksScreen extends StatelessWidget {
         const SizedBox(height: 8),
         AppHeading(
           arabic ? 'مجموعات اللعب' : 'Decks',
-          arabic ? 'المجاني: مجموعتان. Monthly Pass: خمس مجموعات. كل Deck صالح يحتوي 10 بطاقات.' : 'Free: 2 decks. Monthly Pass: 5 decks. Every valid deck contains 10 cards.',
+          arabic ? 'المجاني يملك 2 Decks، والمشترك يملك 5.' : 'Free players have 2 decks; subscribers have 5.',
         ),
         const SizedBox(height: 14),
         ...List.generate(kMaxDeckSlots, (i) {
@@ -601,10 +515,7 @@ class FootballDecksScreen extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              '${arabic ? 'المجموعة' : 'Deck'} ${i + 1}',
-                              style: const TextStyle(color: ink, fontSize: 15, fontWeight: FontWeight.w900),
-                            ),
+                            Text('${arabic ? 'المجموعة' : 'Deck'} ${i + 1}', style: const TextStyle(color: ink, fontSize: 15, fontWeight: FontWeight.w900)),
                             Text(
                               unlocked ? '$count/$kDeckSize${active ? ' · ACTIVE' : ''}' : 'Monthly Pass',
                               style: const TextStyle(color: muted, fontSize: 10, fontWeight: FontWeight.w700),
@@ -626,7 +537,7 @@ class FootballDecksScreen extends StatelessWidget {
                     Align(
                       alignment: AlignmentDirectional.centerStart,
                       child: FilledButton.icon(
-                        onPressed: () => push(FootballDeckBuilderPage(arabic: arabic, player: player, deckIndex: i)),
+                        onPressed: () => push(DeckBuilderPage(arabic: arabic, player: player, deckIndex: i)),
                         icon: const Icon(Icons.edit_rounded),
                         label: Text(arabic ? 'تعديل البطاقات' : 'Edit cards'),
                       ),
@@ -638,94 +549,6 @@ class FootballDecksScreen extends StatelessWidget {
           );
         }),
       ],
-    );
-  }
-}
-
-class FootballDeckBuilderPage extends StatelessWidget {
-  const FootballDeckBuilderPage({
-    super.key,
-    required this.arabic,
-    required this.player,
-    required this.deckIndex,
-  });
-
-  final bool arabic;
-  final DemoPlayerState player;
-  final int deckIndex;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: player,
-      builder: (_, __) {
-        final owned = QuestionBank.all.where((q) => player.ownedCards.contains(q.id)).toList(growable: false);
-        final deck = player.decks[deckIndex];
-        return AppShell(
-          title: '${arabic ? 'تعديل المجموعة' : 'Edit deck'} ${deckIndex + 1}',
-          arabic: arabic,
-          child: Stack(
-            children: [
-              const Positioned.fill(child: IgnorePointer(child: FootballBackdrop())),
-              AppBody(
-                children: [
-                  AppPanel(
-                    child: Row(
-                      children: [
-                        Icon(deck.length == 10 ? Icons.check_circle_rounded : Icons.sports_soccer_rounded, color: deck.length == 10 ? green : purple),
-                        const SizedBox(width: 9),
-                        Expanded(
-                          child: Text(
-                            arabic ? 'اختر 10 بطاقات مختلفة لتشكيلتك.' : 'Choose 10 distinct cards for your lineup.',
-                            style: const TextStyle(color: ink, fontWeight: FontWeight.w900),
-                          ),
-                        ),
-                        Text('${deck.length}/10', style: const TextStyle(color: blue, fontWeight: FontWeight.w900)),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  if (owned.isEmpty)
-                    AppPanel(child: Text(arabic ? 'لا توجد بطاقات مملوكة بعد.' : 'No owned cards yet.'))
-                  else
-                    FootballCardGrid(
-                      cards: owned,
-                      enabled: true,
-                      selected: deck.toSet(),
-                      onTap: (q) async {
-                        player.setActiveDeck(deckIndex);
-                        await player.toggleCardInDeck(q.id);
-                      },
-                    ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: deck.isEmpty ? null : () => player.clearDeck(deckIndex),
-                          child: Text(arabic ? 'مسح الكل' : 'Clear all'),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: FilledButton(
-                          onPressed: deck.length == 10
-                              ? () async {
-                                  await player.saveDeck(deckIndex);
-                                  if (context.mounted) Navigator.pop(context);
-                                }
-                              : null,
-                          child: Text(arabic ? 'حفظ الـDeck' : 'Save deck'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 }
@@ -743,10 +566,7 @@ class FootballMoreScreen extends StatelessWidget {
       children: [
         const FootballSectionTag(),
         const SizedBox(height: 8),
-        AppHeading(
-          arabic ? 'المزيد' : 'More',
-          arabic ? 'الحساب، الترتيب، الاشتراك، وطريقة اللعب.' : 'Account, ranking, subscription, and game guide.',
-        ),
+        AppHeading(arabic ? 'المزيد' : 'More', arabic ? 'الحساب، الترتيب، الاشتراك، وطريقة اللعب.' : 'Account, ranking, subscription, and game guide.'),
         const SizedBox(height: 14),
         AppPanel(
           child: Column(
@@ -767,7 +587,7 @@ class FootballMoreScreen extends StatelessWidget {
               const Divider(height: 22),
               MenuRow(
                 icon: Icons.workspace_premium_rounded,
-                title: 'Monthly Pass · $10',
+                title: r'Monthly Pass · $10',
                 subtitle: arabic ? '5 Decks + 4 خيارات + تعديل 3 خيارات خاطئة' : '5 decks + 4 choices + edit 3 wrong choices',
                 onTap: () => push(FootballMonthlyPassPage(arabic: arabic, player: player)),
               ),
@@ -797,68 +617,63 @@ class FootballMonthlyPassPage extends StatelessWidget {
     return AppShell(
       title: 'Monthly Pass',
       arabic: arabic,
-      child: Stack(
+      child: AppBody(
         children: [
-          const Positioned.fill(child: IgnorePointer(child: FootballBackdrop())),
-          AppBody(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(22),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [Color(0xFFFFD55C), Color(0xFFFFA94D)]),
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          Container(
+            padding: const EdgeInsets.all(22),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(colors: [Color(0xFFFFD55C), Color(0xFFFFA94D)]),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.workspace_premium_rounded, color: Colors.white, size: 44),
-                        const Spacer(),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                          decoration: BoxDecoration(color: Colors.white.withValues(alpha: .22), borderRadius: BorderRadius.circular(999)),
-                          child: const Text(r'$10 / MONTH', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900)),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      arabic ? 'اشتراك شهري بسيط وواضح' : 'A simple monthly upgrade',
-                      style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      player.weeklyPass
-                          ? (arabic ? 'اشتراكك نشط الآن.' : 'Your subscription is active.')
-                          : (arabic ? 'مرونة أكبر في بناء الـDecks وخيارات البطاقات.' : 'More flexibility for decks and card choices.'),
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                    const Icon(Icons.workspace_premium_rounded, color: Colors.white, size: 44),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                      decoration: BoxDecoration(color: Colors.white.withValues(alpha: .22), borderRadius: BorderRadius.circular(999)),
+                      child: const Text(r'$10 / MONTH', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900)),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 14),
-              AppPanel(
-                child: Column(
-                  children: [
-                    FeatureRow(Icons.layers_rounded, arabic ? '5 Decks بدل 2' : '5 decks instead of 2'),
-                    const Divider(height: 22),
-                    FeatureRow(Icons.add_circle_outline_rounded, arabic ? '4 خيارات بدل 3' : '4 choices instead of 3'),
-                    const Divider(height: 22),
-                    FeatureRow(Icons.edit_rounded, arabic ? 'تعديل 3 خيارات خاطئة بدل خيارين' : 'Edit 3 wrong choices instead of 2'),
-                  ],
+                const SizedBox(height: 12),
+                Text(
+                  arabic ? 'اشتراك شهري بسيط وواضح' : 'A simple monthly upgrade',
+                  style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900),
                 ),
-              ),
-              const SizedBox(height: 14),
-              Container(
-                padding: const EdgeInsets.all(13),
-                decoration: BoxDecoration(color: const Color(0xFFFFF6DC), borderRadius: BorderRadius.circular(14)),
-                child: Text(
-                  arabic ? 'ربط الدفع الفعلي بالمتجر سيبقى لمرحلة المتجر كما اتفقنا.' : 'Real store purchase wiring remains deferred to the store phase as planned.',
-                  style: const TextStyle(color: ink, fontWeight: FontWeight.w800),
+                const SizedBox(height: 6),
+                Text(
+                  player.weeklyPass
+                      ? (arabic ? 'اشتراكك نشط الآن.' : 'Your subscription is active.')
+                      : (arabic ? 'مرونة أكبر في بناء الـDecks وخيارات البطاقات.' : 'More flexibility for decks and card choices.'),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
                 ),
-              ),
-            ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          AppPanel(
+            child: Column(
+              children: [
+                FeatureRow(Icons.layers_rounded, arabic ? '5 Decks بدل 2' : '5 decks instead of 2'),
+                const Divider(height: 22),
+                FeatureRow(Icons.add_circle_outline_rounded, arabic ? '4 خيارات بدل 3' : '4 choices instead of 3'),
+                const Divider(height: 22),
+                FeatureRow(Icons.edit_rounded, arabic ? 'تعديل 3 خيارات خاطئة بدل خيارين' : 'Edit 3 wrong choices instead of 2'),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.all(13),
+            decoration: BoxDecoration(color: const Color(0xFFFFF6DC), borderRadius: BorderRadius.circular(14)),
+            child: Text(
+              arabic ? 'ربط الدفع الفعلي بالمتجر سيبقى لمرحلة المتجر كما اتفقنا.' : 'Real store purchase wiring remains deferred to the store phase as planned.',
+              style: const TextStyle(color: ink, fontWeight: FontWeight.w800),
+            ),
           ),
         ],
       ),
@@ -948,10 +763,7 @@ class FootballCardBadge extends StatelessWidget {
     return Container(
       width: 38,
       height: 46,
-      decoration: BoxDecoration(
-        color: locked ? const Color(0xFFE1E6EE) : color,
-        borderRadius: BorderRadius.circular(10),
-      ),
+      decoration: BoxDecoration(color: locked ? const Color(0xFFE1E6EE) : color, borderRadius: BorderRadius.circular(10)),
       child: Icon(
         locked ? Icons.lock_rounded : Icons.sports_soccer_rounded,
         color: locked ? muted : Colors.white,
@@ -988,9 +800,7 @@ class FootballBackdrop extends StatelessWidget {
   const FootballBackdrop({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return CustomPaint(painter: FootballBackdropPainter());
-  }
+  Widget build(BuildContext context) => CustomPaint(painter: FootballBackdropPainter());
 }
 
 class FootballBackdropPainter extends CustomPainter {
@@ -1000,18 +810,18 @@ class FootballBackdropPainter extends CustomPainter {
       ..color = green.withValues(alpha: .045)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.2;
-    final inset = Rect.fromLTWH(size.width * .05, size.height * .05, size.width * .9, size.height * .9);
-    canvas.drawRRect(RRect.fromRectAndRadius(inset, const Radius.circular(24)), paint);
-    canvas.drawLine(Offset(size.width / 2, inset.top), Offset(size.width / 2, inset.bottom), paint);
+    final field = Rect.fromLTWH(size.width * .05, size.height * .05, size.width * .9, size.height * .9);
+    canvas.drawRRect(RRect.fromRectAndRadius(field, const Radius.circular(24)), paint);
+    canvas.drawLine(Offset(size.width / 2, field.top), Offset(size.width / 2, field.bottom), paint);
     canvas.drawCircle(Offset(size.width / 2, size.height / 2), 42, paint);
-    canvas.drawRect(Rect.fromCenter(center: Offset(inset.left + 28, size.height / 2), width: 56, height: 130), paint);
-    canvas.drawRect(Rect.fromCenter(center: Offset(inset.right - 28, size.height / 2), width: 56, height: 130), paint);
+    canvas.drawRect(Rect.fromCenter(center: Offset(field.left + 28, size.height / 2), width: 56, height: 130), paint);
+    canvas.drawRect(Rect.fromCenter(center: Offset(field.right - 28, size.height / 2), width: 56, height: 130), paint);
 
-    final netPaint = Paint()
+    final net = Paint()
       ..color = blue.withValues(alpha: .025)
       ..strokeWidth = .8;
     for (double y = 0; y < size.height; y += 42) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y + 80), netPaint);
+      canvas.drawLine(Offset(0, y), Offset(size.width, y + 80), net);
     }
   }
 
