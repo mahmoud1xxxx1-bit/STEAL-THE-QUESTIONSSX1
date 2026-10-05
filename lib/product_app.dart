@@ -9,6 +9,7 @@ import 'backend/firebase_game_api.dart';
 import 'data/local_player_store.dart';
 import 'game/game_rules.dart';
 import 'game/question_bank.dart';
+import 'services/purchase_service.dart';
 
 class DemoPlayerState extends ChangeNotifier {
   DemoPlayerState();
@@ -204,13 +205,17 @@ class DemoPlayerState extends ChangeNotifier {
       return api!.startBotRound(arabic: arabic);
     }
 
-    final candidates = QuestionBank.normal
+    final normalQuestions = QuestionBank.normal.toList(growable: false);
+    final rewardCandidates = normalQuestions
         .where((q) => !ownedCards.contains(q.id))
         .toList(growable: false);
-    if (candidates.isEmpty) {
-      throw StateError('No unowned normal question cards remain.');
+    if (rewardCandidates.isEmpty) {
+      throw StateError('No unowned normal reward cards remain.');
     }
-    final q = candidates[Random().nextInt(candidates.length)];
+
+    final random = Random();
+    final q = normalQuestions[random.nextInt(normalQuestions.length)];
+    final reward = rewardCandidates[random.nextInt(rewardCandidates.length)];
     return BotRoundData(
       roundId: 'local-' + DateTime.now().microsecondsSinceEpoch.toString(),
       questionId: q.id,
@@ -218,6 +223,7 @@ class DemoPlayerState extends ChangeNotifier {
       questionAr: q.questionAr,
       answersEn: q.answersEn,
       answersAr: q.answersAr,
+      rewardCardId: reward.id,
     );
   }
 
@@ -237,7 +243,7 @@ class DemoPlayerState extends ChangeNotifier {
     final q = QuestionBank.byId(round.questionId);
     final correct = answerIndex == q.correctIndex;
     if (correct && ownedCount < kPvpMinimumCollection) {
-      ownedCards.add(round.questionId);
+      ownedCards.add(round.rewardCardId ?? round.questionId);
       await _saveLocal();
       notifyListeners();
     }
@@ -1617,6 +1623,7 @@ class _DuelPageState extends State<_DuelPage> {
             if (current != null)
               _DuelQuestion(
                 arabic: widget.arabic,
+                weeklyPass: widget.player.weeklyPass,
                 question: current,
                 disabled: sending,
                 onAnswer: _submitAnswer,
@@ -1736,11 +1743,13 @@ class _DuelPageState extends State<_DuelPage> {
 class _DuelQuestion extends StatelessWidget {
   const _DuelQuestion({
     required this.arabic,
+    required this.weeklyPass,
     required this.question,
     required this.disabled,
     required this.onAnswer,
   });
   final bool arabic;
+  final bool weeklyPass;
   final Map<String, dynamic> question;
   final bool disabled;
   final ValueChanged<int> onAnswer;
@@ -1749,6 +1758,10 @@ class _DuelQuestion extends StatelessWidget {
   Widget build(BuildContext context) {
     final text = question[arabic ? 'questionAr' : 'questionEn'] as String? ?? '';
     final answers = List<String>.from(question[arabic ? 'answersAr' : 'answersEn'] as List? ?? const []);
+    if (weeklyPass) {
+      final fourth = question[arabic ? 'fourthAr' : 'fourthEn'] as String?;
+      if (fourth != null && fourth.isNotEmpty) answers.add(fourth);
+    }
     return Column(
       children: [
         Container(
@@ -2238,12 +2251,57 @@ class _PassPage extends StatefulWidget {
 }
 
 class _PassPageState extends State<_PassPage> {
+  final WeeklyPassPurchaseService purchases = WeeklyPassPurchaseService();
   String storeMessage = '';
 
+  @override
+  void initState() {
+    super.initState();
+    purchases.listen(onPurchase: _handlePurchase);
+  }
+
+  Future<void> _handlePurchase(PurchaseDetails purchase) async {
+    if (purchase.status != PurchaseStatus.purchased &&
+        purchase.status != PurchaseStatus.restored) {
+      return;
+    }
+    final receipt = purchase.verificationData.serverVerificationData;
+    if (receipt.isEmpty) return;
+    try {
+      await widget.player.verifyWeeklyPass(
+        productId: WeeklyPassPurchaseService.productId,
+        platform: defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android',
+        receipt: receipt,
+      );
+      if (mounted) {
+        setState(() => storeMessage = widget.arabic
+            ? 'تم التحقق من الاشتراك.'
+            : 'Pass receipt verified.');
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => storeMessage = e.toString().replaceFirst('Bad state: ', ''));
+      }
+    }
+  }
+
   Future<void> _buy() async {
-    setState(() => storeMessage = widget.arabic
-        ? 'ربط الدفع يحتاج إلى منتج متجر حقيقي وإيصال قابل للتحقق.'
-        : 'Billing needs a real store product and verifiable receipt.');
+    try {
+      final started = await purchases.buy();
+      if (mounted && !started) {
+        setState(() => storeMessage = widget.arabic
+            ? 'لم يتوفر منتج Weekly Pass في المتجر.'
+            : 'Weekly Pass is not available in the store.');
+      }
+    } catch (e) {
+      if (mounted) setState(() => storeMessage = e.toString());
+    }
+  }
+
+  @override
+  void dispose() {
+    purchases.dispose();
+    super.dispose();
   }
 
   @override
