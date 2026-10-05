@@ -55,6 +55,24 @@ class OnlinePlayerSessionV2 {
     return remote;
   }
 
+  Future<CustomWrongChoicesV2> customWrongChoices({
+    required String cardId,
+    required String questionId,
+    required bool arabic,
+  }) => api.loadCustomWrongChoices(cardId: cardId, questionId: questionId, arabic: arabic);
+
+  Future<CustomWrongChoicesV2> saveCustomWrongChoices({
+    required String cardId,
+    required String questionId,
+    required bool arabic,
+    required List<String> choices,
+  }) => api.saveCustomWrongChoices(
+        cardId: cardId,
+        questionId: questionId,
+        arabic: arabic,
+        choices: choices,
+      );
+
   Future<BotStatusV2> botStatus() => botApi.loadStatus();
 
   Future<BotRoundV2> startBotRound({required bool arabic}) =>
