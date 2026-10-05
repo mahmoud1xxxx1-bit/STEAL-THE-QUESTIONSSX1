@@ -70,13 +70,16 @@ function submitAnswer({ duel, secret, uid, questionIndex, selectedIndex, elapsed
   if (questionIndex !== answers.length) throw new Error('Questions must be answered in order and exactly once.');
 
   const planItem = plan[questionIndex];
-  const normalizedElapsed = Math.min(QUESTION_TIMEOUT_MS, Math.max(0, Number(elapsedMs) || 0));
+  const rawElapsed = Math.max(0, Number(elapsedMs) || 0);
+  const withinTime = rawElapsed < QUESTION_TIMEOUT_MS;
+  const normalizedElapsed = Math.min(QUESTION_TIMEOUT_MS, rawElapsed);
   answers.push({
     questionIndex,
     questionId: String(planItem.questionId),
     packId: String(planItem.packId),
     selectedIndex,
-    correct: selectedIndex === planItem.correctIndex,
+    correct: withinTime && selectedIndex === planItem.correctIndex,
+    timedOut: !withinTime,
     elapsedMs: Math.floor(normalizedElapsed),
   });
 
