@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 
+import 'backend/bot_api_v2.dart';
+import 'backend/firebase_game_api_v2.dart';
+import 'backend/online_runtime_v2.dart';
+import 'backend/profile_features_api_v2.dart';
 import 'data/player_profile_store_v2.dart';
 import 'game/core_engine_v2.dart';
+import 'game/online_player_session_v2.dart';
 import 'game/player_profile_v2.dart';
-import 'game/player_session_v2.dart';
 
 const _blue = Color(0xFF2E6BFF);
 const _purple = Color(0xFF7A48F5);
@@ -21,29 +25,116 @@ class StealQuestionsV2App extends StatefulWidget {
 }
 
 class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
-  late final PlayerSessionV2 _session;
+  OnlinePlayerSessionV2? _session;
   PlayerProfileV2? _profile;
+  WeeklyRankingV2? _ranking;
+  SubscriptionStatusV2? _subscription;
+  BotStatusV2? _botStatus;
+  MatchmakingStatusV2? _matchmaking;
   Object? _loadError;
   int _tab = 0;
   bool _arabic = true;
+  bool _busy = false;
 
   @override
   void initState() {
     super.initState();
-    _session = PlayerSessionV2(store: SharedPreferencesPlayerProfileStoreV2());
     _load();
   }
 
   Future<void> _load() async {
     try {
-      final profile = await _session.initialize();
+      final ready = await OnlineRuntimeV2.ensureReady();
+      if (!ready) throw StateError('Firebase V2 is unavailable.');
+      final session = OnlinePlayerSessionV2(
+        store: SharedPreferencesPlayerProfileStoreV2(),
+        api: FirebaseGameApiV2(),
+        botApi: BotApiV2(),
+      );
+      final profile = await session.initialize();
       if (!mounted) return;
-      setState(() => _profile = profile);
+      setState(() {
+        _session = session;
+        _profile = profile;
+      });
+      await _refreshRemote();
     } catch (error) {
       if (!mounted) return;
       setState(() => _loadError = error);
     }
   }
+
+  Future<void> _refreshRemote() async {
+    final session = _session;
+    if (session == null) return;
+    try {
+      final values = await Future.wait<dynamic>([
+        session.weeklyRanking(),
+        session.subscriptionStatus(),
+        session.botStatus(),
+        session.matchStatus(),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _ranking = values[0] as WeeklyRankingV2;
+        _subscription = values[1] as SubscriptionStatusV2;
+        _botStatus = values[2] as BotStatusV2;
+        _matchmaking = values[3] as MatchmakingStatusV2;
+      });
+    } catch (_) {
+      // The cached profile remains usable while a secondary panel refresh fails.
+    }
+  }
+
+  Future<void> _run(Future<void> Function() action) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await action();
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _refreshProfile() => _run(() async {
+        final session = _session!;
+        final profile = await session.refreshProfile();
+        if (!mounted) return;
+        setState(() => _profile = profile);
+        await _refreshRemote();
+      });
+
+  Future<void> _setActiveDeck(int index) => _run(() async {
+        final profile = await _session!.setActiveDeck(index);
+        if (!mounted) return;
+        setState(() => _profile = profile);
+      });
+
+  Future<void> _refreshSubscription() => _run(() async {
+        final status = await _session!.refreshSubscription();
+        if (!mounted) return;
+        setState(() {
+          _subscription = status;
+          _profile = _session!.profile;
+        });
+      });
+
+  Future<void> _startBotStatus() => _run(() async {
+        final status = await _session!.botStatus();
+        if (!mounted) return;
+        setState(() => _botStatus = status);
+      });
+
+  Future<void> _startOrCheckMatchmaking() => _run(() async {
+        var status = _matchmaking;
+        if (status == null || status.status == 'idle') {
+          status = await _session!.startMatchmaking();
+        } else if (status.searching) {
+          status = await _session!.matchStatus();
+        }
+        if (!mounted) return;
+        setState(() => _matchmaking = status);
+      });
 
   @override
   Widget build(BuildContext context) {
@@ -70,11 +161,37 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
     }
 
     final screens = <Widget>[
-      _HomeV2(arabic: _arabic, profile: profile, openTab: (value) => setState(() => _tab = value)),
+      _HomeV2(
+        arabic: _arabic,
+        profile: profile,
+        openTab: (value) => setState(() => _tab = value),
+        refresh: _refreshProfile,
+      ),
       _CardsV2(arabic: _arabic, profile: profile),
-      _DecksV2(arabic: _arabic, profile: profile),
-      _PlayV2(arabic: _arabic, profile: profile),
-      _ProfileV2(arabic: _arabic, profile: profile),
+      _DecksV2(
+        arabic: _arabic,
+        profile: profile,
+        busy: _busy,
+        setActiveDeck: _setActiveDeck,
+      ),
+      _PlayV2(
+        arabic: _arabic,
+        profile: profile,
+        busy: _busy,
+        botStatus: _botStatus,
+        matchmaking: _matchmaking,
+        refreshBot: _startBotStatus,
+        startOrCheckMatchmaking: _startOrCheckMatchmaking,
+      ),
+      _ProfileV2(
+        arabic: _arabic,
+        profile: profile,
+        ranking: _ranking,
+        subscription: _subscription,
+        busy: _busy,
+        refresh: _refreshProfile,
+        refreshSubscription: _refreshSubscription,
+      ),
     ];
 
     return Directionality(
@@ -129,10 +246,16 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
 }
 
 class _HomeV2 extends StatelessWidget {
-  const _HomeV2({required this.arabic, required this.profile, required this.openTab});
+  const _HomeV2({
+    required this.arabic,
+    required this.profile,
+    required this.openTab,
+    required this.refresh,
+  });
   final bool arabic;
   final PlayerProfileV2 profile;
   final ValueChanged<int> openTab;
+  final VoidCallback refresh;
 
   @override
   Widget build(BuildContext context) {
@@ -166,6 +289,15 @@ class _HomeV2 extends StatelessWidget {
           _StatRow(label: arabic ? 'الـDeck النشط' : 'Active deck', value: '${activeDeck.length}/$kDeckSizeV2'),
           _StatRow(label: arabic ? 'نقاط الأسبوع' : 'Weekly points', value: '${profile.weeklyPoints}'),
           _StatRow(label: arabic ? 'حالة PvP' : 'PvP', value: profile.pvpUnlocked && profile.activeDeckReady ? (arabic ? 'جاهز' : 'Ready') : (arabic ? 'غير جاهز' : 'Locked')),
+          const SizedBox(height: 6),
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: TextButton.icon(
+              onPressed: refresh,
+              icon: const Icon(Icons.refresh_rounded),
+              label: Text(arabic ? 'تحديث من السيرفر' : 'Refresh from server'),
+            ),
+          ),
         ]),
       ),
     ]);
@@ -200,9 +332,16 @@ class _CardsV2 extends StatelessWidget {
 }
 
 class _DecksV2 extends StatelessWidget {
-  const _DecksV2({required this.arabic, required this.profile});
+  const _DecksV2({
+    required this.arabic,
+    required this.profile,
+    required this.busy,
+    required this.setActiveDeck,
+  });
   final bool arabic;
   final PlayerProfileV2 profile;
+  final bool busy;
+  final Future<void> Function(int index) setActiveDeck;
 
   @override
   Widget build(BuildContext context) => _Scroll(children: [
@@ -219,6 +358,14 @@ class _DecksV2 extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(child: Text('${arabic ? 'مجموعة' : 'Deck'} ${index + 1}', style: const TextStyle(color: _ink, fontWeight: FontWeight.w900))),
                 Text('${deck.length}/$kDeckSizeV2', style: const TextStyle(color: _purple, fontWeight: FontWeight.w900)),
+                const SizedBox(width: 8),
+                IconButton(
+                  tooltip: arabic ? 'تفعيل المجموعة' : 'Set active deck',
+                  onPressed: busy || active || !PlayerDeckV2(deck).isValid(profile.ownedPackIds)
+                      ? null
+                      : () => setActiveDeck(index),
+                  icon: const Icon(Icons.check_circle_outline),
+                ),
               ]),
             ),
           );
@@ -233,26 +380,61 @@ class _DecksV2 extends StatelessWidget {
 }
 
 class _PlayV2 extends StatelessWidget {
-  const _PlayV2({required this.arabic, required this.profile});
+  const _PlayV2({
+    required this.arabic,
+    required this.profile,
+    required this.busy,
+    required this.botStatus,
+    required this.matchmaking,
+    required this.refreshBot,
+    required this.startOrCheckMatchmaking,
+  });
   final bool arabic;
   final PlayerProfileV2 profile;
+  final bool busy;
+  final BotStatusV2? botStatus;
+  final MatchmakingStatusV2? matchmaking;
+  final VoidCallback refreshBot;
+  final VoidCallback startOrCheckMatchmaking;
 
   @override
   Widget build(BuildContext context) {
     final needsBot = profile.ownedCount < kDeckSizeV2;
+    final searching = matchmaking?.searching == true;
     return _Scroll(children: [
       _Section(title: arabic ? 'اللعب' : 'Play'),
       const SizedBox(height: 10),
       _Panel(
-        child: _Empty(
-          icon: needsBot ? Icons.smart_toy_rounded : Icons.flash_on_rounded,
-          title: needsBot ? (arabic ? 'مسار البوت' : 'Bot onboarding') : (arabic ? 'مسار PvP' : 'PvP path'),
-          text: needsBot
-              ? (arabic ? 'البوت هو المسار الصحيح حتى 10 بطاقات. التنفيذ Server-authoritative جاهز، لكن المحتوى لم يُدخل بعد.' : 'Bot is the correct path until 10 cards. The server-authoritative flow is ready, but content is intentionally not loaded yet.')
-              : (profile.activeDeckReady
-                  ? (arabic ? 'الملف والـDeck جاهزان لبدء Matchmaking V2.' : 'Profile and active deck are ready for V2 matchmaking.')
-                  : (arabic ? 'تحتاج Deck صالحة من 10 بطاقات مختلفة قبل PvP.' : 'A valid 10-card deck is required before PvP.')),
-        ),
+        child: Column(children: [
+          _Empty(
+            icon: needsBot ? Icons.smart_toy_rounded : Icons.flash_on_rounded,
+            title: needsBot ? (arabic ? 'مسار البوت' : 'Bot onboarding') : (arabic ? 'مسار PvP' : 'PvP path'),
+            text: needsBot
+                ? (arabic ? 'البوت مربوط الآن بالسيرفر وسيعمل فور إضافة المحتوى.' : 'Bot onboarding is now wired to the server and will run as soon as content is added.')
+                : (profile.activeDeckReady
+                    ? (arabic ? 'الـDeck جاهزة وMatchmaking مربوط بالسيرفر.' : 'The active deck is ready and matchmaking is wired to the server.')
+                    : (arabic ? 'تحتاج Deck صالحة من 10 بطاقات مختلفة قبل PvP.' : 'A valid 10-card deck is required before PvP.')),
+          ),
+          const SizedBox(height: 12),
+          if (needsBot)
+            FilledButton.icon(
+              onPressed: busy ? null : refreshBot,
+              icon: const Icon(Icons.smart_toy_rounded),
+              label: Text(arabic ? 'تحقق من مسار البوت' : 'Check bot path'),
+            )
+          else
+            FilledButton.icon(
+              onPressed: busy || !profile.activeDeckReady ? null : startOrCheckMatchmaking,
+              icon: Icon(searching ? Icons.refresh_rounded : Icons.sports_esports_rounded),
+              label: Text(searching
+                  ? (arabic ? 'تحقق من الخصم' : 'Check opponent')
+                  : (arabic ? 'ابدأ البحث' : 'Find opponent')),
+            ),
+          if (botStatus != null) ...[
+            const SizedBox(height: 8),
+            Text('${botStatus!.ownedCount}/${botStatus!.targetCount}', style: const TextStyle(color: _purple, fontWeight: FontWeight.w900)),
+          ],
+        ]),
       ),
       const SizedBox(height: 12),
       _Panel(
@@ -267,13 +449,27 @@ class _PlayV2 extends StatelessWidget {
 }
 
 class _ProfileV2 extends StatelessWidget {
-  const _ProfileV2({required this.arabic, required this.profile});
+  const _ProfileV2({
+    required this.arabic,
+    required this.profile,
+    required this.ranking,
+    required this.subscription,
+    required this.busy,
+    required this.refresh,
+    required this.refreshSubscription,
+  });
   final bool arabic;
   final PlayerProfileV2 profile;
+  final WeeklyRankingV2? ranking;
+  final SubscriptionStatusV2? subscription;
+  final bool busy;
+  final VoidCallback refresh;
+  final VoidCallback refreshSubscription;
 
   @override
   Widget build(BuildContext context) {
     final total = profile.totalWins + profile.totalLosses + profile.totalDraws;
+    final top = ranking?.players.take(10).toList(growable: false) ?? const <WeeklyRankingPlayerV2>[];
     return _Scroll(children: [
       _Section(title: arabic ? 'الملف الشخصي' : 'Profile'),
       const SizedBox(height: 10),
@@ -285,9 +481,30 @@ class _ProfileV2 extends StatelessWidget {
           _StatRow(label: arabic ? 'تعادل' : 'Draws', value: '${profile.totalDraws}'),
           _StatRow(label: arabic ? 'إجمالي المباريات' : 'Total matches', value: '$total'),
           _StatRow(label: '🥇 / 🥈 / 🥉', value: '${profile.prestige.first} / ${profile.prestige.second} / ${profile.prestige.third}'),
-          _StatRow(label: arabic ? 'Decks المتاحة' : 'Deck slots', value: '${profile.entitlement.deckSlots}'),
-          _StatRow(label: arabic ? 'خيارات الإجابة' : 'Answer choices', value: '${profile.entitlement.answerChoices}'),
+          _StatRow(label: arabic ? 'اللقب الحالي' : 'Current title', value: profile.currentTitleKey ?? '—'),
+          _StatRow(label: arabic ? 'الإطار الحالي' : 'Current frame', value: profile.currentFrameKey ?? '—'),
+          const SizedBox(height: 6),
+          TextButton.icon(onPressed: busy ? null : refresh, icon: const Icon(Icons.refresh_rounded), label: Text(arabic ? 'تحديث الملف' : 'Refresh profile')),
         ]),
+      ),
+      const SizedBox(height: 12),
+      _Section(title: arabic ? 'الاشتراك' : 'Subscription'),
+      const SizedBox(height: 8),
+      _Panel(
+        child: Column(children: [
+          _StatRow(label: arabic ? 'الحالة' : 'Status', value: subscription?.active == true ? (arabic ? 'فعال' : 'Active') : (arabic ? 'مجاني' : 'Free')),
+          _StatRow(label: arabic ? 'Decks المتاحة' : 'Deck slots', value: '${subscription?.deckSlots ?? profile.entitlement.deckSlots}'),
+          _StatRow(label: arabic ? 'خيارات الإجابة' : 'Answer choices', value: '${subscription?.answerChoices ?? profile.entitlement.answerChoices}'),
+          FilledButton.tonal(onPressed: busy ? null : refreshSubscription, child: Text(arabic ? 'تحقق من الاشتراك عبر السيرفر' : 'Verify subscription')),
+        ]),
+      ),
+      const SizedBox(height: 12),
+      _Section(title: arabic ? 'الترتيب الأسبوعي' : 'Weekly ranking'),
+      const SizedBox(height: 8),
+      _Panel(
+        child: top.isEmpty
+            ? Text(arabic ? 'لا توجد نتائج بعد.' : 'No ranking results yet.', style: const TextStyle(color: _muted))
+            : Column(children: top.map((p) => _StatRow(label: '#${p.rank} ${p.displayName}', value: '${p.weeklyPoints} · ${p.weeklyWins}W')).toList(growable: false)),
       ),
     ]);
   }
