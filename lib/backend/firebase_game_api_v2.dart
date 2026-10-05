@@ -3,18 +3,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import '../game/player_profile_v2.dart';
 
 class WeeklyRankingPlayerV2 {
-  const WeeklyRankingPlayerV2({
-    required this.rank,
-    required this.uid,
-    required this.displayName,
-    required this.weeklyPoints,
-    required this.weeklyWins,
-    required this.weeklyLosses,
-    required this.weeklyDraws,
-    required this.currentTitleKey,
-    required this.currentFrameKey,
-  });
-
+  const WeeklyRankingPlayerV2({required this.rank, required this.uid, required this.displayName, required this.weeklyPoints, required this.weeklyWins, required this.weeklyLosses, required this.weeklyDraws, required this.currentTitleKey, required this.currentFrameKey});
   final int rank;
   final String uid;
   final String displayName;
@@ -24,9 +13,7 @@ class WeeklyRankingPlayerV2 {
   final int weeklyDraws;
   final String? currentTitleKey;
   final String? currentFrameKey;
-
-  factory WeeklyRankingPlayerV2.fromMap(Map<String, dynamic> data) =>
-      WeeklyRankingPlayerV2(
+  factory WeeklyRankingPlayerV2.fromMap(Map<String, dynamic> data) => WeeklyRankingPlayerV2(
         rank: (data['rank'] as num?)?.toInt() ?? 0,
         uid: data['uid'] as String? ?? '',
         displayName: data['displayName'] as String? ?? 'PLAYER',
@@ -41,30 +28,18 @@ class WeeklyRankingPlayerV2 {
 
 class WeeklyRankingV2 {
   const WeeklyRankingV2({required this.weekKey, required this.players});
-
   final String weekKey;
   final List<WeeklyRankingPlayerV2> players;
 }
 
 class StealOptionsV2 {
-  const StealOptionsV2({
-    required this.packIds,
-    required this.alreadyConfirmed,
-  });
-
+  const StealOptionsV2({required this.packIds, required this.alreadyConfirmed});
   final List<String> packIds;
   final bool alreadyConfirmed;
 }
 
 class StealConfirmationV2 {
-  const StealConfirmationV2({
-    required this.packId,
-    required this.alreadyConfirmed,
-    required this.loserPvpUnlocked,
-    required this.loserOwnedCount,
-    required this.winnerProfile,
-  });
-
+  const StealConfirmationV2({required this.packId, required this.alreadyConfirmed, required this.loserPvpUnlocked, required this.loserOwnedCount, required this.winnerProfile});
   final String? packId;
   final bool alreadyConfirmed;
   final bool loserPvpUnlocked;
@@ -74,18 +49,48 @@ class StealConfirmationV2 {
 
 class MatchmakingStatusV2 {
   const MatchmakingStatusV2({required this.status, required this.duelId});
-
   final String status;
   final String? duelId;
-
   bool get searching => status == 'searching';
   bool get matched => status == 'matched' && duelId != null;
 }
 
-class FirebaseGameApiV2 {
-  FirebaseGameApiV2({FirebaseFunctions? functions})
-      : _functions = functions ?? FirebaseFunctions.instance;
+class DuelStateV2 {
+  const DuelStateV2({required this.duelId, required this.status, required this.questionPlanReady, required this.answeredCount, required this.opponentAnsweredCount, required this.totalQuestions, required this.winnerUid, required this.loserUid, required this.result, required this.stealConfirmed, required this.stolenPackId});
+  final String duelId;
+  final String status;
+  final bool questionPlanReady;
+  final int answeredCount;
+  final int opponentAnsweredCount;
+  final int totalQuestions;
+  final String? winnerUid;
+  final String? loserUid;
+  final String? result;
+  final bool stealConfirmed;
+  final String? stolenPackId;
+  bool get finished => status == 'finished';
+}
 
+class DuelQuestionV2 {
+  const DuelQuestionV2({required this.complete, required this.questionIndex, required this.packId, required this.questionId, required this.publicQuestion, required this.timeoutMs});
+  final bool complete;
+  final int questionIndex;
+  final String? packId;
+  final String? questionId;
+  final Map<String, dynamic>? publicQuestion;
+  final int timeoutMs;
+}
+
+class DuelAnswerReceiptV2 {
+  const DuelAnswerReceiptV2({required this.correct, required this.elapsedMs, required this.answeredCount, required this.totalQuestions});
+  final bool correct;
+  final int elapsedMs;
+  final int answeredCount;
+  final int totalQuestions;
+}
+
+class FirebaseGameApiV2 {
+  FirebaseGameApiV2({FirebaseFunctions? functions}) : _functions = functions ?? FirebaseFunctions.instance;
   final FirebaseFunctions _functions;
 
   Future<PlayerProfileV2> ensureProfile() async {
@@ -98,21 +103,13 @@ class FirebaseGameApiV2 {
     return _profileFromResponse(response.data);
   }
 
-  Future<PlayerProfileV2> saveDeck({
-    required int deckIndex,
-    required List<String> packIds,
-  }) async {
-    final response = await _functions.httpsCallable('saveDeckV2').call({
-      'deckIndex': deckIndex,
-      'packIds': packIds,
-    });
+  Future<PlayerProfileV2> saveDeck({required int deckIndex, required List<String> packIds}) async {
+    final response = await _functions.httpsCallable('saveDeckV2').call({'deckIndex': deckIndex, 'packIds': packIds});
     return _profileFromResponse(response.data);
   }
 
   Future<PlayerProfileV2> setActiveDeck(int deckIndex) async {
-    final response = await _functions.httpsCallable('setActiveDeckV2').call({
-      'deckIndex': deckIndex,
-    });
+    final response = await _functions.httpsCallable('setActiveDeckV2').call({'deckIndex': deckIndex});
     return _profileFromResponse(response.data);
   }
 
@@ -130,38 +127,59 @@ class FirebaseGameApiV2 {
     await _functions.httpsCallable('cancelMatchmakingV2').call();
   }
 
+  Future<DuelStateV2> loadDuelState(String duelId) async {
+    final response = await _functions.httpsCallable('getDuelStateV2').call({'duelId': duelId});
+    return _duelStateFromResponse(response.data);
+  }
+
+  Future<DuelQuestionV2> startNextQuestion(String duelId) async {
+    final response = await _functions.httpsCallable('startNextQuestionV2').call({'duelId': duelId});
+    final raw = _asMap(response.data, 'Invalid duel question response.');
+    final publicQuestion = raw['question'];
+    return DuelQuestionV2(
+      complete: raw['complete'] == true,
+      questionIndex: (raw['questionIndex'] as num?)?.toInt() ?? 0,
+      packId: raw['packId'] as String?,
+      questionId: raw['questionId'] as String?,
+      publicQuestion: publicQuestion is Map ? Map<String, dynamic>.from(publicQuestion) : null,
+      timeoutMs: (raw['timeoutMs'] as num?)?.toInt() ?? 20000,
+    );
+  }
+
+  Future<DuelAnswerReceiptV2> submitDuelAnswer({required String duelId, required int questionIndex, required int selectedIndex}) async {
+    final response = await _functions.httpsCallable('submitDuelAnswerV2').call({'duelId': duelId, 'questionIndex': questionIndex, 'selectedIndex': selectedIndex});
+    final raw = _asMap(response.data, 'Invalid duel answer response.');
+    return DuelAnswerReceiptV2(
+      correct: raw['correct'] == true,
+      elapsedMs: (raw['elapsedMs'] as num?)?.toInt() ?? 0,
+      answeredCount: (raw['answeredCount'] as num?)?.toInt() ?? 0,
+      totalQuestions: (raw['totalQuestions'] as num?)?.toInt() ?? 7,
+    );
+  }
+
+  Future<DuelStateV2> finalizeDuel(String duelId) async {
+    final response = await _functions.httpsCallable('finalizeDuelV2').call({'duelId': duelId});
+    return _duelStateFromResponse(response.data);
+  }
+
   Future<WeeklyRankingV2> loadWeeklyRanking() async {
     final response = await _functions.httpsCallable('getWeeklyRankingV2').call();
     final raw = _asMap(response.data, 'Invalid weekly ranking response.');
     final playersRaw = raw['players'] as List? ?? const <dynamic>[];
     return WeeklyRankingV2(
       weekKey: raw['weekKey'] as String? ?? '',
-      players: playersRaw
-          .whereType<Map>()
-          .map((p) => WeeklyRankingPlayerV2.fromMap(Map<String, dynamic>.from(p)))
-          .toList(growable: false),
+      players: playersRaw.whereType<Map>().map((p) => WeeklyRankingPlayerV2.fromMap(Map<String, dynamic>.from(p))).toList(growable: false),
     );
   }
 
   Future<StealOptionsV2> loadStealOptions(String duelId) async {
-    final response = await _functions.httpsCallable('getStealOptionsV2').call({
-      'duelId': duelId,
-    });
+    final response = await _functions.httpsCallable('getStealOptionsV2').call({'duelId': duelId});
     final raw = _asMap(response.data, 'Invalid steal options response.');
-    return StealOptionsV2(
-      packIds: List<String>.from(raw['packIds'] as List? ?? const <dynamic>[]),
-      alreadyConfirmed: raw['alreadyConfirmed'] == true,
-    );
+    return StealOptionsV2(packIds: List<String>.from(raw['packIds'] as List? ?? const <dynamic>[]), alreadyConfirmed: raw['alreadyConfirmed'] == true);
   }
 
-  Future<StealConfirmationV2> confirmSteal({
-    required String duelId,
-    required String packId,
-  }) async {
-    final response = await _functions.httpsCallable('confirmStealV2').call({
-      'duelId': duelId,
-      'packId': packId,
-    });
+  Future<StealConfirmationV2> confirmSteal({required String duelId, required String packId}) async {
+    final response = await _functions.httpsCallable('confirmStealV2').call({'duelId': duelId, 'packId': packId});
     final raw = _asMap(response.data, 'Invalid steal confirmation response.');
     final profileRaw = raw['winnerProfile'];
     return StealConfirmationV2(
@@ -169,17 +187,29 @@ class FirebaseGameApiV2 {
       alreadyConfirmed: raw['alreadyConfirmed'] == true,
       loserPvpUnlocked: raw['loserPvpUnlocked'] == true,
       loserOwnedCount: (raw['loserOwnedCount'] as num?)?.toInt() ?? 0,
-      winnerProfile: profileRaw is Map
-          ? PlayerProfileV2.fromMap(Map<String, dynamic>.from(profileRaw))
-          : null,
+      winnerProfile: profileRaw is Map ? PlayerProfileV2.fromMap(Map<String, dynamic>.from(profileRaw)) : null,
     );
   }
 
   MatchmakingStatusV2 _matchStatusFromResponse(dynamic raw) {
     final data = _asMap(raw, 'Invalid matchmaking response.');
-    return MatchmakingStatusV2(
-      status: data['status'] as String? ?? 'idle',
-      duelId: data['duelId'] as String?,
+    return MatchmakingStatusV2(status: data['status'] as String? ?? 'idle', duelId: data['duelId'] as String?);
+  }
+
+  DuelStateV2 _duelStateFromResponse(dynamic raw) {
+    final data = _asMap(raw, 'Invalid duel state response.');
+    return DuelStateV2(
+      duelId: data['duelId'] as String? ?? '',
+      status: data['status'] as String? ?? 'matched',
+      questionPlanReady: data['questionPlanReady'] == true,
+      answeredCount: (data['answeredCount'] as num?)?.toInt() ?? 0,
+      opponentAnsweredCount: (data['opponentAnsweredCount'] as num?)?.toInt() ?? 0,
+      totalQuestions: (data['totalQuestions'] as num?)?.toInt() ?? 7,
+      winnerUid: data['winnerUid'] as String?,
+      loserUid: data['loserUid'] as String?,
+      result: data['result'] as String?,
+      stealConfirmed: data['stealConfirmed'] == true,
+      stolenPackId: data['stolenPackId'] as String?,
     );
   }
 
