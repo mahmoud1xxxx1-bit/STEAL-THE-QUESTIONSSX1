@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const admin = require('firebase-admin');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { setGlobalOptions } = require('firebase-functions/v2/options');
+const { defineSecret } = require('firebase-functions/params');
 const { cards, questionById, publicQuestion } = require('./question_data');
 
 admin.initializeApp();
@@ -22,6 +23,13 @@ const QUESTION_PHASE_SECONDS = 140;
 const FULL_DUEL_SECONDS = 180;
 const WEEKLY_PASS_DAYS = 7;
 const WEEKLY_PASS_PRODUCT = 'weekly_pass_v1';
+const ANDROID_PACKAGE_NAME = 'com.STEALTHE.QUESTIONSSX1';
+const APPLE_BUNDLE_ID = 'com.STEALTHE.QUESTIONSSX1';
+
+const googlePlayServiceAccountJson = defineSecret('GOOGLE_PLAY_SERVICE_ACCOUNT_JSON');
+const appleIssuerId = defineSecret('APPLE_ISSUER_ID');
+const appleKeyId = defineSecret('APPLE_KEY_ID');
+const applePrivateKey = defineSecret('APPLE_PRIVATE_KEY');
 
 function authUid(request) {
   const uid = request.auth && request.auth.uid;
@@ -805,21 +813,305 @@ exports.claimRankingReward = onCall(async (request) => {
   });
 });
 
-exports.verifyWeeklyPassPurchase = onCall(async (request) => {
-  const uid = authUid(request);
-  const productId = String(request.data && request.data.productId || '');
-  const platform = String(request.data && request.data.platform || '');
-  const receipt = String(request.data && request.data.receipt || '');
+function base64UrlJson(value) {
+  return Buffer.from(JSON.stringify(value)).toString('base64url');
+}
 
-  if (productId !== WEEKLY_PASS_PRODUCT || !platform || !receipt) {
-    throw new HttpsError('invalid-argument', 'Invalid Weekly Pass purchase payload.');
+function decodeBase64UrlJson(value) {
+  return JSON.parse(Buffer.from(value, 'base64url').toString('utf8'));
+}
+
+function signJwt(header, payload, privateKey, isEcdsa = false) {
+  const encodedHeader = base64UrlJson(header);
+  const encodedPayload = base64UrlJson(payload);
+  const unsigned = encodedHeader + '.' + encodedPayload;
+  const signer = crypto.createSign('SHA256');
+  signer.update(unsigned);
+  signer.end();
+  const signature = signer.sign(
+    isEcdsa
+      ? { key: privateKey, dsaEncoding: 'ieee-p1363' }
+      : privateKey
+  ).toString('base64url');
+  return unsigned + '.' + signature;
+}
+
+async function googleAccessToken(serviceAccount) {
+  const now = Math.floor(Date.now() / 1000);
+  const assertion = signJwt(
+    { alg: 'RS256', typ: 'JWT' },
+    {
+      iss: serviceAccount.client_email,
+      scope: 'https://www.googleapis.com/auth/androidpublisher',
+      aud: 'https://oauth2.googleapis.com/token',
+      iat: now,
+      exp: now + 3600
+    },
+    serviceAccount.private_key
+  );
+
+  const response = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      assertion
+    })
+  });
+
+  if (!response.ok) {
+    throw new HttpsError('failed-precondition', 'Google Play verification authentication failed.');
   }
 
-  throw new HttpsError(
-    'failed-precondition',
-    'Store receipt verification is not configured. No pass is granted until Google Play/App Store verification is connected.'
+  const data = await response.json();
+  if (!data.access_token) {
+    throw new HttpsError('failed-precondition', 'Google Play verification token is missing.');
+  }
+  return data.access_token;
+}
+
+async function verifyGooglePlaySubscription(purchaseToken) {
+  let serviceAccount;
+  try {
+    serviceAccount = JSON.parse(googlePlayServiceAccountJson.value());
+  } catch (_) {
+    throw new HttpsError('failed-precondition', 'Google Play service credentials are not configured.');
+  }
+
+  if (!serviceAccount.client_email || !serviceAccount.private_key) {
+    throw new HttpsError('failed-precondition', 'Google Play service credentials are incomplete.');
+  }
+
+  const accessToken = await googleAccessToken(serviceAccount);
+  const url =
+    'https://androidpublisher.googleapis.com/androidpublisher/v3/applications/' +
+    encodeURIComponent(ANDROID_PACKAGE_NAME) +
+    '/purchases/subscriptionsv2/tokens/' +
+    encodeURIComponent(purchaseToken);
+
+  const response = await fetch(url, {
+    headers: { Authorization: 'Bearer ' + accessToken }
+  });
+
+  if (!response.ok) {
+    throw new HttpsError('failed-precondition', 'Google Play could not verify this Weekly Pass.');
+  }
+
+  const data = await response.json();
+  const item = Array.isArray(data.lineItems)
+    ? data.lineItems.find((line) => line.productId === WEEKLY_PASS_PRODUCT)
+    : null;
+  const expiryMs = item && item.expiryTime ? Date.parse(item.expiryTime) : 0;
+
+  if (!item ||
+      !expiryMs ||
+      expiryMs <= Date.now() ||
+      (data.subscriptionState !== 'SUBSCRIPTION_STATE_ACTIVE' &&
+       data.subscriptionState !== 'SUBSCRIPTION_STATE_IN_GRACE_PERIOD')) {
+    throw new HttpsError('failed-precondition', 'The Google Play Weekly Pass is not active.');
+  }
+
+  if (data.acknowledgementState === 'ACKNOWLEDGEMENT_STATE_PENDING') {
+    const acknowledgeUrl =
+      'https://androidpublisher.googleapis.com/androidpublisher/v3/applications/' +
+      encodeURIComponent(ANDROID_PACKAGE_NAME) +
+      '/purchases/subscriptions/' +
+      encodeURIComponent(WEEKLY_PASS_PRODUCT) +
+      '/tokens/' +
+      encodeURIComponent(purchaseToken) +
+      ':acknowledge';
+
+    const ack = await fetch(acknowledgeUrl, {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + accessToken,
+        'content-type': 'application/json'
+      },
+      body: '{}'
+    });
+    if (!ack.ok && ack.status !== 409) {
+      throw new HttpsError('failed-precondition', 'Google Play purchase acknowledgement failed.');
+    }
+  }
+
+  return {
+    transactionKey: purchaseToken,
+    expiresAtMs: expiryMs,
+    environment: data.testPurchase ? 'test' : 'production'
+  };
+}
+
+async function appleApiToken() {
+  const issuer = appleIssuerId.value();
+  const keyId = appleKeyId.value();
+  const privateKey = applePrivateKey.value().replace(/\\n/g, '\n');
+
+  if (!issuer || !keyId || !privateKey) {
+    throw new HttpsError('failed-precondition', 'Apple App Store verification credentials are not configured.');
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  return signJwt(
+    { alg: 'ES256', kid: keyId, typ: 'JWT' },
+    {
+      iss: issuer,
+      iat: now,
+      exp: now + 300,
+      aud: 'appstoreconnect-v1'
+    },
+    privateKey,
+    true
   );
-});
+}
+
+function transactionIdFromJws(value) {
+  if (!value || value.split('.').length !== 3) return null;
+  try {
+    const payload = decodeBase64UrlJson(value.split('.')[1]);
+    return payload.transactionId ? String(payload.transactionId) : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+async function verifyAppleTransaction(transactionId, submittedVerificationData) {
+  const candidate = transactionId || transactionIdFromJws(submittedVerificationData);
+  if (!candidate) {
+    throw new HttpsError('invalid-argument', 'Apple transaction ID is required.');
+  }
+
+  const token = await appleApiToken();
+  const endpoints = [
+    'https://api.storekit.itunes.apple.com/inApps/v1/transactions/' + encodeURIComponent(candidate),
+    'https://api.storekit-sandbox.itunes.apple.com/inApps/v1/transactions/' + encodeURIComponent(candidate)
+  ];
+
+  let data = null;
+  for (const endpoint of endpoints) {
+    const response = await fetch(endpoint, {
+      headers: {
+        Authorization: 'Bearer ' + token,
+        Accept: 'application/json'
+      }
+    });
+    if (response.ok) {
+      data = await response.json();
+      break;
+    }
+    if (response.status !== 404) {
+      throw new HttpsError('failed-precondition', 'Apple could not verify this Weekly Pass.');
+    }
+  }
+
+  if (!data || !data.signedTransactionInfo) {
+    throw new HttpsError('failed-precondition', 'Apple transaction could not be resolved.');
+  }
+
+  let transaction;
+  try {
+    transaction = decodeBase64UrlJson(data.signedTransactionInfo.split('.')[1]);
+  } catch (_) {
+    throw new HttpsError('failed-precondition', 'Apple returned invalid transaction data.');
+  }
+
+  const expiryMs = Number(transaction.expiresDate || 0);
+  if (transaction.bundleId !== APPLE_BUNDLE_ID ||
+      transaction.productId !== WEEKLY_PASS_PRODUCT ||
+      !expiryMs ||
+      expiryMs <= Date.now() ||
+      transaction.revocationDate) {
+    throw new HttpsError('failed-precondition', 'The Apple Weekly Pass is not active.');
+  }
+
+  return {
+    transactionKey: String(transaction.transactionId || candidate),
+    expiresAtMs: expiryMs,
+    environment: String(transaction.environment || 'Production').toLowerCase()
+  };
+}
+
+exports.verifyWeeklyPassPurchase = onCall(
+  {
+    secrets: [
+      googlePlayServiceAccountJson,
+      appleIssuerId,
+      appleKeyId,
+      applePrivateKey
+    ]
+  },
+  async (request) => {
+    const uid = authUid(request);
+    const productId = String(request.data && request.data.productId || '');
+    const platform = String(request.data && request.data.platform || '');
+    const verificationData = String(request.data && request.data.verificationData || '');
+    const transactionId = request.data && request.data.transactionId
+      ? String(request.data.transactionId)
+      : '';
+
+    if (productId !== WEEKLY_PASS_PRODUCT ||
+        (platform !== 'android' && platform !== 'ios') ||
+        !verificationData ||
+        verificationData.length > 200000) {
+      throw new HttpsError('invalid-argument', 'Invalid Weekly Pass purchase payload.');
+    }
+
+    const verified = platform === 'android'
+      ? await verifyGooglePlaySubscription(verificationData)
+      : await verifyAppleTransaction(transactionId, verificationData);
+
+    const entitlementId = crypto
+      .createHash('sha256')
+      .update(platform + ':' + verified.transactionKey)
+      .digest('hex');
+    const entitlementRef = db.collection('purchaseEntitlements').doc(entitlementId);
+    const profileRef = userRef(uid);
+
+    return db.runTransaction(async (tx) => {
+      const [entitlementSnap, profileSnap] = await Promise.all([
+        tx.get(entitlementRef),
+        tx.get(profileRef)
+      ]);
+
+      if (!profileSnap.exists) {
+        throw new HttpsError('not-found', 'Profile not found.');
+      }
+
+      if (entitlementSnap.exists) {
+        const previous = entitlementSnap.data();
+        if (previous.uid !== uid) {
+          throw new HttpsError('permission-denied', 'This store transaction belongs to another account.');
+        }
+      }
+
+      const currentExpiry = profileSnap.data().weeklyPassExpiresAt;
+      const currentExpiryMs = currentExpiry && currentExpiry.toMillis
+        ? currentExpiry.toMillis()
+        : 0;
+      const nextExpiryMs = Math.max(currentExpiryMs, verified.expiresAtMs);
+
+      tx.set(entitlementRef, {
+        uid,
+        platform,
+        productId,
+        transactionKey: verified.transactionKey,
+        expiresAt: Timestamp.fromMillis(verified.expiresAtMs),
+        environment: verified.environment,
+        verifiedAt: Timestamp.now()
+      }, { merge: true });
+
+      tx.update(profileRef, {
+        weeklyPassExpiresAt: Timestamp.fromMillis(nextExpiryMs),
+        updatedAt: Timestamp.now()
+      });
+
+      return {
+        ok: true,
+        expiresAtMs: nextExpiryMs,
+        environment: verified.environment
+      };
+    });
+  }
+);
 
 exports.expireWeeklyPass = onCall(async (request) => {
   authUid(request);

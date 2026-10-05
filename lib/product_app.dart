@@ -280,13 +280,15 @@ class DemoPlayerState extends ChangeNotifier {
   Future<Map<String, dynamic>> verifyWeeklyPass({
     required String productId,
     required String platform,
-    required String receipt,
+    required String verificationData,
+    String? transactionId,
   }) async {
     if (!authenticated) throw StateError('Sign in before purchasing.');
     final result = await api!.verifyWeeklyPassPurchase(
       productId: productId,
       platform: platform,
-      receipt: receipt,
+      verificationData: verificationData,
+      transactionId: transactionId,
     );
     await _loadRemote();
     notifyListeners();
@@ -2259,50 +2261,136 @@ class _PassPage extends StatefulWidget {
 
 class _PassPageState extends State<_PassPage> {
   final WeeklyPassPurchaseService purchases = WeeklyPassPurchaseService();
+  ProductDetails? product;
   String storeMessage = '';
+  bool loadingStore = true;
+  bool restoring = false;
 
   @override
   void initState() {
     super.initState();
     purchases.listen(onPurchase: _handlePurchase);
+    _loadStore();
   }
 
-  Future<void> _handlePurchase(PurchaseDetails purchase) async {
+  Future<void> _loadStore() async {
+    await purchases.loadProduct();
+    if (!mounted) return;
+    setState(() {
+      product = purchases.product;
+      loadingStore = false;
+      if (kIsWeb) {
+        storeMessage = widget.arabic
+            ? 'الدفع داخل التطبيق يعمل في Android وiPhone. معاينة الويب لا تعرض متجرًا وهميًا.'
+            : 'In-app purchases are available on Android and iPhone. The web preview does not use a fake store.';
+      } else if (product == null) {
+        storeMessage = purchases.storeError == 'PRODUCT_NOT_CONFIGURED'
+            ? (widget.arabic
+                ? 'Weekly Pass غير مضاف بعد في متجر التطبيق.'
+                : 'Weekly Pass is not configured in the app store yet.')
+            : (widget.arabic
+                ? 'تعذر الاتصال بالمتجر حاليًا.'
+                : 'The store is currently unavailable.');
+      }
+    });
+  }
+
+  Future<bool> _handlePurchase(PurchaseDetails purchase) async {
+    if (purchase.status == PurchaseStatus.error) {
+      if (mounted) {
+        setState(() => storeMessage = purchase.error?.message ??
+            (widget.arabic ? 'فشل الشراء.' : 'Purchase failed.'));
+      }
+      return false;
+    }
+
+    if (purchase.status == PurchaseStatus.canceled) {
+      if (mounted) {
+        setState(() => storeMessage = widget.arabic ? 'تم إلغاء الشراء.' : 'Purchase canceled.');
+      }
+      return false;
+    }
+
     if (purchase.status != PurchaseStatus.purchased &&
         purchase.status != PurchaseStatus.restored) {
-      return;
+      return false;
     }
-    final receipt = purchase.verificationData.serverVerificationData;
-    if (receipt.isEmpty) return;
+
+    final verificationData = purchase.verificationData.serverVerificationData;
+    if (verificationData.isEmpty) {
+      if (mounted) {
+        setState(() => storeMessage = widget.arabic
+            ? 'بيانات التحقق من المتجر غير متوفرة.'
+            : 'Store verification data is missing.');
+      }
+      return false;
+    }
+
     try {
       await widget.player.verifyWeeklyPass(
         productId: WeeklyPassPurchaseService.productId,
         platform: defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android',
-        receipt: receipt,
+        verificationData: verificationData,
+        transactionId: purchase.purchaseID,
       );
       if (mounted) {
         setState(() => storeMessage = widget.arabic
-            ? 'تم التحقق من الاشتراك.'
-            : 'Pass receipt verified.');
+            ? 'تم التحقق وتفعيل Weekly Pass.'
+            : 'Weekly Pass verified and activated.');
       }
+      return true;
     } catch (e) {
       if (mounted) {
         setState(() => storeMessage = e.toString().replaceFirst('Bad state: ', ''));
       }
+      return false;
     }
   }
 
   Future<void> _buy() async {
+    if (kIsWeb) return;
     try {
+      final current = product ?? await purchases.loadProduct();
+      if (!mounted) return;
+      if (current == null) {
+        setState(() => storeMessage = widget.arabic
+            ? 'Weekly Pass غير متوفر في هذا المتجر.'
+            : 'Weekly Pass is not available in this store.');
+        return;
+      }
       final started = await purchases.buy();
       if (mounted && !started) {
         setState(() => storeMessage = widget.arabic
-            ? 'لم يتوفر منتج Weekly Pass في المتجر.'
-            : 'Weekly Pass is not available in the store.');
+            ? 'لم يبدأ الشراء. حاول مرة أخرى.'
+            : 'Purchase did not start. Try again.');
       }
     } catch (e) {
       if (mounted) setState(() => storeMessage = e.toString());
     }
+  }
+
+  Future<void> _restore() async {
+    if (kIsWeb || restoring) return;
+    setState(() => restoring = true);
+    try {
+      final started = await purchases.restorePurchases();
+      if (mounted) {
+        setState(() => storeMessage = started
+            ? (widget.arabic ? 'جارٍ استعادة مشترياتك...' : 'Restoring your purchases...')
+            : (widget.arabic ? 'المتجر غير متاح حاليًا.' : 'The store is currently unavailable.'));
+      }
+    } catch (e) {
+      if (mounted) setState(() => storeMessage = e.toString());
+    } finally {
+      if (mounted) setState(() => restoring = false);
+    }
+  }
+
+  String _expiryLabel(DateTime value) {
+    final y = value.year.toString().padLeft(4, '0');
+    final m = value.month.toString().padLeft(2, '0');
+    final d = value.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
   }
 
   @override
@@ -2317,34 +2405,75 @@ class _PassPageState extends State<_PassPage> {
     return Directionality(
       textDirection: widget.arabic ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
-        appBar: AppBar(title: const Text('WEEKLY PASS')),
+        appBar: AppBar(title: Text(widget.arabic ? 'المتجر' : 'STORE')),
         body: ListView(
           padding: const EdgeInsets.fromLTRB(18, 18, 18, 30),
           children: [
             _PageHeader(
-              eyebrow: 'WEEKLY PASS',
+              eyebrow: 'STORE',
               title: active
-                  ? (widget.arabic ? 'الـPass فعال' : 'PASS ACTIVE')
-                  : (widget.arabic ? 'مزايا للاعب الجامع' : 'MORE ROOM TO COLLECT'),
+                  ? (widget.arabic ? 'Weekly Pass فعال' : 'WEEKLY PASS ACTIVE')
+                  : (widget.arabic ? 'Weekly Pass' : 'WEEKLY PASS'),
               body: widget.arabic
-                  ? 'منتج الدفع الوحيد. الصلاحية أسبوعية ولا توجد عملات مدفوعة أخرى.'
-                  : 'The only paid product. Weekly access with no other paid currency.',
+                  ? 'المنتج المدفوع الوحيد. يفتح 3 مجموعات إضافية وخيارًا رابعًا للإجابة لمدة أسبوع.'
+                  : 'The only paid product. Unlocks 3 extra decks and a fourth answer option for one week.',
               trailing: active ? 'ACTIVE' : 'OPTIONAL',
             ),
             const SizedBox(height: 15),
-            _Benefit(icon: Icons.layers_rounded, title: widget.arabic ? '+3 مجموعات' : '+3 DECK SLOTS', body: widget.arabic ? 'المجموع 5.' : 'Five total deck slots.'),
+            _Benefit(icon: Icons.layers_rounded, title: widget.arabic ? '+3 مجموعات' : '+3 DECK SLOTS', body: widget.arabic ? 'المجموع 5 مجموعات.' : 'Five total deck slots.'),
             _Benefit(icon: Icons.looks_4_rounded, title: widget.arabic ? 'خيار رابع للإجابة' : 'FOURTH ANSWER OPTION', body: widget.arabic ? 'مفعل في الأسئلة المدعومة.' : 'Enabled on supported questions.'),
-            _Benefit(icon: Icons.calendar_today_rounded, title: widget.arabic ? 'أسبوع كامل' : 'WEEKLY ACCESS', body: widget.arabic ? 'التجديد من المتجر.' : 'Renewal is controlled by the store.'),
+            _Benefit(icon: Icons.calendar_today_rounded, title: widget.arabic ? 'صلاحية أسبوعية' : 'WEEKLY ACCESS', body: widget.arabic ? 'الاشتراك والتحقق يتمان عبر المتجر والخادم.' : 'Purchase and entitlement are verified by the store and server.'),
+            const SizedBox(height: 9),
+            if (loadingStore)
+              const Center(child: Padding(
+                padding: EdgeInsets.all(20),
+                child: CircularProgressIndicator(),
+              ))
+            else if (product != null)
+              _RulePanel(
+                title: widget.arabic ? 'السعر من المتجر' : 'STORE PRICE',
+                lines: <String>[
+                  product!.title,
+                  product!.description,
+                  product!.price,
+                ],
+              )
+            else
+              _RulePanel(
+                title: widget.arabic ? 'حالة المتجر' : 'STORE STATUS',
+                lines: <String>[
+                  widget.arabic
+                      ? 'افتح اللعبة على Android أو iPhone لاستخدام الدفع.'
+                      : 'Open the mobile build on Android or iPhone to use in-app purchases.',
+                ],
+              ),
             const SizedBox(height: 13),
             FilledButton.icon(
-              onPressed: active ? null : _buy,
+              onPressed: active || loadingStore || product == null || kIsWeb ? null : _buy,
               icon: const Icon(Icons.shopping_bag_rounded),
-              label: Text(active ? (widget.arabic ? 'مفعل' : 'ACTIVE') : (widget.arabic ? 'شراء' : 'PURCHASE')),
+              label: Text(active
+                  ? (widget.arabic ? 'مفعل' : 'ACTIVE')
+                  : (widget.arabic ? 'شراء' : 'PURCHASE')),
             ),
+            OutlinedButton.icon(
+              onPressed: loadingStore || restoring || kIsWeb ? null : _restore,
+              icon: restoring
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.restore_rounded),
+              label: Text(widget.arabic ? 'استعادة المشتريات' : 'RESTORE PURCHASES'),
+            ),
+            if (active && widget.player.weeklyPassExpiresAt != null)
+              _RulePanel(
+                title: widget.arabic ? 'تاريخ الانتهاء' : 'EXPIRES',
+                lines: <String>[_expiryLabel(widget.player.weeklyPassExpiresAt!)],
+              ),
             if (storeMessage.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 10),
-                child: Text(storeMessage, style: const TextStyle(color: Color(0xFF7F8B9C), fontSize: 10, height: 1.5)),
+                child: Text(
+                  storeMessage,
+                  style: const TextStyle(color: Color(0xFF7F8B9C), fontSize: 10, height: 1.5),
+                ),
               ),
           ],
         ),

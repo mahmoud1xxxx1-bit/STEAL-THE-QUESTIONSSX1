@@ -193,13 +193,16 @@ class FirebaseGameApi {
   Future<Map<String, dynamic>> verifyWeeklyPassPurchase({
     required String productId,
     required String platform,
-    required String receipt,
+    required String verificationData,
+    String? transactionId,
   }) async {
     final call = functions.httpsCallable('verifyWeeklyPassPurchase');
     final response = await call.call({
       'productId': productId,
       'platform': platform,
-      'receipt': receipt,
+      'verificationData': verificationData,
+      if (transactionId != null && transactionId.isNotEmpty)
+        'transactionId': transactionId,
     });
     return Map<String, dynamic>.from(response.data as Map);
   }
