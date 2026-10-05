@@ -161,11 +161,37 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
     }
 
     final screens = <Widget>[
-      _HomeV2(arabic: _arabic, profile: profile, openTab: (value) => setState(() => _tab = value)),
+      _HomeV2(
+        arabic: _arabic,
+        profile: profile,
+        openTab: (value) => setState(() => _tab = value),
+        refresh: _refreshProfile,
+      ),
       _CardsV2(arabic: _arabic, profile: profile),
-      _DecksV2(arabic: _arabic, profile: profile),
-      _PlayV2(arabic: _arabic, profile: profile),
-      _ProfileV2(arabic: _arabic, profile: profile),
+      _DecksV2(
+        arabic: _arabic,
+        profile: profile,
+        busy: _busy,
+        setActiveDeck: _setActiveDeck,
+      ),
+      _PlayV2(
+        arabic: _arabic,
+        profile: profile,
+        busy: _busy,
+        botStatus: _botStatus,
+        matchmaking: _matchmaking,
+        refreshBot: _startBotStatus,
+        startOrCheckMatchmaking: _startOrCheckMatchmaking,
+      ),
+      _ProfileV2(
+        arabic: _arabic,
+        profile: profile,
+        ranking: _ranking,
+        subscription: _subscription,
+        busy: _busy,
+        refresh: _refreshProfile,
+        refreshSubscription: _refreshSubscription,
+      ),
     ];
 
     return Directionality(
@@ -220,10 +246,16 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
 }
 
 class _HomeV2 extends StatelessWidget {
-  const _HomeV2({required this.arabic, required this.profile, required this.openTab});
+  const _HomeV2({
+    required this.arabic,
+    required this.profile,
+    required this.openTab,
+    required this.refresh,
+  });
   final bool arabic;
   final PlayerProfileV2 profile;
   final ValueChanged<int> openTab;
+  final VoidCallback refresh;
 
   @override
   Widget build(BuildContext context) {
@@ -257,6 +289,15 @@ class _HomeV2 extends StatelessWidget {
           _StatRow(label: arabic ? 'الـDeck النشط' : 'Active deck', value: '${activeDeck.length}/$kDeckSizeV2'),
           _StatRow(label: arabic ? 'نقاط الأسبوع' : 'Weekly points', value: '${profile.weeklyPoints}'),
           _StatRow(label: arabic ? 'حالة PvP' : 'PvP', value: profile.pvpUnlocked && profile.activeDeckReady ? (arabic ? 'جاهز' : 'Ready') : (arabic ? 'غير جاهز' : 'Locked')),
+          const SizedBox(height: 6),
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: TextButton.icon(
+              onPressed: refresh,
+              icon: const Icon(Icons.refresh_rounded),
+              label: Text(arabic ? 'تحديث من السيرفر' : 'Refresh from server'),
+            ),
+          ),
         ]),
       ),
     ]);
@@ -291,9 +332,16 @@ class _CardsV2 extends StatelessWidget {
 }
 
 class _DecksV2 extends StatelessWidget {
-  const _DecksV2({required this.arabic, required this.profile});
+  const _DecksV2({
+    required this.arabic,
+    required this.profile,
+    required this.busy,
+    required this.setActiveDeck,
+  });
   final bool arabic;
   final PlayerProfileV2 profile;
+  final bool busy;
+  final Future<void> Function(int index) setActiveDeck;
 
   @override
   Widget build(BuildContext context) => _Scroll(children: [
@@ -310,6 +358,14 @@ class _DecksV2 extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(child: Text('${arabic ? 'مجموعة' : 'Deck'} ${index + 1}', style: const TextStyle(color: _ink, fontWeight: FontWeight.w900))),
                 Text('${deck.length}/$kDeckSizeV2', style: const TextStyle(color: _purple, fontWeight: FontWeight.w900)),
+                const SizedBox(width: 8),
+                IconButton(
+                  tooltip: arabic ? 'تفعيل المجموعة' : 'Set active deck',
+                  onPressed: busy || active || !PlayerDeckV2(deck).isValid(profile.ownedPackIds)
+                      ? null
+                      : () => setActiveDeck(index),
+                  icon: const Icon(Icons.check_circle_outline),
+                ),
               ]),
             ),
           );
