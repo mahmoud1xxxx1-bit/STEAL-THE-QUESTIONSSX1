@@ -11,13 +11,6 @@ service cloud.firestore {
       }
     }
 
-    match /duels/{duelId} {
-      allow read: if request.auth != null &&
-        (resource.data.p1Uid == request.auth.uid ||
-         resource.data.p2Uid == request.auth.uid);
-      allow write: if false;
-    }
-
     match /duelsV2/{duelId} {
       allow read: if request.auth != null &&
         (resource.data.p1Uid == request.auth.uid ||
@@ -34,15 +27,7 @@ service cloud.firestore {
       }
     }
 
-    match /botRounds/{roundId} {
-      allow read, write: if false;
-    }
-
     match /botRoundsV2/{roundId} {
-      allow read, write: if false;
-    }
-
-    match /duelSecrets/{duelId} {
       allow read, write: if false;
     }
 
@@ -50,23 +35,18 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    match /matchQueue/{queueId} {
-      allow read, write: if false;
-    }
-
     match /matchQueueV2/{queueId} {
       allow read, write: if false;
     }
 
-    match /rankingRewards/{rewardId} {
+    match /weeklyRankingV2/{weekKey} {
       allow read, write: if false;
+      match /players/{userId} {
+        allow read, write: if false;
+      }
     }
 
     match /rankingRewardsV2/{rewardId} {
-      allow read, write: if false;
-    }
-
-    match /purchaseEntitlements/{entitlementId} {
       allow read, write: if false;
     }
 
