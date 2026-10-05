@@ -5,6 +5,10 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if request.auth != null && request.auth.uid == userId;
       allow create, update, delete: if false;
+
+      match /customChoicesV2/{choiceId} {
+        allow read, write: if false;
+      }
     }
 
     match /duels/{duelId} {
