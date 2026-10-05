@@ -7,6 +7,15 @@ const {
   normalizeProfileV2,
   saveDeckV2,
 } = require('./player_profile_v2');
+const {
+  DECK_SIZE,
+  validateDeck,
+  weekKey,
+} = require('./core_engine_v2');
+const {
+  applySteal,
+  stealablePackIds,
+} = require('./duel_engine_v2');
 
 const db = admin.firestore();
 const { Timestamp } = admin.firestore;
@@ -26,6 +35,18 @@ function profileFromUserData(data) {
     return normalizeProfileV2(data.profileV2);
   }
   return emptyProfileV2();
+}
+
+function sanitizeDecksAfterOwnershipChange(profile) {
+  const next = normalizeProfileV2(profile);
+  next.decks = next.decks.map((deck) =>
+    validateDeck(deck, next.ownedPackIds) ? deck : []
+  );
+  const slots = next.subscriptionActive ? 5 : 2;
+  if (next.activeDeckIndex < 0 || next.activeDeckIndex >= slots) {
+    next.activeDeckIndex = 0;
+  }
+  return next;
 }
 
 const ensureProfileV2 = onCall(async (request) => {
@@ -98,6 +119,9 @@ const setActiveDeckV2 = onCall(async (request) => {
     if (!Number.isInteger(deckIndex) || deckIndex < 0 || deckIndex >= slots) {
       throw new HttpsError('permission-denied', 'Deck slot is locked or invalid.');
     }
+    if (!validateDeck(current.decks[deckIndex], current.ownedPackIds)) {
+      throw new HttpsError('failed-precondition', 'Active deck must contain exactly 10 distinct owned cards.');
+    }
     const next = { ...current, activeDeckIndex: deckIndex };
     tx.update(ref, {
       profileV2: next,
@@ -110,9 +134,167 @@ const setActiveDeckV2 = onCall(async (request) => {
   return { ok: true, profile };
 });
 
+const getWeeklyRankingV2 = onCall(async (request) => {
+  authUid(request);
+  const key = weekKey();
+  const snap = await db.collection('users')
+    .where('profileV2.weekKey', '==', key)
+    .orderBy('profileV2.weeklyPoints', 'desc')
+    .orderBy('profileV2.weeklyWins', 'desc')
+    .orderBy('uid', 'asc')
+    .limit(100)
+    .get();
+
+  return {
+    weekKey: key,
+    players: snap.docs.map((doc, index) => {
+      const data = doc.data();
+      const profile = profileFromUserData(data);
+      return {
+        rank: index + 1,
+        uid: data.uid || doc.id,
+        displayName: data.displayName || 'PLAYER',
+        weeklyPoints: profile.weeklyPoints,
+        weeklyWins: profile.weeklyWins,
+        weeklyLosses: profile.weeklyLosses,
+        weeklyDraws: profile.weeklyDraws,
+        currentTitleKey: profile.currentTitleKey,
+        currentFrameKey: profile.currentFrameKey,
+      };
+    }),
+  };
+});
+
+const getStealOptionsV2 = onCall(async (request) => {
+  const uid = authUid(request);
+  const duelId = String(request.data && request.data.duelId || '').trim();
+  if (!duelId) throw new HttpsError('invalid-argument', 'duelId is required.');
+
+  const duelRef = db.collection('duelsV2').doc(duelId);
+  const secretRef = db.collection('duelSecretsV2').doc(duelId);
+  const [duelSnap, secretSnap, winnerSnap] = await Promise.all([
+    duelRef.get(),
+    secretRef.get(),
+    userRef(uid).get(),
+  ]);
+
+  if (!duelSnap.exists || !secretSnap.exists) throw new HttpsError('not-found', 'Duel not found.');
+  if (!winnerSnap.exists) throw new HttpsError('not-found', 'Winner profile not found.');
+  const duel = duelSnap.data();
+  if (duel.status !== 'finished' || duel.result === 'draw' || duel.winnerUid !== uid) {
+    throw new HttpsError('permission-denied', 'Only the finished duel winner can select a card.');
+  }
+  if (duel.stealConfirmed === true) {
+    return { packIds: [], alreadyConfirmed: true };
+  }
+
+  const secret = secretSnap.data();
+  const opponentDeckPackIds = Array.isArray(secret.loserDeckPackIds)
+    ? secret.loserDeckPackIds.map(String)
+    : [];
+  const winnerProfile = profileFromUserData(winnerSnap.data());
+  let packIds;
+  try {
+    packIds = stealablePackIds(opponentDeckPackIds, winnerProfile.ownedPackIds);
+  } catch (_) {
+    throw new HttpsError('failed-precondition', 'Opponent duel deck is invalid.');
+  }
+  return { packIds, alreadyConfirmed: false };
+});
+
+const confirmStealV2 = onCall(async (request) => {
+  const uid = authUid(request);
+  const duelId = String(request.data && request.data.duelId || '').trim();
+  const packId = String(request.data && request.data.packId || '').trim();
+  if (!duelId || !packId) throw new HttpsError('invalid-argument', 'duelId and packId are required.');
+
+  const duelRef = db.collection('duelsV2').doc(duelId);
+  const secretRef = db.collection('duelSecretsV2').doc(duelId);
+
+  return db.runTransaction(async (tx) => {
+    const duelSnap = await tx.get(duelRef);
+    const secretSnap = await tx.get(secretRef);
+    if (!duelSnap.exists || !secretSnap.exists) throw new HttpsError('not-found', 'Duel not found.');
+
+    const duel = duelSnap.data();
+    if (duel.status !== 'finished' || duel.result === 'draw' || duel.winnerUid !== uid) {
+      throw new HttpsError('permission-denied', 'Only the finished duel winner can transfer a card.');
+    }
+    if (duel.stealConfirmed === true) {
+      return { ok: true, alreadyConfirmed: true, packId: duel.stolenPackId || null };
+    }
+
+    const loserUid = String(duel.loserUid || '');
+    if (!loserUid || loserUid === uid) throw new HttpsError('failed-precondition', 'Invalid duel loser.');
+
+    const winnerRef = userRef(uid);
+    const loserRef = userRef(loserUid);
+    const winnerSnap = await tx.get(winnerRef);
+    const loserSnap = await tx.get(loserRef);
+    if (!winnerSnap.exists || !loserSnap.exists) throw new HttpsError('not-found', 'Player profile not found.');
+
+    const winner = profileFromUserData(winnerSnap.data());
+    const loser = profileFromUserData(loserSnap.data());
+    const secret = secretSnap.data();
+    const opponentDeckPackIds = Array.isArray(secret.loserDeckPackIds)
+      ? secret.loserDeckPackIds.map(String)
+      : [];
+
+    let transfer;
+    try {
+      transfer = applySteal({
+        packId,
+        winnerOwnedPackIds: winner.ownedPackIds,
+        loserOwnedPackIds: loser.ownedPackIds,
+        opponentDeckPackIds,
+      });
+    } catch (_) {
+      throw new HttpsError('failed-precondition', 'Selected card is not eligible for transfer.');
+    }
+
+    const nextWinner = sanitizeDecksAfterOwnershipChange({
+      ...winner,
+      ownedPackIds: transfer.winnerOwnedPackIds,
+    });
+    const nextLoser = sanitizeDecksAfterOwnershipChange({
+      ...loser,
+      ownedPackIds: transfer.loserOwnedPackIds,
+    });
+
+    tx.update(winnerRef, {
+      profileV2: nextWinner,
+      schemaVersion: 2,
+      updatedAt: Timestamp.now(),
+    });
+    tx.update(loserRef, {
+      profileV2: nextLoser,
+      schemaVersion: 2,
+      updatedAt: Timestamp.now(),
+    });
+    tx.update(duelRef, {
+      stealConfirmed: true,
+      stolenPackId: packId,
+      stealConfirmedAt: Timestamp.now(),
+    });
+
+    return {
+      ok: true,
+      alreadyConfirmed: false,
+      packId,
+      loserPvpUnlocked: transfer.loserPvpUnlocked,
+      winnerProfile: nextWinner,
+      loserOwnedCount: nextLoser.ownedPackIds.length,
+      pvpMinimumCollection: DECK_SIZE,
+    };
+  });
+});
+
 module.exports = {
   ensureProfileV2,
   getProfileV2,
   saveDeckV2: saveDeckV2Callable,
   setActiveDeckV2,
+  getWeeklyRankingV2,
+  getStealOptionsV2,
+  confirmStealV2,
 };
