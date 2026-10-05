@@ -1,17 +1,20 @@
+import '../backend/bot_api_v2.dart';
 import '../backend/firebase_game_api_v2.dart';
 import '../data/player_profile_store_v2.dart';
 import 'player_profile_v2.dart';
 
-/// Coordinates the local V2 profile cache with the server-authoritative API.
+/// Coordinates the local V2 profile cache with server-authoritative APIs.
 /// No question content lives here.
 class OnlinePlayerSessionV2 {
   OnlinePlayerSessionV2({
     required this.store,
     required this.api,
+    required this.botApi,
   });
 
   final PlayerProfileStoreV2 store;
   final FirebaseGameApiV2 api;
+  final BotApiV2 botApi;
   PlayerProfileV2? _profile;
 
   bool get initialized => _profile != null;
@@ -50,6 +53,24 @@ class OnlinePlayerSessionV2 {
     _profile = remote;
     await store.save(remote);
     return remote;
+  }
+
+  Future<BotStatusV2> botStatus() => botApi.loadStatus();
+
+  Future<BotRoundV2> startBotRound({required bool arabic}) =>
+      botApi.startRound(arabic: arabic);
+
+  Future<BotAnswerResultV2> submitBotAnswer({
+    required String roundId,
+    required int selectedIndex,
+  }) async {
+    final result = await botApi.submitAnswer(
+      roundId: roundId,
+      selectedIndex: selectedIndex,
+    );
+    _profile = result.profile;
+    await store.save(result.profile);
+    return result;
   }
 
   Future<MatchmakingStatusV2> startMatchmaking() => api.findOrCreateDuel();
