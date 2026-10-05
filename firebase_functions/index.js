@@ -821,17 +821,17 @@ function decodeBase64UrlJson(value) {
   return JSON.parse(Buffer.from(value, 'base64url').toString('utf8'));
 }
 
-function signJwt(header, payload, privateKey, algorithm = 'RSA-SHA256') {
+function signJwt(header, payload, privateKey, isEcdsa = false) {
   const encodedHeader = base64UrlJson(header);
   const encodedPayload = base64UrlJson(payload);
   const unsigned = encodedHeader + '.' + encodedPayload;
-  const signer = crypto.createSign(algorithm);
+  const signer = crypto.createSign('SHA256');
   signer.update(unsigned);
   signer.end();
   const signature = signer.sign(
-    algorithm === 'RSA-SHA256'
-      ? privateKey
-      : { key: privateKey, dsaEncoding: 'ieee-p1363' }
+    isEcdsa
+      ? { key: privateKey, dsaEncoding: 'ieee-p1363' }
+      : privateKey
   ).toString('base64url');
   return unsigned + '.' + signature;
 }
@@ -960,7 +960,7 @@ async function appleApiToken() {
       aud: 'appstoreconnect-v1'
     },
     privateKey,
-    'EC'
+    true
   );
 }
 
