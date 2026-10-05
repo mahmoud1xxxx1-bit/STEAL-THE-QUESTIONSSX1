@@ -126,13 +126,16 @@ exports.startBotRound = onCall(async (request) => {
     throw new HttpsError('failed-precondition', 'No unowned normal cards remain.');
   }
 
-  const cardId = available[crypto.randomInt(available.length)];
-  const q = questionById(cardId);
+  const rewardCardId = available[crypto.randomInt(available.length)];
+  const questionPool = cards.filter((c) => c.rarity !== 'legendary').map((c) => c.id);
+  const questionCardId = questionPool[crypto.randomInt(questionPool.length)];
+  const q = questionById(questionCardId);
   const roundId = db.collection('botRounds').doc().id;
 
   await db.collection('botRounds').doc(roundId).set({
     uid,
-    cardId,
+    cardId: questionCardId,
+    rewardCardId,
     createdAt: Timestamp.now(),
     status: 'open'
   });
@@ -182,9 +185,9 @@ exports.submitBotAnswer = onCall(async (request) => {
     const correct = !timedOut && answerIndex === q.correctIndex;
     let awardedCardId = null;
 
-    if (correct && owned.length < MIN_PVP_CARDS && !owned.includes(round.cardId)) {
-      awardedCardId = round.cardId;
-      const next = [...owned, round.cardId];
+    if (correct && owned.length < MIN_PVP_CARDS && !owned.includes(round.rewardCardId)) {
+      awardedCardId = round.rewardCardId;
+      const next = [...owned, round.rewardCardId];
       tx.update(uRef, {
         ownedCards: next,
         ownedCount: next.length,
