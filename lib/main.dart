@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'final_design_app_v2.dart';
+import 'football_design_app.dart';
 
 void main() {
   runApp(const StealTheQuestionsApp());
@@ -110,7 +110,7 @@ class StealTheQuestionsApp extends StatelessWidget {
           linearTrackColor: Color(0xFFE3EBFA),
         ),
       ),
-      home: const FinalDesignAppV2(),
+      home: const FootballDesignApp(),
     );
   }
 }
