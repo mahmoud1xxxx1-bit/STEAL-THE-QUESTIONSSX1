@@ -586,8 +586,6 @@ exports.resolveDuel = onCall(async (request) => {
     const p2Ref = userRef(duel.p2Uid);
     const [p1Snap, p2Snap] = await Promise.all([tx.get(p1Ref), tx.get(p2Ref)]);
     if (!p1Snap.exists || !p2Snap.exists) throw new HttpsError('not-found', 'Duel players not found.');
-    const [p1Snap, p2Snap] = await Promise.all([tx.get(p1Ref), tx.get(p2Ref)]);
-    if (!p1Snap.exists || !p2Snap.exists) throw new HttpsError('not-found', 'Duel players not found.');
 
     tx.update(secretRef, {
       p1Answers: resolved.p1Filled,
