@@ -29,5 +29,9 @@ service cloud.firestore {
     match /rankingRewards/{rewardId} {
       allow read, write: if false;
     }
+
+    match /purchaseEntitlements/{entitlementId} {
+      allow read, write: if false;
+    }
   }
 }
