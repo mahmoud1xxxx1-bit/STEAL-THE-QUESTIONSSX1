@@ -55,6 +55,24 @@ class OnlinePlayerSessionV2 {
     return remote;
   }
 
+  Future<CustomWrongChoicesV2> customWrongChoices({
+    required String cardId,
+    required String questionId,
+    required bool arabic,
+  }) => api.loadCustomWrongChoices(cardId: cardId, questionId: questionId, arabic: arabic);
+
+  Future<CustomWrongChoicesV2> saveCustomWrongChoices({
+    required String cardId,
+    required String questionId,
+    required bool arabic,
+    required List<String> choices,
+  }) => api.saveCustomWrongChoices(
+        cardId: cardId,
+        questionId: questionId,
+        arabic: arabic,
+        choices: choices,
+      );
+
   Future<BotStatusV2> botStatus() => botApi.loadStatus();
 
   Future<BotRoundV2> startBotRound({required bool arabic}) =>
@@ -77,6 +95,16 @@ class OnlinePlayerSessionV2 {
   Future<MatchmakingStatusV2> matchStatus() => api.loadMatchStatus();
   Future<void> cancelMatchmaking() => api.cancelMatchmaking();
   Future<DuelStateV2> duelState(String duelId) => api.loadDuelState(duelId);
+
+  Future<DuelStateV2> prepareDuelQuestions({
+    required String duelId,
+    required bool arabic,
+  }) async {
+    final state = await api.prepareDuelQuestions(duelId: duelId, arabic: arabic);
+    await refreshProfile();
+    return state;
+  }
+
   Future<DuelQuestionV2> startNextQuestion(String duelId) => api.startNextQuestion(duelId);
 
   Future<DuelAnswerReceiptV2> submitAnswer({

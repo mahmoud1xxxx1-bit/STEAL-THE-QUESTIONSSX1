@@ -4,7 +4,15 @@ const admin = require('firebase-admin');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { Timestamp } = admin.firestore;
 const { normalizeProfileV2, applyDuelResultV2 } = require('./player_profile_v2');
+const { entitlement } = require('./core_engine_v2');
+const { validateQuestionDocument, localizedQuestion } = require('./content_contract_v2');
 const { publicDuelState, submitAnswer, finalizeDuel, validateQuestionPlan } = require('./duel_lifecycle_v2');
+const {
+  selectOpponentPacks,
+  chooseQuestionEntry,
+  buildPlanItem,
+  nextRecent,
+} = require('./duel_question_plan_v2');
 
 const db = admin.firestore();
 
@@ -30,6 +38,88 @@ function ensureParticipant(duel, uid) {
   }
 }
 
+function languageFromRequest(request) {
+  return request.data && request.data.language === 'en' ? 'en' : 'ar';
+}
+
+function choiceDocId(cardId, questionId, language) {
+  return `${cardId}--${questionId}--${language}`;
+}
+
+async function loadQuestionEntries(cardId, language) {
+  const snap = await db.collection('cardsV2').doc(cardId).collection('questions')
+    .where('enabled', '==', true)
+    .limit(100)
+    .get();
+  const result = [];
+  for (const doc of snap.docs) {
+    try {
+      validateQuestionDocument(doc.id, cardId, doc.data());
+      const localized = localizedQuestion(doc.data(), language);
+      result.push({
+        id: doc.id,
+        prompt: localized.prompt,
+        correct: localized.correct,
+        wrongAnswers: localized.wrongAnswers,
+      });
+    } catch (_) {
+      // Invalid/disabled content is deliberately excluded from live duel plans.
+    }
+  }
+  return result;
+}
+
+async function loadCustomChoices(ownerUid, cardId, questionId, language, limit) {
+  const snap = await db.collection('users').doc(ownerUid).collection('customChoicesV2')
+    .doc(choiceDocId(cardId, questionId, language))
+    .get();
+  if (!snap.exists || !Array.isArray(snap.data().choices)) return [];
+  return snap.data().choices.map(String).slice(0, Math.max(0, limit));
+}
+
+async function buildPlanForPlayer({ playerProfile, opponentUid, opponentDeckPackIds, language }) {
+  const selectedPackIds = selectOpponentPacks(opponentDeckPackIds);
+  const usedQuestionIds = new Set();
+  const plan = [];
+  let recentQuestionIds = Array.isArray(playerProfile.recentQuestionIds)
+    ? [...playerProfile.recentQuestionIds]
+    : [];
+  const answerChoiceCount = entitlement(playerProfile.subscriptionActive).answerChoices;
+  const wrongChoiceCount = answerChoiceCount - 1;
+
+  for (const packId of selectedPackIds) {
+    const entries = await loadQuestionEntries(packId, language);
+    if (!entries.length) throw new HttpsError('failed-precondition', 'CONTENT_NOT_AVAILABLE');
+    const question = chooseQuestionEntry(entries, recentQuestionIds, usedQuestionIds);
+    const customWrongChoices = await loadCustomChoices(
+      opponentUid,
+      packId,
+      question.id,
+      language,
+      wrongChoiceCount,
+    );
+    let item;
+    try {
+      item = buildPlanItem({
+        packId,
+        question,
+        customWrongChoices,
+        answerChoiceCount,
+      });
+    } catch (_) {
+      throw new HttpsError('failed-precondition', 'CONTENT_NOT_AVAILABLE');
+    }
+    usedQuestionIds.add(String(question.id));
+    recentQuestionIds = nextRecent(recentQuestionIds, question.id);
+    plan.push(item);
+  }
+
+  if (!validateQuestionPlan(plan)) {
+    throw new HttpsError('failed-precondition', 'Invalid generated duel question plan.');
+  }
+  return { plan, recentQuestionIds };
+}
+
 const getDuelStateV2 = onCall(async (request) => {
   const uid = authUid(request);
   const duelId = duelIdFromRequest(request);
@@ -38,6 +128,84 @@ const getDuelStateV2 = onCall(async (request) => {
   const duel = snap.data();
   ensureParticipant(duel, uid);
   return publicDuelState(duel, uid);
+});
+
+const prepareDuelQuestionsV2 = onCall(async (request) => {
+  const uid = authUid(request);
+  const duelId = duelIdFromRequest(request);
+  const language = languageFromRequest(request);
+  const duelRef = db.collection('duelsV2').doc(duelId);
+  const secretRef = db.collection('duelSecretsV2').doc(duelId);
+  const userRef = db.collection('users').doc(uid);
+
+  const [duelSnap, secretSnap, userSnap] = await Promise.all([
+    duelRef.get(),
+    secretRef.get(),
+    userRef.get(),
+  ]);
+  if (!duelSnap.exists || !secretSnap.exists || !userSnap.exists) {
+    throw new HttpsError('not-found', 'Duel or player data not found.');
+  }
+  const duel = duelSnap.data();
+  const secret = secretSnap.data();
+  ensureParticipant(duel, uid);
+  if (duel.status === 'finished') throw new HttpsError('failed-precondition', 'Duel already finished.');
+
+  const isP1 = uid === duel.p1Uid;
+  const planKey = isP1 ? 'p1QuestionPlan' : 'p2QuestionPlan';
+  const otherPlanKey = isP1 ? 'p2QuestionPlan' : 'p1QuestionPlan';
+  const languageKey = isP1 ? 'p1Language' : 'p2Language';
+  if (validateQuestionPlan(secret[planKey])) {
+    return publicDuelState(duel, uid);
+  }
+
+  const playerProfile = profileFromUserData(userSnap.data());
+  const opponentUid = isP1 ? duel.p2Uid : duel.p1Uid;
+  const opponentDeckPackIds = isP1 ? secret.p2DeckPackIds : secret.p1DeckPackIds;
+  const generated = await buildPlanForPlayer({
+    playerProfile,
+    opponentUid,
+    opponentDeckPackIds,
+    language,
+  });
+
+  return db.runTransaction(async (tx) => {
+    const [currentDuelSnap, currentSecretSnap, currentUserSnap] = await Promise.all([
+      tx.get(duelRef),
+      tx.get(secretRef),
+      tx.get(userRef),
+    ]);
+    if (!currentDuelSnap.exists || !currentSecretSnap.exists || !currentUserSnap.exists) {
+      throw new HttpsError('not-found', 'Duel or player data not found.');
+    }
+    const currentDuel = currentDuelSnap.data();
+    const currentSecret = currentSecretSnap.data();
+    ensureParticipant(currentDuel, uid);
+    if (currentDuel.status === 'finished') throw new HttpsError('failed-precondition', 'Duel already finished.');
+    if (validateQuestionPlan(currentSecret[planKey])) {
+      return publicDuelState(currentDuel, uid);
+    }
+
+    const currentProfile = profileFromUserData(currentUserSnap.data());
+    currentProfile.recentQuestionIds = generated.recentQuestionIds;
+    const otherReady = validateQuestionPlan(currentSecret[otherPlanKey]);
+    const now = Timestamp.now();
+    tx.update(secretRef, {
+      [planKey]: generated.plan,
+      [languageKey]: language,
+      updatedAt: now,
+    });
+    tx.update(userRef, {
+      profileV2: currentProfile,
+      schemaVersion: 2,
+      updatedAt: now,
+    });
+    tx.update(duelRef, {
+      questionPlanReady: otherReady,
+      updatedAt: now,
+    });
+    return publicDuelState({ ...currentDuel, questionPlanReady: otherReady }, uid);
+  });
 });
 
 const startNextQuestionV2 = onCall(async (request) => {
@@ -198,4 +366,10 @@ const finalizeDuelV2 = onCall(async (request) => {
   });
 });
 
-module.exports = { getDuelStateV2, startNextQuestionV2, submitDuelAnswerV2, finalizeDuelV2 };
+module.exports = {
+  getDuelStateV2,
+  prepareDuelQuestionsV2,
+  startNextQuestionV2,
+  submitDuelAnswerV2,
+  finalizeDuelV2,
+};
