@@ -56,7 +56,9 @@ class OnlinePlayerSessionV2 {
   }
 
   Future<BotStatusV2> botStatus() => botApi.loadStatus();
-  Future<BotRoundV2> startBotRound() => botApi.startRound();
+
+  Future<BotRoundV2> startBotRound({required bool arabic}) =>
+      botApi.startRound(arabic: arabic);
 
   Future<BotAnswerResultV2> submitBotAnswer({
     required String roundId,
