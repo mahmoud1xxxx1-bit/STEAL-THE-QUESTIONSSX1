@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'product_app.dart';
+import 'bright_product_app.dart';
 
 void main() {
   runApp(const StealTheQuestionsApp());
@@ -40,16 +40,8 @@ class StealTheQuestionsApp extends StatelessWidget {
         scaffoldBackgroundColor: canvas,
         fontFamily: 'Arial',
         textTheme: const TextTheme(
-          headlineLarge: TextStyle(
-            color: ink,
-            fontWeight: FontWeight.w900,
-            letterSpacing: -0.6,
-          ),
-          headlineMedium: TextStyle(
-            color: ink,
-            fontWeight: FontWeight.w900,
-            letterSpacing: -0.4,
-          ),
+          headlineLarge: TextStyle(color: ink, fontWeight: FontWeight.w900, letterSpacing: -0.6),
+          headlineMedium: TextStyle(color: ink, fontWeight: FontWeight.w900, letterSpacing: -0.4),
           titleLarge: TextStyle(color: ink, fontWeight: FontWeight.w900),
           titleMedium: TextStyle(color: ink, fontWeight: FontWeight.w800),
           bodyLarge: TextStyle(color: ink, fontWeight: FontWeight.w600),
@@ -78,10 +70,7 @@ class StealTheQuestionsApp extends StatelessWidget {
           }),
           iconTheme: WidgetStateProperty.resolveWith((states) {
             final selected = states.contains(WidgetState.selected);
-            return IconThemeData(
-              color: selected ? playfulPurple : softInk,
-              size: selected ? 27 : 24,
-            );
+            return IconThemeData(color: selected ? playfulPurple : softInk, size: selected ? 27 : 24);
           }),
         ),
         filledButtonTheme: FilledButtonThemeData(
@@ -90,13 +79,8 @@ class StealTheQuestionsApp extends StatelessWidget {
             foregroundColor: Colors.white,
             minimumSize: const Size(0, 52),
             padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
-            ),
-            textStyle: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w900,
-            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
           ),
         ),
         outlinedButtonTheme: OutlinedButtonThemeData(
@@ -104,9 +88,7 @@ class StealTheQuestionsApp extends StatelessWidget {
             foregroundColor: royalBlue,
             side: const BorderSide(color: Color(0xFFD8E2FF), width: 1.4),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
-            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
             textStyle: const TextStyle(fontWeight: FontWeight.w900),
           ),
         ),
@@ -125,7 +107,7 @@ class StealTheQuestionsApp extends StatelessWidget {
           linearTrackColor: Color(0xFFE3EBFA),
         ),
       ),
-      home: const StealTheQuestionsHome(),
+      home: const BrightStealTheQuestionsHome(),
     );
   }
 }
