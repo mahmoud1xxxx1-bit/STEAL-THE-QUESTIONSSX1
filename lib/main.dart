@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'bright_product_app.dart';
+import 'final_design_app.dart';
 
 void main() {
   runApp(const StealTheQuestionsApp());
@@ -58,7 +58,7 @@ class StealTheQuestionsApp extends StatelessWidget {
         navigationBarTheme: NavigationBarThemeData(
           backgroundColor: surface,
           elevation: 12,
-          height: 70,
+          height: 68,
           indicatorColor: const Color(0xFFE9E2FF),
           labelTextStyle: WidgetStateProperty.resolveWith((states) {
             final selected = states.contains(WidgetState.selected);
@@ -70,35 +70,38 @@ class StealTheQuestionsApp extends StatelessWidget {
           }),
           iconTheme: WidgetStateProperty.resolveWith((states) {
             final selected = states.contains(WidgetState.selected);
-            return IconThemeData(color: selected ? playfulPurple : softInk, size: selected ? 27 : 24);
+            return IconThemeData(color: selected ? playfulPurple : softInk, size: selected ? 26 : 23);
           }),
         ),
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
             backgroundColor: royalBlue,
             foregroundColor: Colors.white,
-            minimumSize: const Size(0, 52),
-            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-            textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
+            minimumSize: const Size(0, 50),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
           ),
         ),
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
             foregroundColor: royalBlue,
-            side: const BorderSide(color: Color(0xFFD8E2FF), width: 1.4),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            side: const BorderSide(color: Color(0xFFD8E2FF), width: 1.3),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             textStyle: const TextStyle(fontWeight: FontWeight.w900),
           ),
         ),
-        cardTheme: CardThemeData(
-          color: surface,
-          elevation: 0,
-          margin: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-            side: const BorderSide(color: Color(0xFFE2E9F8)),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: Color(0xFFE2E9F8)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: Color(0xFFE2E9F8)),
           ),
         ),
         dividerColor: const Color(0xFFE7ECF7),
@@ -107,7 +110,7 @@ class StealTheQuestionsApp extends StatelessWidget {
           linearTrackColor: Color(0xFFE3EBFA),
         ),
       ),
-      home: const BrightStealTheQuestionsHome(),
+      home: const FinalDesignApp(),
     );
   }
 }
