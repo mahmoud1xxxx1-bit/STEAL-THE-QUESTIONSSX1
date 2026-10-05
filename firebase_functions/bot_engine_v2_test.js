@@ -28,8 +28,13 @@ assert.deepStrictEqual(
 );
 
 assert.deepStrictEqual(
-  resolveBotAnswer({ correctIndex: 2, selectedIndex: 2, elapsedMs: BOT_QUESTION_TIMEOUT_MS + 1 }),
+  resolveBotAnswer({ correctIndex: 2, selectedIndex: 2, elapsedMs: BOT_QUESTION_TIMEOUT_MS }),
   { correct: false, timedOut: true, elapsedMs: BOT_QUESTION_TIMEOUT_MS }
+);
+
+assert.deepStrictEqual(
+  resolveBotAnswer({ correctIndex: 2, selectedIndex: 2, elapsedMs: BOT_QUESTION_TIMEOUT_MS - 1 }),
+  { correct: true, timedOut: false, elapsedMs: BOT_QUESTION_TIMEOUT_MS - 1 }
 );
 
 const firstAward = awardPack(['a'], 'b');

@@ -36,6 +36,18 @@ assert.strictEqual(duel.p1Answers[0].correct, true);
 assert.strictEqual(duel.status, 'playing');
 assert.throws(() => submitAnswer({ duel, secret, uid: 'p1', questionIndex: 0, selectedIndex: 0, elapsedMs: 1 }));
 
+const lateDuel = submitAnswer({
+  duel: baseDuel(),
+  secret,
+  uid: 'p1',
+  questionIndex: 0,
+  selectedIndex: p1Plan[0].correctIndex,
+  elapsedMs: 20000,
+});
+assert.strictEqual(lateDuel.p1Answers[0].correct, false);
+assert.strictEqual(lateDuel.p1Answers[0].timedOut, true);
+assert.strictEqual(lateDuel.p1Answers[0].elapsedMs, 20000);
+
 for (let i = 1; i < 7; i += 1) {
   duel = submitAnswer({ duel, secret, uid: 'p1', questionIndex: i, selectedIndex: p1Plan[i].correctIndex, elapsedMs: 1000 });
 }

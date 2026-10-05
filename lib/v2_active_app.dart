@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -286,48 +288,96 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
     required String title,
     required String prompt,
     required List<String> choices,
-  }) {
-    return showDialog<int>(
+  }) async {
+    Timer? timer;
+    var secondsLeft = kSecondsPerQuestionV2;
+
+    final result = await showDialog<int>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: SizedBox(
-          width: 480,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                prompt,
-                style: const TextStyle(
-                  color: _ink,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 16),
-              ...List.generate(
-                choices.length,
-                (index) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: FilledButton.tonal(
-                    onPressed: () => Navigator.pop(context, index),
-                    child: Text(choices[index]),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          timer ??= Timer.periodic(const Duration(seconds: 1), (value) {
+            if (!dialogContext.mounted) {
+              value.cancel();
+              return;
+            }
+            if (secondsLeft <= 1) {
+              value.cancel();
+              Navigator.of(dialogContext).pop(
+                choices.isEmpty ? null : 0,
+              );
+              return;
+            }
+            setDialogState(() => secondsLeft -= 1);
+          });
+
+          return AlertDialog(
+            title: Row(
+              children: [
+                Expanded(child: Text(title)),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: secondsLeft <= 5
+                        ? const Color(0xFFFFE8E7)
+                        : const Color(0xFFEAF0FF),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                  child: Text(
+                    '${secondsLeft}s',
+                    style: TextStyle(
+                      color: secondsLeft <= 5 ? _coral : _blue,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
+              ],
+            ),
+            content: SizedBox(
+              width: 480,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  LinearProgressIndicator(
+                    value: secondsLeft / kSecondsPerQuestionV2,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    prompt,
+                    style: const TextStyle(
+                      color: _ink,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ...List.generate(
+                    choices.length,
+                    (index) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: FilledButton.tonal(
+                        onPressed: () {
+                          timer?.cancel();
+                          Navigator.pop(context, index);
+                        },
+                        child: Text(choices[index]),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(_arabic ? 'إغلاق' : 'Close'),
-          ),
-        ],
+            ),
+          );
+        },
       ),
     );
+    timer?.cancel();
+    return result;
   }
 
   Future<void> _startOrCheckMatchmaking() => _run(() async {

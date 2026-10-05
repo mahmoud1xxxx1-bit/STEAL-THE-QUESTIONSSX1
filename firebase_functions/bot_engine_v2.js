@@ -27,7 +27,7 @@ function chooseRewardPack(enabledPackIds, ownedPackIds) {
 
 function resolveBotAnswer({ correctIndex, selectedIndex, elapsedMs }) {
   const elapsed = Number(elapsedMs);
-  const withinTime = Number.isFinite(elapsed) && elapsed >= 0 && elapsed <= BOT_QUESTION_TIMEOUT_MS;
+  const withinTime = Number.isFinite(elapsed) && elapsed >= 0 && elapsed < BOT_QUESTION_TIMEOUT_MS;
   const selected = Number(selectedIndex);
   const correct = withinTime && Number.isInteger(selected) && selected === Number(correctIndex);
   return {
