@@ -1,10 +1,9 @@
 'use strict';
 
-// Transitional Firebase entry point.
-// Keeps all current production callables available while V2 replaces them
-// feature-by-feature. No real question content is added here.
+// V2-only Firebase entry point.
+// The retired 222-card / rarity / Weekly Pass backend is no longer exported.
+// No real question content is bundled here; content lives in cardsV2 only.
 
-const legacy = require('./index');
 const v2 = require('./v2_functions');
 const matchmakingV2 = require('./matchmaking_functions_v2');
 const duelV2 = require('./duel_functions_v2');
@@ -15,7 +14,6 @@ const weeklyRankingV2 = require('./weekly_ranking_functions_v2');
 const weeklyPrestigeV2 = require('./weekly_prestige_functions_v2');
 
 module.exports = {
-  ...legacy,
   ...v2,
   ...matchmakingV2,
   ...duelV2,
