@@ -2,6 +2,15 @@ import 'package:cloud_functions/cloud_functions.dart';
 
 import '../game/player_profile_v2.dart';
 
+class CustomWrongChoicesV2 {
+  const CustomWrongChoicesV2({required this.cardId, required this.questionId, required this.language, required this.choices, required this.maxChoices});
+  final String cardId;
+  final String questionId;
+  final String language;
+  final List<String> choices;
+  final int maxChoices;
+}
+
 class WeeklyRankingPlayerV2 {
   const WeeklyRankingPlayerV2({required this.rank, required this.uid, required this.displayName, required this.weeklyPoints, required this.weeklyWins, required this.weeklyLosses, required this.weeklyDraws, required this.currentTitleKey, required this.currentFrameKey});
   final int rank;
@@ -113,6 +122,25 @@ class FirebaseGameApiV2 {
     return _profileFromResponse(response.data);
   }
 
+  Future<CustomWrongChoicesV2> loadCustomWrongChoices({required String cardId, required String questionId, required bool arabic}) async {
+    final response = await _functions.httpsCallable('getCustomWrongChoicesV2').call({
+      'cardId': cardId,
+      'questionId': questionId,
+      'language': arabic ? 'ar' : 'en',
+    });
+    return _customChoicesFromResponse(response.data);
+  }
+
+  Future<CustomWrongChoicesV2> saveCustomWrongChoices({required String cardId, required String questionId, required bool arabic, required List<String> choices}) async {
+    final response = await _functions.httpsCallable('saveCustomWrongChoicesV2').call({
+      'cardId': cardId,
+      'questionId': questionId,
+      'language': arabic ? 'ar' : 'en',
+      'choices': choices,
+    });
+    return _customChoicesFromResponse(response.data);
+  }
+
   Future<MatchmakingStatusV2> findOrCreateDuel() async {
     final response = await _functions.httpsCallable('findOrCreateDuelV2').call();
     return _matchStatusFromResponse(response.data);
@@ -196,6 +224,17 @@ class FirebaseGameApiV2 {
       loserPvpUnlocked: raw['loserPvpUnlocked'] == true,
       loserOwnedCount: (raw['loserOwnedCount'] as num?)?.toInt() ?? 0,
       winnerProfile: profileRaw is Map ? PlayerProfileV2.fromMap(Map<String, dynamic>.from(profileRaw)) : null,
+    );
+  }
+
+  CustomWrongChoicesV2 _customChoicesFromResponse(dynamic raw) {
+    final data = _asMap(raw, 'Invalid custom choices response.');
+    return CustomWrongChoicesV2(
+      cardId: data['cardId'] as String? ?? '',
+      questionId: data['questionId'] as String? ?? '',
+      language: data['language'] as String? ?? 'ar',
+      choices: List<String>.from(data['choices'] as List? ?? const <dynamic>[]),
+      maxChoices: (data['maxChoices'] as num?)?.toInt() ?? 0,
     );
   }
 
