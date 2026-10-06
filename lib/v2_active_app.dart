@@ -1176,6 +1176,14 @@ class _HomeV2 extends StatelessWidget {
         ),
         const SizedBox(height: 14),
         _JourneyStrip(arabic: arabic, ownedCount: profile.ownedCount),
+        const SizedBox(height: 12),
+        _PlayerMissionCard(
+          arabic: arabic,
+          ownedCount: profile.ownedCount,
+          deckCount: activeDeck.length,
+          ready: ready,
+          onTap: () => openTab(ready ? 3 : (profile.ownedCount < kDeckSizeV2 ? 3 : 2)),
+        ),
         const SizedBox(height: 18),
         Row(
           children: [
@@ -1438,6 +1446,12 @@ class _PlayV2 extends StatelessWidget {
           needsBot: needsBot,
           searching: searching,
         ),
+        const SizedBox(height: 12),
+        _DuelArenaStrip(
+          arabic: arabic,
+          unlocked: profile.activeDeckReady,
+          searching: searching,
+        ),
         const SizedBox(height: 18),
         _ModeCard(
           arabic: arabic,
@@ -1593,6 +1607,8 @@ class _ProfileV2 extends StatelessWidget {
           action: ranking?.weekKey,
         ),
         const SizedBox(height: 10),
+        _WeeklyPodium(arabic: arabic, players: top),
+        const SizedBox(height: 10),
         _RankingCard(arabic: arabic, players: top),
         const SizedBox(height: 18),
         _SubscriptionCard(
@@ -1619,6 +1635,346 @@ class _ProfileV2 extends StatelessWidget {
       ],
     );
   }
+}
+
+class _PlayerMissionCard extends StatelessWidget {
+  const _PlayerMissionCard({
+    required this.arabic,
+    required this.ownedCount,
+    required this.deckCount,
+    required this.ready,
+    required this.onTap,
+  });
+
+  final bool arabic;
+  final int ownedCount;
+  final int deckCount;
+  final bool ready;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final collecting = ownedCount < kDeckSizeV2;
+    final building = !collecting && !ready;
+    final accent = collecting ? _mint : building ? _blue : _coral;
+    final icon = collecting
+        ? Icons.style_rounded
+        : building
+            ? Icons.layers_rounded
+            : Icons.flash_on_rounded;
+    final title = collecting
+        ? (arabic ? 'هدفك الآن: اجمع 10 بطاقات' : 'Next goal: collect 10 cards')
+        : building
+            ? (arabic ? 'هدفك الآن: أكمل Deck' : 'Next goal: finish your deck')
+            : (arabic ? 'هدفك الآن: ادخل مواجهة' : 'Next goal: enter a duel');
+    final progress = collecting ? ownedCount : building ? deckCount : kDeckSizeV2;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(22),
+      child: Ink(
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: accent.withValues(alpha: .09),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: accent.withValues(alpha: .2)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: accent,
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Icon(icon, color: Colors.white, size: 24),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: _ink,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 7),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(99),
+                    child: LinearProgressIndicator(
+                      minHeight: 7,
+                      value: (progress / kDeckSizeV2).clamp(0.0, 1.0).toDouble(),
+                      backgroundColor: Colors.white,
+                      valueColor: AlwaysStoppedAnimation<Color>(accent),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(Icons.chevron_right_rounded, color: accent),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DuelArenaStrip extends StatelessWidget {
+  const _DuelArenaStrip({
+    required this.arabic,
+    required this.unlocked,
+    required this.searching,
+  });
+
+  final bool arabic;
+  final bool unlocked;
+  final bool searching;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: _cardSurface,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: _softPurple),
+        ),
+        child: Row(
+          children: [
+            _ArenaPlayer(
+              icon: Icons.person_rounded,
+              label: arabic ? 'أنت' : 'YOU',
+              color: _blue,
+            ),
+            const Expanded(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8),
+                child: _VersusMark(),
+              ),
+            ),
+            _ArenaPlayer(
+              icon: searching
+                  ? Icons.radar_rounded
+                  : unlocked
+                      ? Icons.person_search_rounded
+                      : Icons.lock_rounded,
+              label: searching
+                  ? (arabic ? 'نبحث...' : 'SEARCHING')
+                  : unlocked
+                      ? (arabic ? 'خصم' : 'RIVAL')
+                      : (arabic ? 'مغلق' : 'LOCKED'),
+              color: _coral,
+            ),
+          ],
+        ),
+      );
+}
+
+class _ArenaPlayer extends StatelessWidget {
+  const _ArenaPlayer({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        children: [
+          Container(
+            width: 54,
+            height: 54,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: .12),
+              shape: BoxShape.circle,
+              border: Border.all(color: color.withValues(alpha: .28), width: 2),
+            ),
+            child: Icon(icon, color: color, size: 25),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 9,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      );
+}
+
+class _VersusMark extends StatelessWidget {
+  const _VersusMark();
+
+  @override
+  Widget build(BuildContext context) => Row(
+        children: [
+          Expanded(child: Divider(color: _purple.withValues(alpha: .18))),
+          Container(
+            width: 42,
+            height: 42,
+            alignment: Alignment.center,
+            decoration: const BoxDecoration(
+              color: _ink,
+              shape: BoxShape.circle,
+            ),
+            child: const Text(
+              'VS',
+              style: TextStyle(
+                color: _gold,
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          Expanded(child: Divider(color: _purple.withValues(alpha: .18))),
+        ],
+      );
+}
+
+class _WeeklyPodium extends StatelessWidget {
+  const _WeeklyPodium({
+    required this.arabic,
+    required this.players,
+  });
+
+  final bool arabic;
+  final List<WeeklyRankingPlayerV2> players;
+
+  @override
+  Widget build(BuildContext context) {
+    if (players.isEmpty) {
+      return Container(
+        height: 126,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF251C45), Color(0xFF4A2F90)],
+          ),
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Center(
+          child: Text(
+            arabic ? 'المنصة تنتظر أول أبطال الأسبوع' : 'The weekly podium is waiting',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: .82),
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+      );
+    }
+
+    WeeklyRankingPlayerV2? atRank(int rank) {
+      for (final player in players) {
+        if (player.rank == rank) return player;
+      }
+      return null;
+    }
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 16, 12, 10),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF251C45), Color(0xFF4A2F90)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Expanded(
+            child: _PodiumPlayer(
+              player: atRank(2),
+              medal: '🥈',
+              height: 76,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: _PodiumPlayer(
+              player: atRank(1),
+              medal: '🥇',
+              height: 98,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: _PodiumPlayer(
+              player: atRank(3),
+              medal: '🥉',
+              height: 66,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PodiumPlayer extends StatelessWidget {
+  const _PodiumPlayer({
+    required this.player,
+    required this.medal,
+    required this.height,
+  });
+
+  final WeeklyRankingPlayerV2? player;
+  final String medal;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Text(medal, style: const TextStyle(fontSize: 22)),
+          const SizedBox(height: 4),
+          Text(
+            player?.displayName ?? '—',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            player == null ? '—' : '${player!.weeklyPoints}',
+            style: const TextStyle(
+              color: _gold,
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Container(
+            height: height,
+            width: double.infinity,
+            alignment: Alignment.topCenter,
+            padding: const EdgeInsets.only(top: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: .09),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(14),
+              ),
+            ),
+            child: const _StealLogoMark(size: 34),
+          ),
+        ],
+      );
 }
 
 class _StealVictoryMark extends StatelessWidget {
