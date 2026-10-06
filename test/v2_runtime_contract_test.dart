@@ -58,6 +58,16 @@ void main() {
     expect(activeSource, contains('_CardFanMark'));
   });
 
+  test('brand identity uses a dedicated steal-card mark and category icons', () {
+    final activeSource = File('lib/v2_active_app.dart').readAsStringSync();
+
+    expect(activeSource, contains('class _StealLogoMark'));
+    expect(activeSource, contains('Icons.question_mark_rounded'));
+    expect(activeSource, contains('Icons.north_west_rounded'));
+    expect(activeSource, contains('IconData _categoryIcon'));
+    expect(activeSource, contains('class _JourneyStrip'));
+  });
+
   test('Android auth requires Google sign-in and has no anonymous fallback', () {
     final runtimeSource =
         File('lib/backend/online_runtime_v2.dart').readAsStringSync();
