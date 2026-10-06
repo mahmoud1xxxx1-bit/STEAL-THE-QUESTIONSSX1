@@ -19,8 +19,10 @@ class OnlinePlayerSessionV2 {
   final BotApiV2 botApi;
   final ProfileFeaturesApiV2 profileApi;
   PlayerProfileV2? _profile;
+  bool _remoteConnected = false;
 
   bool get initialized => _profile != null;
+  bool get remoteConnected => _remoteConnected;
   PlayerProfileV2 get profile {
     final value = _profile;
     if (value == null) {
@@ -32,8 +34,10 @@ class OnlinePlayerSessionV2 {
   Future<PlayerProfileV2> initialize() async {
     try {
       _profile = await api.ensureProfile();
+      _remoteConnected = true;
       await store.save(_profile!);
     } catch (_) {
+      _remoteConnected = false;
       _profile = await store.load();
     }
     return profile;
@@ -41,6 +45,7 @@ class OnlinePlayerSessionV2 {
 
   Future<PlayerProfileV2> refreshProfile() async {
     final remote = await api.loadProfile();
+    _remoteConnected = true;
     _profile = remote;
     await store.save(remote);
     return remote;
