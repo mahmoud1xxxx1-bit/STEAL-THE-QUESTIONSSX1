@@ -11,6 +11,7 @@ import 'data/player_profile_store_v2.dart';
 import 'game/core_engine_v2.dart';
 import 'game/online_player_session_v2.dart';
 import 'game/player_profile_v2.dart';
+import 'services/purchase_service.dart';
 
 const _blue = Color(0xFF2E6BFF);
 const _purple = Color(0xFF7A48F5);
@@ -39,6 +40,10 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
   bool _arabic = true;
   bool _busy = false;
   String? _notice;
+  final MonthlySubscriptionPurchaseServiceV2 _purchaseService =
+      MonthlySubscriptionPurchaseServiceV2();
+  String? _subscriptionPrice;
+  bool _storeReady = false;
 
   @override
   void initState() {
@@ -62,11 +67,72 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
         _profile = profile;
       });
       await _refreshRemote();
+      await _configurePurchases();
     } catch (error) {
       if (!mounted) return;
       setState(() => _loadError = error);
     }
   }
+
+  Future<void> _configurePurchases() async {
+    final session = _session;
+    if (session == null) return;
+
+    _purchaseService.listen(
+      onVerifiedByServer: (payload) async {
+        final verified = await session.verifySubscriptionPurchase(
+          productId: payload.productId,
+          source: payload.source,
+          serverVerificationData: payload.serverVerificationData,
+          purchaseId: payload.purchaseId,
+        );
+        if (!verified) return false;
+
+        final status = await session.refreshSubscription();
+        if (mounted) {
+          setState(() {
+            _subscription = status;
+            _profile = session.profile;
+            _notice = _arabic
+                ? 'تم التحقق من الاشتراك وتفعيله من السيرفر.'
+                : 'Subscription verified and activated by the server.';
+          });
+        }
+        return true;
+      },
+    );
+
+    final product = await _purchaseService.loadProduct();
+    if (!mounted) return;
+    setState(() {
+      _storeReady = product != null;
+      _subscriptionPrice = product?.price;
+    });
+  }
+
+  Future<void> _buySubscription() => _run(() async {
+        final started = await _purchaseService.buy();
+        if (!mounted) return;
+        if (!started) {
+          setState(() {
+            _notice = _arabic
+                ? 'تعذر بدء الشراء. تأكد من إعداد المنتج في المتجر.'
+                : 'Could not start purchase. Check the store product configuration.';
+          });
+        }
+      });
+
+  Future<void> _restoreSubscription() => _run(() async {
+        final started = await _purchaseService.restorePurchases();
+        if (!mounted) return;
+        if (!started) {
+          setState(() {
+            _notice = _arabic
+                ? 'تعذر استعادة المشتريات على هذا الجهاز.'
+                : 'Purchases could not be restored on this device.';
+          });
+        }
+      });
 
   Future<void> _refreshRemote() async {
     final session = _session;
@@ -569,6 +635,12 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
       });
 
   @override
+  void dispose() {
+    _purchaseService.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final profile = _profile;
     if (_loadError != null) {
@@ -625,6 +697,10 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
         busy: _busy,
         refresh: _refreshProfile,
         refreshSubscription: _refreshSubscription,
+        buySubscription: _buySubscription,
+        restoreSubscription: _restoreSubscription,
+        storeReady: _storeReady,
+        subscriptionPrice: _subscriptionPrice,
         equipPrestige: _equipPrestige,
       ),
     ];
@@ -921,6 +997,10 @@ class _ProfileV2 extends StatelessWidget {
     required this.busy,
     required this.refresh,
     required this.refreshSubscription,
+    required this.buySubscription,
+    required this.restoreSubscription,
+    required this.storeReady,
+    required this.subscriptionPrice,
     required this.equipPrestige,
   });
   final bool arabic;
@@ -930,6 +1010,10 @@ class _ProfileV2 extends StatelessWidget {
   final bool busy;
   final VoidCallback refresh;
   final VoidCallback refreshSubscription;
+  final VoidCallback buySubscription;
+  final VoidCallback restoreSubscription;
+  final bool storeReady;
+  final String? subscriptionPrice;
   final VoidCallback equipPrestige;
 
   @override
@@ -967,7 +1051,29 @@ class _ProfileV2 extends StatelessWidget {
           _StatRow(label: arabic ? 'الحالة' : 'Status', value: subscription?.active == true ? (arabic ? 'فعال' : 'Active') : (arabic ? 'مجاني' : 'Free')),
           _StatRow(label: arabic ? 'Decks المتاحة' : 'Deck slots', value: '${subscription?.deckSlots ?? profile.entitlement.deckSlots}'),
           _StatRow(label: arabic ? 'خيارات الإجابة' : 'Answer choices', value: '${subscription?.answerChoices ?? profile.entitlement.answerChoices}'),
-          FilledButton.tonal(onPressed: busy ? null : refreshSubscription, child: Text(arabic ? 'تحقق من الاشتراك عبر السيرفر' : 'Verify subscription')),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.center,
+            children: [
+              FilledButton(
+                onPressed: busy || !storeReady ? null : buySubscription,
+                child: Text(
+                  subscriptionPrice == null
+                      ? (arabic ? 'اشترك شهريًا' : 'Subscribe monthly')
+                      : '${arabic ? 'اشترك' : 'Subscribe'} · $subscriptionPrice',
+                ),
+              ),
+              OutlinedButton(
+                onPressed: busy || !storeReady ? null : restoreSubscription,
+                child: Text(arabic ? 'استعادة الشراء' : 'Restore purchase'),
+              ),
+              FilledButton.tonal(
+                onPressed: busy ? null : refreshSubscription,
+                child: Text(arabic ? 'تحقق من الاشتراك عبر السيرفر' : 'Verify subscription'),
+              ),
+            ],
+          ),
         ]),
       ),
       const SizedBox(height: 12),
