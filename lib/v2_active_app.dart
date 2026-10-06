@@ -1824,7 +1824,7 @@ class _DeckBuilderHero extends StatelessWidget {
               borderRadius: BorderRadius.circular(99),
               child: LinearProgressIndicator(
                 minHeight: 8,
-                value: (filled / kDeckSizeV2).clamp(0, 1),
+                value: (filled / kDeckSizeV2).clamp(0.0, 1.0).toDouble(),
                 backgroundColor: Colors.white.withValues(alpha: .1),
                 valueColor: AlwaysStoppedAnimation<Color>(
                   ready ? _mint : _gold,
