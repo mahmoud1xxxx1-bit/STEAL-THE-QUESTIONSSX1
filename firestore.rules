@@ -53,5 +53,9 @@ service cloud.firestore {
     match /purchaseEntitlementsV2/{entitlementId} {
       allow read, write: if false;
     }
+
+    match /purchaseReceiptClaimsV2/{claimId} {
+      allow read, write: if false;
+    }
   }
 }

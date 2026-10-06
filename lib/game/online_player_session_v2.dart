@@ -188,6 +188,19 @@ class OnlinePlayerSessionV2 {
     return remote;
   }
 
+  Future<bool> verifySubscriptionPurchase({
+    required String productId,
+    required String source,
+    required String serverVerificationData,
+    String? purchaseId,
+  }) =>
+      profileApi.verifySubscriptionPurchase(
+        productId: productId,
+        source: source,
+        serverVerificationData: serverVerificationData,
+        purchaseId: purchaseId,
+      );
+
   Future<SubscriptionStatusV2> subscriptionStatus() =>
       profileApi.loadSubscriptionStatus();
 
