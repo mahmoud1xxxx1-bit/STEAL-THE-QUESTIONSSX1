@@ -37,14 +37,32 @@ jobs:
       - name: Run Flutter tests
         run: flutter test
 
+      - name: Check Firebase web configuration
+        env:
+          FIREBASE_WEB_API_KEY: ${{ secrets.FIREBASE_WEB_API_KEY || vars.FIREBASE_WEB_API_KEY }}
+          FIREBASE_WEB_APP_ID: ${{ secrets.FIREBASE_WEB_APP_ID || vars.FIREBASE_WEB_APP_ID }}
+          FIREBASE_WEB_MESSAGING_SENDER_ID: ${{ secrets.FIREBASE_WEB_MESSAGING_SENDER_ID || vars.FIREBASE_WEB_MESSAGING_SENDER_ID }}
+        run: |
+          missing=""
+          [ -z "$FIREBASE_WEB_API_KEY" ] && missing="$missing FIREBASE_WEB_API_KEY"
+          [ -z "$FIREBASE_WEB_APP_ID" ] && missing="$missing FIREBASE_WEB_APP_ID"
+          [ -z "$FIREBASE_WEB_MESSAGING_SENDER_ID" ] && missing="$missing FIREBASE_WEB_MESSAGING_SENDER_ID"
+          if [ -n "$missing" ]; then
+            echo "::warning::Firebase Web will run in local fallback mode. Missing:$missing"
+            echo "### Firebase Web configuration" >> "$GITHUB_STEP_SUMMARY"
+            echo "Local fallback mode will be used because these values are missing:$missing" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Firebase Web required configuration is present." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: Build web preview
         env:
-          FIREBASE_WEB_API_KEY: ${{ secrets.FIREBASE_WEB_API_KEY }}
-          FIREBASE_WEB_APP_ID: ${{ secrets.FIREBASE_WEB_APP_ID }}
-          FIREBASE_WEB_MESSAGING_SENDER_ID: ${{ secrets.FIREBASE_WEB_MESSAGING_SENDER_ID }}
-          FIREBASE_WEB_AUTH_DOMAIN: ${{ secrets.FIREBASE_WEB_AUTH_DOMAIN }}
-          FIREBASE_WEB_STORAGE_BUCKET: ${{ secrets.FIREBASE_WEB_STORAGE_BUCKET }}
-          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_WEB_API_KEY: ${{ secrets.FIREBASE_WEB_API_KEY || vars.FIREBASE_WEB_API_KEY }}
+          FIREBASE_WEB_APP_ID: ${{ secrets.FIREBASE_WEB_APP_ID || vars.FIREBASE_WEB_APP_ID }}
+          FIREBASE_WEB_MESSAGING_SENDER_ID: ${{ secrets.FIREBASE_WEB_MESSAGING_SENDER_ID || vars.FIREBASE_WEB_MESSAGING_SENDER_ID }}
+          FIREBASE_WEB_AUTH_DOMAIN: ${{ secrets.FIREBASE_WEB_AUTH_DOMAIN || vars.FIREBASE_WEB_AUTH_DOMAIN || 'steal-the-questionssx1.firebaseapp.com' }}
+          FIREBASE_WEB_STORAGE_BUCKET: ${{ secrets.FIREBASE_WEB_STORAGE_BUCKET || vars.FIREBASE_WEB_STORAGE_BUCKET || 'steal-the-questionssx1.appspot.com' }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID || vars.FIREBASE_PROJECT_ID || 'steal-the-questionssx1' }}
         run: >
           flutter build web --release --pwa-strategy=none
           --base-href "/STEAL-THE-QUESTIONSSX1/"
