@@ -15,13 +15,17 @@ import 'game/online_player_session_v2.dart';
 import 'game/player_profile_v2.dart';
 import 'services/purchase_service.dart';
 
-const _blue = Color(0xFF2E6BFF);
-const _purple = Color(0xFF7A48F5);
-const _gold = Color(0xFFFFC94D);
-const _coral = Color(0xFFFF6A67);
-const _ink = Color(0xFF183153);
-const _muted = Color(0xFF7183A3);
-const _page = Color(0xFFF5F8FF);
+const _blue = Color(0xFF3559F5);
+const _purple = Color(0xFF7B3FF2);
+const _violet = Color(0xFF5E2BE0);
+const _gold = Color(0xFFFFC83D);
+const _coral = Color(0xFFFF6464);
+const _mint = Color(0xFF45D6A8);
+const _ink = Color(0xFF221B3B);
+const _muted = Color(0xFF7B7691);
+const _page = Color(0xFFF8F6FF);
+const _cardSurface = Color(0xFFFFFFFF);
+const _softPurple = Color(0xFFF0EBFF);
 
 class StealQuestionsV2App extends StatefulWidget {
   const StealQuestionsV2App({super.key});
@@ -714,71 +718,153 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
       textDirection: _arabic ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: _page,
-        body: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: _Panel(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const CircleAvatar(
-                      radius: 34,
-                      backgroundColor: _purple,
-                      child: Icon(
-                        Icons.style_rounded,
-                        color: Colors.white,
-                        size: 34,
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    Text(
-                      _arabic
-                          ? 'تسجيل الدخول إلى STEAL THE QUESTIONS'
-                          : 'Sign in to STEAL THE QUESTIONS',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: _ink,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      _arabic
-                          ? 'استخدم حساب Google لحفظ بطاقاتك وDecks وترتيبك ومواجهاتك.'
-                          : 'Use your Google account to keep your cards, decks, ranking, and duels.',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: _muted,
-                        height: 1.5,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    FilledButton.icon(
-                      onPressed: _busy ? null : _signInWithGoogle,
-                      icon: const Icon(Icons.login_rounded),
-                      label: Text(
-                        _arabic
-                            ? 'المتابعة باستخدام Google'
-                            : 'Continue with Google',
-                      ),
-                    ),
-                    if (_busy) ...[
-                      const SizedBox(height: 14),
-                      const LinearProgressIndicator(),
-                    ],
-                    const SizedBox(height: 8),
-                    TextButton(
-                      onPressed: () => setState(() => _arabic = !_arabic),
-                      child: Text(_arabic ? 'English' : 'العربية'),
-                    ),
-                  ],
+        body: SafeArea(
+          child: Stack(
+            children: [
+              Positioned(
+                top: -90,
+                right: -70,
+                child: _GlowOrb(
+                  size: 220,
+                  color: _purple.withValues(alpha: .16),
                 ),
               ),
-            ),
+              Positioned(
+                bottom: 40,
+                left: -80,
+                child: _GlowOrb(
+                  size: 190,
+                  color: _blue.withValues(alpha: .12),
+                ),
+              ),
+              Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 28,
+                  ),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 420),
+                    child: Column(
+                      children: [
+                        const _CardFanMark(),
+                        const SizedBox(height: 28),
+                        Text(
+                          'STEAL THE\nQUESTIONS',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: _ink,
+                            fontSize: 31,
+                            height: .98,
+                            letterSpacing: .4,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          _arabic
+                              ? 'اجمع بطاقاتك، ابنِ مجموعتك، نافس واسرق بطاقة الفوز.'
+                              : 'Collect cards, build your deck, compete, and steal the winning card.',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: _muted,
+                            height: 1.55,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(18),
+                          decoration: BoxDecoration(
+                            color: _cardSurface,
+                            borderRadius: BorderRadius.circular(26),
+                            boxShadow: [
+                              BoxShadow(
+                                color: _purple.withValues(alpha: .09),
+                                blurRadius: 28,
+                                offset: const Offset(0, 14),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceAround,
+                                children: [
+                                  _MiniFeature(
+                                    icon: Icons.style_rounded,
+                                    label: _arabic ? 'اجمع' : 'Collect',
+                                    color: _purple,
+                                  ),
+                                  _MiniFeature(
+                                    icon: Icons.layers_rounded,
+                                    label: _arabic ? 'كوّن' : 'Build',
+                                    color: _blue,
+                                  ),
+                                  _MiniFeature(
+                                    icon: Icons.flash_on_rounded,
+                                    label: _arabic ? 'نافس' : 'Compete',
+                                    color: _coral,
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 20),
+                              SizedBox(
+                                width: double.infinity,
+                                height: 56,
+                                child: FilledButton.icon(
+                                  onPressed:
+                                      _busy ? null : _signInWithGoogle,
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: _ink,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(18),
+                                    ),
+                                  ),
+                                  icon: const Icon(Icons.login_rounded),
+                                  label: Text(
+                                    _arabic
+                                        ? 'المتابعة باستخدام Google'
+                                        : 'Continue with Google',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              if (_busy) ...[
+                                const SizedBox(height: 14),
+                                const LinearProgressIndicator(
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(99)),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        TextButton(
+                          onPressed: () =>
+                              setState(() => _arabic = !_arabic),
+                          child: Text(
+                            _arabic ? 'English' : 'العربية',
+                            style: const TextStyle(
+                              color: _purple,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -859,70 +945,49 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
       textDirection: _arabic ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: _page,
-        appBar: AppBar(
-          automaticallyImplyLeading: false,
-          backgroundColor: Colors.white,
-          surfaceTintColor: Colors.white,
-          title: Row(
+        body: SafeArea(
+          bottom: false,
+          child: Column(
             children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(colors: [_blue, _purple]),
-                ),
-                child: const Icon(Icons.style_rounded, color: Colors.white),
+              _GameHeader(
+                arabic: _arabic,
+                ownedCount: profile.ownedCount,
+                weeklyPoints: profile.weeklyPoints,
+                onLanguage: () => setState(() => _arabic = !_arabic),
               ),
-              const SizedBox(width: 10),
-              const Expanded(
-                child: Text(
-                  'STEAL THE QUESTIONS',
-                  style: TextStyle(color: _ink, fontSize: 14, fontWeight: FontWeight.w900),
+              if (_notice != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 4, 14, 0),
+                  child: _InlineNotice(
+                    text: _notice!,
+                    dismiss: () => setState(() => _notice = null),
+                  ),
                 ),
-              ),
-              _Pill(text: '${profile.ownedCount}', icon: Icons.style_rounded),
-              IconButton(
-                onPressed: () => setState(() => _arabic = !_arabic),
-                icon: Text(_arabic ? 'EN' : 'ع', style: const TextStyle(color: _blue, fontWeight: FontWeight.w900)),
+              if (_busy)
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 18),
+                  child: LinearProgressIndicator(
+                    minHeight: 3,
+                    borderRadius: BorderRadius.all(Radius.circular(99)),
+                  ),
+                ),
+              Expanded(
+                child: IgnorePointer(
+                  ignoring: !_backendAvailable,
+                  child: IndexedStack(index: _tab, children: screens),
+                ),
               ),
             ],
           ),
         ),
-        body: Column(
-          children: [
-            if (_notice != null)
-              MaterialBanner(
-                content: Text(_notice!),
-                actions: [
-                  TextButton(
-                    onPressed: () => setState(() => _notice = null),
-                    child: Text(_arabic ? 'إخفاء' : 'Dismiss'),
-                  ),
-                ],
-              ),
-            if (_busy) const LinearProgressIndicator(minHeight: 2),
-            Expanded(
-              child: IgnorePointer(
-                ignoring: !_backendAvailable,
-                child: IndexedStack(index: _tab, children: screens),
-              ),
-            ),
-          ],
-        ),
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: _tab,
-          onDestinationSelected: (value) => setState(() => _tab = value),
-          destinations: [
-            NavigationDestination(icon: const Icon(Icons.home_outlined), selectedIcon: const Icon(Icons.home_rounded), label: _arabic ? 'الرئيسية' : 'Home'),
-            NavigationDestination(icon: const Icon(Icons.style_outlined), selectedIcon: const Icon(Icons.style_rounded), label: _arabic ? 'البطاقات' : 'Cards'),
-            NavigationDestination(icon: const Icon(Icons.layers_outlined), selectedIcon: const Icon(Icons.layers_rounded), label: _arabic ? 'المجموعات' : 'Decks'),
-            NavigationDestination(icon: const Icon(Icons.sports_esports_outlined), selectedIcon: const Icon(Icons.sports_esports_rounded), label: _arabic ? 'اللعب' : 'Play'),
-            NavigationDestination(icon: const Icon(Icons.person_outline), selectedIcon: const Icon(Icons.person_rounded), label: _arabic ? 'الملف' : 'Profile'),
-          ],
+        bottomNavigationBar: _GameBottomNav(
+          arabic: _arabic,
+          index: _tab,
+          onSelected: (value) => setState(() => _tab = value),
         ),
       ),
     );
+
   }
 }
 
@@ -933,6 +998,7 @@ class _HomeV2 extends StatelessWidget {
     required this.openTab,
     required this.refresh,
   });
+
   final bool arabic;
   final PlayerProfileV2 profile;
   final ValueChanged<int> openTab;
@@ -941,47 +1007,103 @@ class _HomeV2 extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final activeDeck = profile.decks[profile.activeDeckIndex];
-    return _Scroll(children: [
-      _Hero(
-        title: arabic ? 'اجمع بطاقاتك ثم نافس واسرق بطاقة.' : 'Collect cards, compete, then steal a card.',
-        subtitle: arabic ? 'اجمع البطاقات، ابنِ Deck من 10 بطاقات، ثم ادخل المواجهات الأسبوعية.' : 'Collect cards, build a 10-card deck, then enter weekly duels.',
-        action: () => openTab(3),
-        actionText: arabic ? 'ابدأ اللعب' : 'PLAY',
-      ),
-      const SizedBox(height: 16),
-      _Section(title: arabic ? 'الأقسام السبعة' : 'Seven categories'),
-      const SizedBox(height: 8),
-      Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: kCategoriesV2.map((category) {
-          return Chip(
-            avatar: CircleAvatar(backgroundColor: Color(category.colorHex)),
-            label: Text(arabic ? category.nameAr : category.nameEn),
-            backgroundColor: Colors.white,
-            side: BorderSide(color: Color(category.colorHex).withValues(alpha: .28)),
-          );
-        }).toList(growable: false),
-      ),
-      const SizedBox(height: 18),
-      _Panel(
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          _StatRow(label: arabic ? 'البطاقات المملوكة' : 'Owned cards', value: '${profile.ownedCount}'),
-          _StatRow(label: arabic ? 'الـDeck النشط' : 'Active deck', value: '${activeDeck.length}/$kDeckSizeV2'),
-          _StatRow(label: arabic ? 'نقاط الأسبوع' : 'Weekly points', value: '${profile.weeklyPoints}'),
-          _StatRow(label: arabic ? 'حالة PvP' : 'PvP', value: profile.pvpUnlocked && profile.activeDeckReady ? (arabic ? 'جاهز' : 'Ready') : (arabic ? 'غير جاهز' : 'Locked')),
-          const SizedBox(height: 6),
-          Align(
-            alignment: AlignmentDirectional.centerEnd,
-            child: TextButton.icon(
-              onPressed: refresh,
-              icon: const Icon(Icons.refresh_rounded),
-              label: Text(arabic ? 'تحديث من السيرفر' : 'Refresh from server'),
+    final ready = profile.pvpUnlocked && profile.activeDeckReady;
+
+    return _Scroll(
+      children: [
+        _GameHeroCard(
+          arabic: arabic,
+          ready: ready,
+          onPlay: () => openTab(3),
+        ),
+        const SizedBox(height: 18),
+        Row(
+          children: [
+            Expanded(
+              child: _QuickStatCard(
+                icon: Icons.style_rounded,
+                label: arabic ? 'بطاقاتي' : 'Cards',
+                value: '${profile.ownedCount}',
+                color: _purple,
+              ),
             ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _QuickStatCard(
+                icon: Icons.layers_rounded,
+                label: arabic ? 'الـDeck' : 'Deck',
+                value: '${activeDeck.length}/$kDeckSizeV2',
+                color: _blue,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _QuickStatCard(
+                icon: Icons.emoji_events_rounded,
+                label: arabic ? 'الأسبوع' : 'Weekly',
+                value: '${profile.weeklyPoints}',
+                color: _gold,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 22),
+        _SectionRow(
+          title: arabic ? 'اختر طريقك' : 'Choose your path',
+          action: arabic ? 'تحديث' : 'Refresh',
+          onAction: refresh,
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: _ActionTile(
+                icon: Icons.smart_toy_rounded,
+                title: arabic ? 'تحدي البوت' : 'Bot challenge',
+                subtitle: arabic
+                    ? 'اجمع أول 10 بطاقات'
+                    : 'Collect your first 10 cards',
+                color: _mint,
+                onTap: () => openTab(3),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _ActionTile(
+                icon: Icons.flash_on_rounded,
+                title: 'PvP',
+                subtitle: ready
+                    ? (arabic ? 'جاهز للمواجهة' : 'Ready to duel')
+                    : (arabic ? 'جهز Deck من 10' : 'Build a 10-card deck'),
+                color: _coral,
+                onTap: () => openTab(3),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 22),
+        _SectionRow(
+          title: arabic ? 'عالم البطاقات' : 'Card worlds',
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 102,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: kCategoriesV2.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            itemBuilder: (context, index) {
+              final category = kCategoriesV2[index];
+              return _CategoryTile(
+                title: arabic ? category.nameAr : category.nameEn,
+                color: Color(category.colorHex),
+              );
+            },
           ),
-        ]),
-      ),
-    ]);
+        ),
+        const SizedBox(height: 18),
+      ],
+    );
   }
 }
 
