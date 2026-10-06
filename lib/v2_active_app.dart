@@ -2782,7 +2782,7 @@ class _OwnedCardTile extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            PositionedDirectional(
+            const PositionedDirectional(
               top: 12,
               start: 12,
               child: _CardCornerMark(color: Colors.white),
