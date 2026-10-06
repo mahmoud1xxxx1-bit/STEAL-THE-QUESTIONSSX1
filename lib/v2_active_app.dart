@@ -859,12 +859,190 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
     return result;
   }
 
+
+  Future<String?> _sparkTestScenario() => showDialog<String>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(_arabic ? 'اختبار مواجهة Spark' : 'Spark duel test'),
+          content: Text(
+            _arabic
+                ? 'اختر السيناريو الذي تريد تجربته. الأسئلة هنا تجريبية فقط ولا تضيف محتوى اللعبة الحقيقي.'
+                : 'Choose the flow you want to test. These questions are test-only and are not real game content.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, 'easy'),
+              child: Text(_arabic ? 'اختبار الفوز' : 'Test win'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, 'draw'),
+              child: Text(_arabic ? 'اختبار التعادل' : 'Test draw'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, 'hard'),
+              child: Text(_arabic ? 'اختبار الخسارة' : 'Test loss'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, 'real'),
+              child: Text(_arabic ? 'مباراة واقعية' : 'Realistic match'),
+            ),
+          ],
+        ),
+      );
+
+  Future<void> _runSparkTestDuel() async {
+    final scenario = await _sparkTestScenario();
+    if (scenario == null || !mounted) return;
+
+    var correctCount = 0;
+    var elapsedMs = 0;
+    for (var index = 0; index < kDuelCardsV2; index++) {
+      final started = DateTime.now();
+      final answer = await _answerDialog(
+        title: '${_arabic ? 'السؤال التجريبي' : 'Test question'} ${index + 1}/$kDuelCardsV2',
+        prompt: _arabic
+            ? 'سؤال اختبار داخلي رقم ${index + 1}. اختر الإجابة الصحيحة لاختبار نظام المواجهة.'
+            : 'Internal test question ${index + 1}. Choose the correct answer to test the duel flow.',
+        choices: _arabic
+            ? const ['الإجابة الصحيحة', 'إجابة تجريبية 1', 'إجابة تجريبية 2']
+            : const ['Correct answer', 'Test answer 1', 'Test answer 2'],
+      );
+      elapsedMs += DateTime.now().difference(started).inMilliseconds;
+      if (answer == null) {
+        _showDemoMessage(
+          'تم إيقاف المواجهة التجريبية.',
+          'The test duel was paused.',
+        );
+        return;
+      }
+      if (answer == 0) correctCount += 1;
+    }
+
+    final int opponentCorrect;
+    final int opponentElapsedMs;
+    if (scenario == 'easy') {
+      opponentCorrect = 2;
+      opponentElapsedMs = 90000;
+    } else if (scenario == 'hard') {
+      opponentCorrect = 7;
+      opponentElapsedMs = 25000;
+    } else if (scenario == 'draw') {
+      opponentCorrect = correctCount;
+      opponentElapsedMs = elapsedMs;
+    } else {
+      opponentCorrect = 4;
+      opponentElapsedMs = 70000;
+    }
+
+    final DuelResultV2 result;
+    if (correctCount > opponentCorrect) {
+      result = DuelResultV2.win;
+    } else if (correctCount < opponentCorrect) {
+      result = DuelResultV2.loss;
+    } else if (elapsedMs < opponentElapsedMs) {
+      result = DuelResultV2.win;
+    } else if (elapsedMs > opponentElapsedMs) {
+      result = DuelResultV2.loss;
+    } else {
+      result = DuelResultV2.draw;
+    }
+
+    final profile = await _session!.applySparkTestResult(result);
+    if (!mounted) return;
+    setState(() {
+      _profile = profile;
+      _syncSparkTestPanels(profile);
+    });
+
+    switch (result) {
+      case DuelResultV2.win:
+        await _chooseSparkTestSteal();
+        break;
+      case DuelResultV2.loss:
+        await _showDuelResult('loss');
+        break;
+      case DuelResultV2.draw:
+        await _showDuelResult('draw');
+        break;
+    }
+
+    if (!mounted) return;
+    _showDemoMessage(
+      'اكتملت مواجهة Spark محليًا. قبل الإطلاق يجب تفعيل Blaze ليصبح PvP حقيقيًا وآمنًا بين اللاعبين.',
+      'Spark test duel completed locally. Enable Blaze before launch for secure real-player PvP.',
+    );
+  }
+
+  Future<void> _chooseSparkTestSteal() async {
+    final options = List<String>.generate(
+      3,
+      (index) => 'spark_opponent_card_${index + 1}',
+    );
+    final selected = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: _ink.withValues(alpha: .74),
+      builder: (context) => Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 28),
+        backgroundColor: Colors.transparent,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 440),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: _page,
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const _StealVictoryMark(),
+                const SizedBox(height: 14),
+                Text(
+                  _arabic
+                      ? 'فزت — اختر بطاقة لتسرقها'
+                      : 'You won — choose a card to steal',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: _ink,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  alignment: WrapAlignment.center,
+                  children: options
+                      .map(
+                        (id) => _StealOptionCard(
+                          id: id,
+                          onTap: () => Navigator.pop(context, id),
+                        ),
+                      )
+                      .toList(growable: false),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    if (selected == null) return;
+    final profile = await _session!.addSparkTestCard(selected);
+    if (!mounted) return;
+    setState(() {
+      _profile = profile;
+      _syncSparkTestPanels(profile);
+      _notice = (_arabic ? 'تمت سرقة البطاقة التجريبية: ' : 'Test card stolen: ') +
+          selected;
+    });
+  }
+
   Future<void> _startOrCheckMatchmaking() => _run(() async {
         if (_demoMode) {
-          _showDemoMessage(
-            'وضع تجريبي: PvP والبحث عن خصم والسرقة ستعمل فعليًا بعد تفعيل Blaze.',
-            'Demo mode: PvP matchmaking and stealing will work after Blaze is enabled.',
-          );
+          await _runSparkTestDuel();
           return;
         }
         final profile = _profile!;
