@@ -122,6 +122,18 @@ void main() {
     );
   });
 
+  test('no-Blaze demo mode stays usable and explains server-only features', () {
+    final appSource = File('lib/v2_active_app.dart').readAsStringSync();
+    final sessionSource =
+        File('lib/game/online_player_session_v2.dart').readAsStringSync();
+
+    expect(appSource, contains('bool get _demoMode'));
+    expect(appSource, contains('class _DemoModeBanner'));
+    expect(appSource, contains('وضع تجريبي'));
+    expect(sessionSource, contains('INVALID_LOCAL_DECK'));
+    expect(sessionSource, contains('_remoteConnected = false'));
+  });
+
   test('Android auth requires Google sign-in and has no anonymous fallback', () {
     final runtimeSource =
         File('lib/backend/online_runtime_v2.dart').readAsStringSync();
