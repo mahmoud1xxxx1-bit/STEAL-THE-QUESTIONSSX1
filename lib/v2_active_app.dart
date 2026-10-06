@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import 'backend/bot_api_v2.dart';
+import 'backend/firebase_bootstrap.dart';
 import 'backend/firebase_game_api_v2.dart';
 import 'backend/online_runtime_v2.dart';
 import 'backend/profile_features_api_v2.dart';
@@ -64,8 +65,8 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
           _backendAvailable = false;
           _loadError = null;
           _notice = _arabic
-              ? 'تم فتح التطبيق من النسخة المحلية. إعداد Firebase للويب غير متاح حاليًا.'
-              : 'The app opened from the local cache. Firebase web configuration is currently unavailable.';
+              ? 'تم فتح التطبيق محليًا. ينقص إعداد Firebase Web: ${FirebaseBootstrap.missingWebConfig.join(', ')}.'
+              : 'The app opened locally. Missing Firebase Web config: ${FirebaseBootstrap.missingWebConfig.join(', ')}.';
         });
         return;
       }
@@ -834,7 +835,7 @@ class _HomeV2 extends StatelessWidget {
     return _Scroll(children: [
       _Hero(
         title: arabic ? 'اجمع بطاقاتك ثم نافس واسرق بطاقة.' : 'Collect cards, compete, then steal a card.',
-        subtitle: arabic ? 'المحرك النشط الآن هو V2 فقط، بدون نظام الندرة أو حد 222.' : 'The active runtime is V2 only, with no rarity system or 222-card cap.',
+        subtitle: arabic ? 'اجمع البطاقات، ابنِ Deck من 10 بطاقات، ثم ادخل المواجهات الأسبوعية.' : 'Collect cards, build a 10-card deck, then enter weekly duels.',
         action: () => openTab(3),
         actionText: arabic ? 'ابدأ اللعب' : 'PLAY',
       ),
