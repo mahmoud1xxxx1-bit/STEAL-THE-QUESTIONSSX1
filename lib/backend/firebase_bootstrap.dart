@@ -5,10 +5,13 @@ class FirebaseBootstrap {
   FirebaseBootstrap._();
 
   static bool initialized = false;
+  static const String defaultProjectId = 'steal-the-questionssx1';
+  static List<String> missingWebConfig = const <String>[];
 
   static Future<bool> initialize() async {
     if (initialized || Firebase.apps.isNotEmpty) {
       initialized = true;
+      missingWebConfig = const <String>[];
       return true;
     }
 
@@ -16,18 +19,33 @@ class FirebaseBootstrap {
       if (kIsWeb) {
         const apiKey = String.fromEnvironment('FIREBASE_WEB_API_KEY');
         const appId = String.fromEnvironment('FIREBASE_WEB_APP_ID');
-        const messagingSenderId = String.fromEnvironment('FIREBASE_WEB_MESSAGING_SENDER_ID');
-        const projectId = String.fromEnvironment('FIREBASE_PROJECT_ID');
-        const authDomain = String.fromEnvironment('FIREBASE_WEB_AUTH_DOMAIN');
-        const storageBucket = String.fromEnvironment('FIREBASE_WEB_STORAGE_BUCKET');
+        const messagingSenderId =
+            String.fromEnvironment('FIREBASE_WEB_MESSAGING_SENDER_ID');
+        const configuredProjectId =
+            String.fromEnvironment('FIREBASE_PROJECT_ID');
+        const configuredAuthDomain =
+            String.fromEnvironment('FIREBASE_WEB_AUTH_DOMAIN');
+        const configuredStorageBucket =
+            String.fromEnvironment('FIREBASE_WEB_STORAGE_BUCKET');
 
-        if (apiKey.isEmpty ||
-            appId.isEmpty ||
-            messagingSenderId.isEmpty ||
-            projectId.isEmpty ||
-            authDomain.isEmpty) {
-          return false;
-        }
+        const projectId = configuredProjectId.isEmpty
+            ? defaultProjectId
+            : configuredProjectId;
+        const authDomain = configuredAuthDomain.isEmpty
+            ? '$projectId.firebaseapp.com'
+            : configuredAuthDomain;
+        const storageBucket = configuredStorageBucket.isEmpty
+            ? '$projectId.appspot.com'
+            : configuredStorageBucket;
+
+        final missing = <String>[
+          if (apiKey.isEmpty) 'FIREBASE_WEB_API_KEY',
+          if (appId.isEmpty) 'FIREBASE_WEB_APP_ID',
+          if (messagingSenderId.isEmpty)
+            'FIREBASE_WEB_MESSAGING_SENDER_ID',
+        ];
+        missingWebConfig = List<String>.unmodifiable(missing);
+        if (missing.isNotEmpty) return false;
 
         await Firebase.initializeApp(
           options: FirebaseOptions(
@@ -36,13 +54,14 @@ class FirebaseBootstrap {
             messagingSenderId: messagingSenderId,
             projectId: projectId,
             authDomain: authDomain,
-            storageBucket: storageBucket.isEmpty ? null : storageBucket,
+            storageBucket: storageBucket,
           ),
         );
       } else {
         await Firebase.initializeApp();
       }
       initialized = true;
+      missingWebConfig = const <String>[];
       return true;
     } catch (_) {
       return false;
