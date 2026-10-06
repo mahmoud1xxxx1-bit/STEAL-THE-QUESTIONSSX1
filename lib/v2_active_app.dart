@@ -98,8 +98,11 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
         api: FirebaseGameApiV2(),
         botApi: BotApiV2(),
       );
-      final profile = await session.initialize();
+      var profile = await session.initialize();
       final online = session.remoteConnected;
+      if (!online) {
+        profile = await session.ensureSparkTestProfile();
+      }
       if (!mounted) return;
       setState(() {
         _session = session;
@@ -107,8 +110,18 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
         _backendAvailable = online;
         _requiresGoogleSignIn = false;
         _loadError = null;
+        _notice = null;
         if (!online) {
-          _notice = null;
+          _ranking = _sparkTestRanking(profile);
+          _subscription = _sparkTestSubscription(profile);
+          _botStatus = BotStatusV2(
+            botUnlocked: true,
+            ownedCount: profile.ownedCount,
+            targetCount: 10,
+            contentAvailable: true,
+          );
+          _matchmaking =
+              const MatchmakingStatusV2(status: 'idle', duelId: null);
         }
       });
 
@@ -146,6 +159,70 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
           _tab = 0;
         });
       });
+
+
+  WeeklyRankingV2 _sparkTestRanking(PlayerProfileV2 profile) {
+    final rows = <WeeklyRankingPlayerV2>[
+      WeeklyRankingPlayerV2(
+        rank: 1,
+        uid: 'spark-opponent-1',
+        displayName: _arabic ? 'لاعب تجريبي 1' : 'Test Player 1',
+        weeklyPoints: 120,
+        weeklyWins: 5,
+        weeklyLosses: 2,
+        weeklyDraws: 0,
+        currentTitleKey: 'champion_of_the_week',
+        currentFrameKey: 'weekly_gold_frame',
+      ),
+      WeeklyRankingPlayerV2(
+        rank: 2,
+        uid: FirebaseAuth.instance.currentUser?.uid ?? 'spark-you',
+        displayName: _arabic ? 'أنت — اختبار Spark' : 'You — Spark Test',
+        weeklyPoints: profile.weeklyPoints,
+        weeklyWins: profile.weeklyWins,
+        weeklyLosses: profile.weeklyLosses,
+        weeklyDraws: profile.weeklyDraws,
+        currentTitleKey: profile.currentTitleKey,
+        currentFrameKey: profile.currentFrameKey,
+      ),
+      const WeeklyRankingPlayerV2(
+        rank: 3,
+        uid: 'spark-opponent-2',
+        displayName: 'TEST PLAYER 2',
+        weeklyPoints: 75,
+        weeklyWins: 3,
+        weeklyLosses: 2,
+        weeklyDraws: 1,
+        currentTitleKey: null,
+        currentFrameKey: null,
+      ),
+    ];
+    return WeeklyRankingV2(weekKey: profile.weekKey, players: rows);
+  }
+
+  SubscriptionStatusV2 _sparkTestSubscription(PlayerProfileV2 profile) =>
+      SubscriptionStatusV2(
+        active: profile.subscriptionActive,
+        expiresAt: profile.subscriptionExpiresAt,
+        source: 'spark_test',
+        productId: 'monthly_subscription_v2',
+        deckSlots: profile.entitlement.deckSlots,
+        answerChoices: profile.entitlement.answerChoices,
+        editableWrongChoices: profile.entitlement.editableWrongChoices,
+        profile: profile,
+      );
+
+  void _syncSparkTestPanels(PlayerProfileV2 profile) {
+    if (!_demoMode) return;
+    _ranking = _sparkTestRanking(profile);
+    _subscription = _sparkTestSubscription(profile);
+    _botStatus = BotStatusV2(
+      botUnlocked: true,
+      ownedCount: profile.ownedCount,
+      targetCount: 10,
+      contentAvailable: true,
+    );
+  }
 
   Future<void> _configurePurchases() async {
     final session = _session;
