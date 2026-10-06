@@ -15,13 +15,17 @@ import 'game/online_player_session_v2.dart';
 import 'game/player_profile_v2.dart';
 import 'services/purchase_service.dart';
 
-const _blue = Color(0xFF2E6BFF);
-const _purple = Color(0xFF7A48F5);
-const _gold = Color(0xFFFFC94D);
-const _coral = Color(0xFFFF6A67);
-const _ink = Color(0xFF183153);
-const _muted = Color(0xFF7183A3);
-const _page = Color(0xFFF5F8FF);
+const _blue = Color(0xFF3559F5);
+const _purple = Color(0xFF7B3FF2);
+const _violet = Color(0xFF5E2BE0);
+const _gold = Color(0xFFFFC83D);
+const _coral = Color(0xFFFF6464);
+const _mint = Color(0xFF45D6A8);
+const _ink = Color(0xFF221B3B);
+const _muted = Color(0xFF7B7691);
+const _page = Color(0xFFF8F6FF);
+const _cardSurface = Color(0xFFFFFFFF);
+const _softPurple = Color(0xFFF0EBFF);
 
 class StealQuestionsV2App extends StatefulWidget {
   const StealQuestionsV2App({super.key});
@@ -714,71 +718,153 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
       textDirection: _arabic ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: _page,
-        body: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: _Panel(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const CircleAvatar(
-                      radius: 34,
-                      backgroundColor: _purple,
-                      child: Icon(
-                        Icons.style_rounded,
-                        color: Colors.white,
-                        size: 34,
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    Text(
-                      _arabic
-                          ? 'تسجيل الدخول إلى STEAL THE QUESTIONS'
-                          : 'Sign in to STEAL THE QUESTIONS',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: _ink,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      _arabic
-                          ? 'استخدم حساب Google لحفظ بطاقاتك وDecks وترتيبك ومواجهاتك.'
-                          : 'Use your Google account to keep your cards, decks, ranking, and duels.',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: _muted,
-                        height: 1.5,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    FilledButton.icon(
-                      onPressed: _busy ? null : _signInWithGoogle,
-                      icon: const Icon(Icons.login_rounded),
-                      label: Text(
-                        _arabic
-                            ? 'المتابعة باستخدام Google'
-                            : 'Continue with Google',
-                      ),
-                    ),
-                    if (_busy) ...[
-                      const SizedBox(height: 14),
-                      const LinearProgressIndicator(),
-                    ],
-                    const SizedBox(height: 8),
-                    TextButton(
-                      onPressed: () => setState(() => _arabic = !_arabic),
-                      child: Text(_arabic ? 'English' : 'العربية'),
-                    ),
-                  ],
+        body: SafeArea(
+          child: Stack(
+            children: [
+              Positioned(
+                top: -90,
+                right: -70,
+                child: _GlowOrb(
+                  size: 220,
+                  color: _purple.withValues(alpha: .16),
                 ),
               ),
-            ),
+              Positioned(
+                bottom: 40,
+                left: -80,
+                child: _GlowOrb(
+                  size: 190,
+                  color: _blue.withValues(alpha: .12),
+                ),
+              ),
+              Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 28,
+                  ),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 420),
+                    child: Column(
+                      children: [
+                        const _CardFanMark(),
+                        const SizedBox(height: 28),
+                        Text(
+                          'STEAL THE\nQUESTIONS',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: _ink,
+                            fontSize: 31,
+                            height: .98,
+                            letterSpacing: .4,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          _arabic
+                              ? 'اجمع بطاقاتك، ابنِ مجموعتك، نافس واسرق بطاقة الفوز.'
+                              : 'Collect cards, build your deck, compete, and steal the winning card.',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: _muted,
+                            height: 1.55,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(18),
+                          decoration: BoxDecoration(
+                            color: _cardSurface,
+                            borderRadius: BorderRadius.circular(26),
+                            boxShadow: [
+                              BoxShadow(
+                                color: _purple.withValues(alpha: .09),
+                                blurRadius: 28,
+                                offset: const Offset(0, 14),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceAround,
+                                children: [
+                                  _MiniFeature(
+                                    icon: Icons.style_rounded,
+                                    label: _arabic ? 'اجمع' : 'Collect',
+                                    color: _purple,
+                                  ),
+                                  _MiniFeature(
+                                    icon: Icons.layers_rounded,
+                                    label: _arabic ? 'كوّن' : 'Build',
+                                    color: _blue,
+                                  ),
+                                  _MiniFeature(
+                                    icon: Icons.flash_on_rounded,
+                                    label: _arabic ? 'نافس' : 'Compete',
+                                    color: _coral,
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 20),
+                              SizedBox(
+                                width: double.infinity,
+                                height: 56,
+                                child: FilledButton.icon(
+                                  onPressed:
+                                      _busy ? null : _signInWithGoogle,
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: _ink,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(18),
+                                    ),
+                                  ),
+                                  icon: const Icon(Icons.login_rounded),
+                                  label: Text(
+                                    _arabic
+                                        ? 'المتابعة باستخدام Google'
+                                        : 'Continue with Google',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              if (_busy) ...[
+                                const SizedBox(height: 14),
+                                const LinearProgressIndicator(
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(99)),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        TextButton(
+                          onPressed: () =>
+                              setState(() => _arabic = !_arabic),
+                          child: Text(
+                            _arabic ? 'English' : 'العربية',
+                            style: const TextStyle(
+                              color: _purple,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -859,70 +945,49 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
       textDirection: _arabic ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: _page,
-        appBar: AppBar(
-          automaticallyImplyLeading: false,
-          backgroundColor: Colors.white,
-          surfaceTintColor: Colors.white,
-          title: Row(
+        body: SafeArea(
+          bottom: false,
+          child: Column(
             children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(colors: [_blue, _purple]),
-                ),
-                child: const Icon(Icons.style_rounded, color: Colors.white),
+              _GameHeader(
+                arabic: _arabic,
+                ownedCount: profile.ownedCount,
+                weeklyPoints: profile.weeklyPoints,
+                onLanguage: () => setState(() => _arabic = !_arabic),
               ),
-              const SizedBox(width: 10),
-              const Expanded(
-                child: Text(
-                  'STEAL THE QUESTIONS',
-                  style: TextStyle(color: _ink, fontSize: 14, fontWeight: FontWeight.w900),
+              if (_notice != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 4, 14, 0),
+                  child: _InlineNotice(
+                    text: _notice!,
+                    dismiss: () => setState(() => _notice = null),
+                  ),
                 ),
-              ),
-              _Pill(text: '${profile.ownedCount}', icon: Icons.style_rounded),
-              IconButton(
-                onPressed: () => setState(() => _arabic = !_arabic),
-                icon: Text(_arabic ? 'EN' : 'ع', style: const TextStyle(color: _blue, fontWeight: FontWeight.w900)),
+              if (_busy)
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 18),
+                  child: LinearProgressIndicator(
+                    minHeight: 3,
+                    borderRadius: BorderRadius.all(Radius.circular(99)),
+                  ),
+                ),
+              Expanded(
+                child: IgnorePointer(
+                  ignoring: !_backendAvailable,
+                  child: IndexedStack(index: _tab, children: screens),
+                ),
               ),
             ],
           ),
         ),
-        body: Column(
-          children: [
-            if (_notice != null)
-              MaterialBanner(
-                content: Text(_notice!),
-                actions: [
-                  TextButton(
-                    onPressed: () => setState(() => _notice = null),
-                    child: Text(_arabic ? 'إخفاء' : 'Dismiss'),
-                  ),
-                ],
-              ),
-            if (_busy) const LinearProgressIndicator(minHeight: 2),
-            Expanded(
-              child: IgnorePointer(
-                ignoring: !_backendAvailable,
-                child: IndexedStack(index: _tab, children: screens),
-              ),
-            ),
-          ],
-        ),
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: _tab,
-          onDestinationSelected: (value) => setState(() => _tab = value),
-          destinations: [
-            NavigationDestination(icon: const Icon(Icons.home_outlined), selectedIcon: const Icon(Icons.home_rounded), label: _arabic ? 'الرئيسية' : 'Home'),
-            NavigationDestination(icon: const Icon(Icons.style_outlined), selectedIcon: const Icon(Icons.style_rounded), label: _arabic ? 'البطاقات' : 'Cards'),
-            NavigationDestination(icon: const Icon(Icons.layers_outlined), selectedIcon: const Icon(Icons.layers_rounded), label: _arabic ? 'المجموعات' : 'Decks'),
-            NavigationDestination(icon: const Icon(Icons.sports_esports_outlined), selectedIcon: const Icon(Icons.sports_esports_rounded), label: _arabic ? 'اللعب' : 'Play'),
-            NavigationDestination(icon: const Icon(Icons.person_outline), selectedIcon: const Icon(Icons.person_rounded), label: _arabic ? 'الملف' : 'Profile'),
-          ],
+        bottomNavigationBar: _GameBottomNav(
+          arabic: _arabic,
+          index: _tab,
+          onSelected: (value) => setState(() => _tab = value),
         ),
       ),
     );
+
   }
 }
 
@@ -933,6 +998,7 @@ class _HomeV2 extends StatelessWidget {
     required this.openTab,
     required this.refresh,
   });
+
   final bool arabic;
   final PlayerProfileV2 profile;
   final ValueChanged<int> openTab;
@@ -941,47 +1007,103 @@ class _HomeV2 extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final activeDeck = profile.decks[profile.activeDeckIndex];
-    return _Scroll(children: [
-      _Hero(
-        title: arabic ? 'اجمع بطاقاتك ثم نافس واسرق بطاقة.' : 'Collect cards, compete, then steal a card.',
-        subtitle: arabic ? 'اجمع البطاقات، ابنِ Deck من 10 بطاقات، ثم ادخل المواجهات الأسبوعية.' : 'Collect cards, build a 10-card deck, then enter weekly duels.',
-        action: () => openTab(3),
-        actionText: arabic ? 'ابدأ اللعب' : 'PLAY',
-      ),
-      const SizedBox(height: 16),
-      _Section(title: arabic ? 'الأقسام السبعة' : 'Seven categories'),
-      const SizedBox(height: 8),
-      Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: kCategoriesV2.map((category) {
-          return Chip(
-            avatar: CircleAvatar(backgroundColor: Color(category.colorHex)),
-            label: Text(arabic ? category.nameAr : category.nameEn),
-            backgroundColor: Colors.white,
-            side: BorderSide(color: Color(category.colorHex).withValues(alpha: .28)),
-          );
-        }).toList(growable: false),
-      ),
-      const SizedBox(height: 18),
-      _Panel(
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          _StatRow(label: arabic ? 'البطاقات المملوكة' : 'Owned cards', value: '${profile.ownedCount}'),
-          _StatRow(label: arabic ? 'الـDeck النشط' : 'Active deck', value: '${activeDeck.length}/$kDeckSizeV2'),
-          _StatRow(label: arabic ? 'نقاط الأسبوع' : 'Weekly points', value: '${profile.weeklyPoints}'),
-          _StatRow(label: arabic ? 'حالة PvP' : 'PvP', value: profile.pvpUnlocked && profile.activeDeckReady ? (arabic ? 'جاهز' : 'Ready') : (arabic ? 'غير جاهز' : 'Locked')),
-          const SizedBox(height: 6),
-          Align(
-            alignment: AlignmentDirectional.centerEnd,
-            child: TextButton.icon(
-              onPressed: refresh,
-              icon: const Icon(Icons.refresh_rounded),
-              label: Text(arabic ? 'تحديث من السيرفر' : 'Refresh from server'),
+    final ready = profile.pvpUnlocked && profile.activeDeckReady;
+
+    return _Scroll(
+      children: [
+        _GameHeroCard(
+          arabic: arabic,
+          ready: ready,
+          onPlay: () => openTab(3),
+        ),
+        const SizedBox(height: 18),
+        Row(
+          children: [
+            Expanded(
+              child: _QuickStatCard(
+                icon: Icons.style_rounded,
+                label: arabic ? 'بطاقاتي' : 'Cards',
+                value: '${profile.ownedCount}',
+                color: _purple,
+              ),
             ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _QuickStatCard(
+                icon: Icons.layers_rounded,
+                label: arabic ? 'الـDeck' : 'Deck',
+                value: '${activeDeck.length}/$kDeckSizeV2',
+                color: _blue,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _QuickStatCard(
+                icon: Icons.emoji_events_rounded,
+                label: arabic ? 'الأسبوع' : 'Weekly',
+                value: '${profile.weeklyPoints}',
+                color: _gold,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 22),
+        _SectionRow(
+          title: arabic ? 'اختر طريقك' : 'Choose your path',
+          action: arabic ? 'تحديث' : 'Refresh',
+          onAction: refresh,
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: _ActionTile(
+                icon: Icons.smart_toy_rounded,
+                title: arabic ? 'تحدي البوت' : 'Bot challenge',
+                subtitle: arabic
+                    ? 'اجمع أول 10 بطاقات'
+                    : 'Collect your first 10 cards',
+                color: _mint,
+                onTap: () => openTab(3),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _ActionTile(
+                icon: Icons.flash_on_rounded,
+                title: 'PvP',
+                subtitle: ready
+                    ? (arabic ? 'جاهز للمواجهة' : 'Ready to duel')
+                    : (arabic ? 'جهز Deck من 10' : 'Build a 10-card deck'),
+                color: _coral,
+                onTap: () => openTab(3),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 22),
+        _SectionRow(
+          title: arabic ? 'عالم البطاقات' : 'Card worlds',
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 102,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: kCategoriesV2.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            itemBuilder: (context, index) {
+              final category = kCategoriesV2[index];
+              return _CategoryTile(
+                title: arabic ? category.nameAr : category.nameEn,
+                color: Color(category.colorHex),
+              );
+            },
           ),
-        ]),
-      ),
-    ]);
+        ),
+        const SizedBox(height: 18),
+      ],
+    );
   }
 }
 
@@ -1246,13 +1368,685 @@ class _ProfileV2 extends StatelessWidget {
   }
 }
 
+class _GlowOrb extends StatelessWidget {
+  const _GlowOrb({required this.size, required this.color});
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: color,
+        ),
+      );
+}
+
+class _CardFanMark extends StatelessWidget {
+  const _CardFanMark();
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: 142,
+        height: 112,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Transform.rotate(
+              angle: -.18,
+              child: _LogoCard(color: _blue, icon: Icons.help_rounded),
+            ),
+            Transform.translate(
+              offset: const Offset(26, 4),
+              child: Transform.rotate(
+                angle: .18,
+                child: _LogoCard(color: _coral, icon: Icons.flash_on_rounded),
+              ),
+            ),
+            Transform.translate(
+              offset: const Offset(10, -8),
+              child: _LogoCard(color: _purple, icon: Icons.style_rounded),
+            ),
+          ],
+        ),
+      );
+}
+
+class _LogoCard extends StatelessWidget {
+  const _LogoCard({required this.color, required this.icon});
+  final Color color;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 70,
+        height: 94,
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white, width: 3),
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: .24),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Icon(icon, color: Colors.white, size: 32),
+      );
+}
+
+class _MiniFeature extends StatelessWidget {
+  const _MiniFeature({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: .12),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: color, size: 22),
+          ),
+          const SizedBox(height: 7),
+          Text(
+            label,
+            style: const TextStyle(
+              color: _ink,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      );
+}
+
+class _GameHeader extends StatelessWidget {
+  const _GameHeader({
+    required this.arabic,
+    required this.ownedCount,
+    required this.weeklyPoints,
+    required this.onLanguage,
+  });
+
+  final bool arabic;
+  final int ownedCount;
+  final int weeklyPoints;
+  final VoidCallback onLanguage;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 10, 12, 8),
+        child: Row(
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [_purple, _blue],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: _purple.withValues(alpha: .2),
+                    blurRadius: 14,
+                    offset: const Offset(0, 7),
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.style_rounded, color: Colors.white),
+            ),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'STEAL THE QUESTIONS',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: _ink,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  Text(
+                    'CARD DUEL',
+                    style: TextStyle(
+                      color: _purple,
+                      fontSize: 10,
+                      letterSpacing: 1.2,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            _HeaderCounter(
+              icon: Icons.style_rounded,
+              value: '$ownedCount',
+              color: _purple,
+            ),
+            const SizedBox(width: 6),
+            _HeaderCounter(
+              icon: Icons.emoji_events_rounded,
+              value: '$weeklyPoints',
+              color: _gold,
+            ),
+            const SizedBox(width: 2),
+            IconButton(
+              onPressed: onLanguage,
+              visualDensity: VisualDensity.compact,
+              icon: Text(
+                arabic ? 'EN' : 'ع',
+                style: const TextStyle(
+                  color: _ink,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _HeaderCounter extends StatelessWidget {
+  const _HeaderCounter({
+    required this.icon,
+    required this.value,
+    required this.color,
+  });
+  final IconData icon;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: .12),
+          borderRadius: BorderRadius.circular(13),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 3),
+            Text(
+              value,
+              style: const TextStyle(
+                color: _ink,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _InlineNotice extends StatelessWidget {
+  const _InlineNotice({required this.text, required this.dismiss});
+  final String text;
+  final VoidCallback dismiss;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsetsDirectional.fromSTEB(14, 10, 6, 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF4D8),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: _gold.withValues(alpha: .35)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.info_outline_rounded, color: _ink, size: 18),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                text,
+                style: const TextStyle(
+                  color: _ink,
+                  fontSize: 12,
+                  height: 1.35,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            IconButton(
+              onPressed: dismiss,
+              visualDensity: VisualDensity.compact,
+              icon: const Icon(Icons.close_rounded, size: 18),
+            ),
+          ],
+        ),
+      );
+}
+
+class _GameBottomNav extends StatelessWidget {
+  const _GameBottomNav({
+    required this.arabic,
+    required this.index,
+    required this.onSelected,
+  });
+
+  final bool arabic;
+  final int index;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = [
+      (Icons.home_rounded, arabic ? 'الرئيسية' : 'Home'),
+      (Icons.style_rounded, arabic ? 'البطاقات' : 'Cards'),
+      (Icons.layers_rounded, arabic ? 'Decks' : 'Decks'),
+      (Icons.flash_on_rounded, arabic ? 'اللعب' : 'Play'),
+      (Icons.person_rounded, arabic ? 'الملف' : 'Profile'),
+    ];
+
+    return SafeArea(
+      top: false,
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 7),
+        decoration: BoxDecoration(
+          color: _ink,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: _ink.withValues(alpha: .18),
+              blurRadius: 22,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Row(
+          children: List.generate(items.length, (i) {
+            final selected = i == index;
+            final item = items[i];
+            return Expanded(
+              child: InkWell(
+                onTap: () => onSelected(i),
+                borderRadius: BorderRadius.circular(18),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color: selected ? Colors.white : Colors.transparent,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        item.$1,
+                        color: selected ? _purple : Colors.white70,
+                        size: 22,
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        item.$2,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: selected ? _ink : Colors.white70,
+                          fontSize: 9,
+                          fontWeight:
+                              selected ? FontWeight.w900 : FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+      ),
+    );
+  }
+}
+
+class _GameHeroCard extends StatelessWidget {
+  const _GameHeroCard({
+    required this.arabic,
+    required this.ready,
+    required this.onPlay,
+  });
+
+  final bool arabic;
+  final bool ready;
+  final VoidCallback onPlay;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [_violet, _blue],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: [
+            BoxShadow(
+              color: _purple.withValues(alpha: .24),
+              blurRadius: 24,
+              offset: const Offset(0, 14),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              top: -36,
+              right: -26,
+              child: Container(
+                width: 116,
+                height: 116,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: .08),
+                ),
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: .14),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                  child: Text(
+                    ready
+                        ? (arabic ? 'جاهز للمواجهة' : 'READY TO DUEL')
+                        : (arabic ? 'ابنِ مجموعتك' : 'BUILD YOUR DECK'),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      letterSpacing: .5,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  arabic
+                      ? 'اجمع. نافس.\nواسرق البطاقة.'
+                      : 'Collect. Compete.\nSteal the card.',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 27,
+                    height: 1.05,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  arabic
+                      ? 'كل بطاقة تقرّبك من Deck أقوى ومواجهة جديدة.'
+                      : 'Every card brings you closer to a stronger deck and a new duel.',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: .82),
+                    height: 1.4,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                SizedBox(
+                  height: 48,
+                  child: FilledButton.icon(
+                    onPressed: onPlay,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _gold,
+                      foregroundColor: _ink,
+                      padding: const EdgeInsets.symmetric(horizontal: 18),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    icon: const Icon(Icons.play_arrow_rounded),
+                    label: Text(
+                      arabic ? 'ابدأ اللعب' : 'PLAY NOW',
+                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+}
+
+class _QuickStatCard extends StatelessWidget {
+  const _QuickStatCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 13),
+        decoration: BoxDecoration(
+          color: _cardSurface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: color.withValues(alpha: .13)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 20),
+            const SizedBox(height: 6),
+            Text(
+              value,
+              style: const TextStyle(
+                color: _ink,
+                fontSize: 17,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: _muted,
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _SectionRow extends StatelessWidget {
+  const _SectionRow({
+    required this.title,
+    this.action,
+    this.onAction,
+  });
+
+  final String title;
+  final String? action;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) => Row(
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(
+                color: _ink,
+                fontSize: 19,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          if (action != null && onAction != null)
+            TextButton(
+              onPressed: onAction,
+              child: Text(
+                action!,
+                style: const TextStyle(
+                  color: _purple,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+        ],
+      );
+}
+
+class _ActionTile extends StatelessWidget {
+  const _ActionTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(22),
+        child: Ink(
+          padding: const EdgeInsets.all(15),
+          decoration: BoxDecoration(
+            color: _cardSurface,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: color.withValues(alpha: .16)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: .13),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: color),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: _ink,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                subtitle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: _muted,
+                  fontSize: 11,
+                  height: 1.35,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+}
+
+class _CategoryTile extends StatelessWidget {
+  const _CategoryTile({required this.title, required this.color});
+  final String title;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 126,
+        padding: const EdgeInsets.all(13),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: .11),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withValues(alpha: .23)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: const Icon(
+                Icons.style_rounded,
+                color: Colors.white,
+                size: 18,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: _ink,
+                fontSize: 12,
+                height: 1.15,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
 class _Scroll extends StatelessWidget {
   const _Scroll({required this.children});
   final List<Widget> children;
   @override
   Widget build(BuildContext context) => ListView(
         padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
-        children: [Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 960), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children)))],
+        children: [Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 520), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children)))],
       );
 }
 
@@ -1285,7 +2079,7 @@ class _Panel extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFE5EBF5))),
+        decoration: BoxDecoration(color: _cardSurface, borderRadius: BorderRadius.circular(22), border: Border.all(color: _softPurple), boxShadow: [BoxShadow(color: _purple.withValues(alpha: .04), blurRadius: 16, offset: const Offset(0, 8))]),
         child: child,
       );
 }

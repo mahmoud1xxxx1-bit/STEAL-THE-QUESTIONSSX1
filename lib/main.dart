@@ -1,8 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'v2_active_app.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations(const [
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.dark,
+    systemNavigationBarColor: Colors.white,
+    systemNavigationBarIconBrightness: Brightness.dark,
+  ));
   runApp(const StealTheQuestionsApp());
 }
 
@@ -35,7 +48,7 @@ class StealTheQuestionsApp extends StatelessWidget {
         brightness: Brightness.light,
         useMaterial3: true,
         colorScheme: scheme,
-        scaffoldBackgroundColor: canvas,
+        scaffoldBackgroundColor: const Color(0xFFF8F6FF),
         fontFamily: 'Arial',
         textTheme: const TextTheme(
           headlineLarge: TextStyle(color: ink, fontWeight: FontWeight.w900),
@@ -54,9 +67,9 @@ class StealTheQuestionsApp extends StatelessWidget {
         ),
         navigationBarTheme: NavigationBarThemeData(
           backgroundColor: Colors.white,
-          elevation: 12,
-          height: 68,
-          indicatorColor: const Color(0xFFE9E2FF),
+          elevation: 0,
+          height: 72,
+          indicatorColor: const Color(0xFFECE6FF),
           labelTextStyle: WidgetStateProperty.resolveWith((states) {
             final selected = states.contains(WidgetState.selected);
             return TextStyle(
