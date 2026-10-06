@@ -1625,37 +1625,40 @@ class _StealVictoryMark extends StatelessWidget {
   const _StealVictoryMark();
 
   @override
-  Widget build(BuildContext context) => Stack(
-        alignment: Alignment.center,
-        children: [
-          Container(
-            width: 92,
-            height: 92,
-            decoration: BoxDecoration(
-              color: _gold.withValues(alpha: .16),
-              shape: BoxShape.circle,
-            ),
-          ),
-          Transform.rotate(
-            angle: -.08,
-            child: Container(
-              width: 58,
-              height: 76,
+  Widget build(BuildContext context) => SizedBox(
+        width: 118,
+        height: 104,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: 98,
+              height: 98,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [_purple, _blue]),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white, width: 3),
+                color: _gold.withValues(alpha: .16),
+                shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.bolt_rounded,
-                  color: Colors.white, size: 28),
             ),
-          ),
-          const Positioned(
-            right: 5,
-            top: 6,
-            child: Icon(Icons.emoji_events_rounded, color: _gold, size: 28),
-          ),
-        ],
+            const _StealLogoMark(size: 82, showGlow: true),
+            PositionedDirectional(
+              top: 1,
+              end: 5,
+              child: Container(
+                width: 34,
+                height: 34,
+                decoration: const BoxDecoration(
+                  color: _gold,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.emoji_events_rounded,
+                  color: _ink,
+                  size: 20,
+                ),
+              ),
+            ),
+          ],
+        ),
       );
 }
 
@@ -1689,13 +1692,16 @@ class _StealOptionCard extends StatelessWidget {
           ),
           child: Column(
             children: [
-              const Align(
-                alignment: AlignmentDirectional.topEnd,
-                child: Icon(Icons.auto_awesome_rounded,
-                    color: Colors.white70, size: 16),
+              const Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _CardCornerMark(color: Colors.white),
+                  Icon(Icons.auto_awesome_rounded,
+                      color: Colors.white70, size: 16),
+                ],
               ),
               const Spacer(),
-              const Icon(Icons.style_rounded, color: Colors.white, size: 28),
+              const _StealLogoMark(size: 46),
               const Spacer(),
               Text(
                 id,
@@ -1864,22 +1870,7 @@ class _ModeCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: accent.withValues(alpha: .12),
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                  child: Text(
-                    badge,
-                    style: TextStyle(
-                      color: accent,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
+                _GameStatusBadge(text: badge, color: accent),
               ],
             ),
             const SizedBox(height: 14),
@@ -2542,8 +2533,9 @@ class _CollectionHeader extends StatelessWidget {
                   ),
                 ],
               ),
-              child: const Icon(Icons.style_rounded,
-                  color: Colors.white, size: 30),
+              child: const Center(
+                child: _StealLogoMark(size: 54),
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -2768,65 +2760,134 @@ class _OwnedCardTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        height: 190,
-        padding: const EdgeInsets.all(14),
+        height: 202,
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [color, Color.lerp(color, _ink, .28)!],
+            colors: [color, Color.lerp(color, _ink, .30)!],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: .72),
+            width: 2,
+          ),
           boxShadow: [
             BoxShadow(
-              color: color.withValues(alpha: .2),
-              blurRadius: 16,
-              offset: const Offset(0, 9),
+              color: color.withValues(alpha: .22),
+              blurRadius: 18,
+              offset: const Offset(0, 10),
             ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Stack(
           children: [
-            const Align(
-              alignment: AlignmentDirectional.topEnd,
-              child: Icon(Icons.auto_awesome_rounded,
-                  color: Colors.white70, size: 18),
+            PositionedDirectional(
+              top: 12,
+              start: 12,
+              child: _CardCornerMark(color: Colors.white),
             ),
-            const Spacer(),
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: .16),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Icon(Icons.style_rounded,
-                  color: Colors.white, size: 23),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              id,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                height: 1.15,
-                fontWeight: FontWeight.w900,
+            PositionedDirectional(
+              top: 11,
+              end: 11,
+              child: _CardOwnedRibbon(
+                text: arabic ? 'مملوكة' : 'OWNED',
               ),
             ),
-            const SizedBox(height: 5),
-            Text(
-              arabic ? 'بطاقة مملوكة' : 'OWNED CARD',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: .7),
-                fontSize: 9,
-                letterSpacing: .7,
-                fontWeight: FontWeight.w900,
+            PositionedDirectional(
+              bottom: 14,
+              end: 13,
+              child: Icon(
+                Icons.north_west_rounded,
+                color: Colors.white.withValues(alpha: .36),
+                size: 22,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 48, 14, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Spacer(),
+                  Container(
+                    width: 52,
+                    height: 62,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: .14),
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: .22),
+                      ),
+                    ),
+                    child: const Center(
+                      child: _StealLogoMark(size: 42),
+                    ),
+                  ),
+                  const SizedBox(height: 13),
+                  Text(
+                    id,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      height: 1.15,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    arabic ? 'بطاقة من مجموعتك' : 'YOUR COLLECTION',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: .68),
+                      fontSize: 9,
+                      letterSpacing: .7,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
+        ),
+      );
+}
+
+class _CardCornerMark extends StatelessWidget {
+  const _CardCornerMark({required this.color});
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.help_rounded, color: color, size: 16),
+          const SizedBox(width: 2),
+          Icon(Icons.bolt_rounded, color: color, size: 13),
+        ],
+      );
+}
+
+class _CardOwnedRibbon extends StatelessWidget {
+  const _CardOwnedRibbon({required this.text});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: .16),
+          borderRadius: BorderRadius.circular(99),
+          border: Border.all(color: Colors.white.withValues(alpha: .22)),
+        ),
+        child: Text(
+          text,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 8,
+            letterSpacing: .5,
+            fontWeight: FontWeight.w900,
+          ),
         ),
       );
 }
@@ -2993,22 +3054,17 @@ class _DeckSlotCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 3),
-                      Text(
-                        active
+                      _GameStatusBadge(
+                        text: active
                             ? (arabic ? 'المجموعة النشطة' : 'ACTIVE DECK')
                             : valid
                                 ? (arabic ? 'جاهزة للتفعيل' : 'READY')
                                 : (arabic ? 'غير مكتملة' : 'INCOMPLETE'),
-                        style: TextStyle(
-                          color: active
-                              ? _purple
-                              : valid
-                                  ? _mint
-                                  : _muted,
-                          fontSize: 9,
-                          letterSpacing: .5,
-                          fontWeight: FontWeight.w900,
-                        ),
+                        color: active
+                            ? _purple
+                            : valid
+                                ? _mint
+                                : _muted,
                       ),
                     ],
                   ),
@@ -3028,16 +3084,14 @@ class _DeckSlotCard extends StatelessWidget {
               children: List.generate(
                 kDeckSizeV2,
                 (slot) => Expanded(
-                  child: Container(
-                    height: 7,
-                    margin: EdgeInsetsDirectional.only(
+                  child: Padding(
+                    padding: EdgeInsetsDirectional.only(
                       end: slot == kDeckSizeV2 - 1 ? 0 : 3,
                     ),
-                    decoration: BoxDecoration(
-                      color: slot < count
-                          ? (active ? _purple : _blue)
-                          : _softPurple,
-                      borderRadius: BorderRadius.circular(99),
+                    child: _DeckMiniSlot(
+                      filled: slot < count,
+                      active: active,
+                      index: slot + 1,
                     ),
                   ),
                 ),
@@ -3077,6 +3131,79 @@ class _DeckSlotCard extends StatelessWidget {
               ],
             ),
           ],
+        ),
+      );
+}
+
+class _DeckMiniSlot extends StatelessWidget {
+  const _DeckMiniSlot({
+    required this.filled,
+    required this.active,
+    required this.index,
+  });
+
+  final bool filled;
+  final bool active;
+  final int index;
+
+  @override
+  Widget build(BuildContext context) => AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        height: 38,
+        decoration: BoxDecoration(
+          color: filled
+              ? (active ? _purple : _blue)
+              : _softPurple,
+          borderRadius: BorderRadius.circular(9),
+          border: Border.all(
+            color: filled
+                ? Colors.white.withValues(alpha: .35)
+                : _purple.withValues(alpha: .08),
+          ),
+        ),
+        child: Center(
+          child: filled
+              ? const Icon(
+                  Icons.help_rounded,
+                  color: Colors.white,
+                  size: 13,
+                )
+              : Text(
+                  '$index',
+                  style: const TextStyle(
+                    color: _muted,
+                    fontSize: 8,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+        ),
+      );
+}
+
+class _GameStatusBadge extends StatelessWidget {
+  const _GameStatusBadge({
+    required this.text,
+    required this.color,
+  });
+
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: .11),
+          borderRadius: BorderRadius.circular(99),
+        ),
+        child: Text(
+          text,
+          style: TextStyle(
+            color: color,
+            fontSize: 8,
+            letterSpacing: .45,
+            fontWeight: FontWeight.w900,
+          ),
         ),
       );
 }
