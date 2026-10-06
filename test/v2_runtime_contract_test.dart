@@ -78,6 +78,16 @@ void main() {
     expect(activeSource, contains('class _StealVictoryMark'));
   });
 
+  test('home play and ranking expose distinct game scenes', () {
+    final activeSource = File('lib/v2_active_app.dart').readAsStringSync();
+
+    expect(activeSource, contains('class _PlayerMissionCard'));
+    expect(activeSource, contains('class _DuelArenaStrip'));
+    expect(activeSource, contains('class _VersusMark'));
+    expect(activeSource, contains('class _WeeklyPodium'));
+    expect(activeSource, contains('class _PodiumPlayer'));
+  });
+
   test('Android auth requires Google sign-in and has no anonymous fallback', () {
     final runtimeSource =
         File('lib/backend/online_runtime_v2.dart').readAsStringSync();
