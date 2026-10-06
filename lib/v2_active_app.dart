@@ -1174,6 +1174,8 @@ class _HomeV2 extends StatelessWidget {
           ready: ready,
           onPlay: () => openTab(3),
         ),
+        const SizedBox(height: 14),
+        _JourneyStrip(arabic: arabic, ownedCount: profile.ownedCount),
         const SizedBox(height: 18),
         Row(
           children: [
@@ -1255,6 +1257,7 @@ class _HomeV2 extends StatelessWidget {
               return _CategoryTile(
                 title: arabic ? category.nameAr : category.nameEn,
                 color: Color(category.colorHex),
+                category: category.id,
               );
             },
           ),
@@ -1299,6 +1302,7 @@ class _CardsV2 extends StatelessWidget {
               return _CategoryPillCard(
                 title: arabic ? category.nameAr : category.nameEn,
                 color: Color(category.colorHex),
+                category: category.id,
               );
             },
           ),
@@ -2623,9 +2627,14 @@ class _DarkBadge extends StatelessWidget {
 }
 
 class _CategoryPillCard extends StatelessWidget {
-  const _CategoryPillCard({required this.title, required this.color});
+  const _CategoryPillCard({
+    required this.title,
+    required this.color,
+    required this.category,
+  });
   final String title;
   final Color color;
+  final GameCategoryId category;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -2646,7 +2655,7 @@ class _CategoryPillCard extends StatelessWidget {
                 color: color.withValues(alpha: .14),
                 borderRadius: BorderRadius.circular(11),
               ),
-              child: Icon(Icons.category_rounded, color: color, size: 18),
+              child: Icon(_categoryIcon(category), color: color, size: 18),
             ),
             const Spacer(),
             Text(
@@ -3126,56 +3135,141 @@ class _CardFanMark extends StatelessWidget {
   const _CardFanMark();
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-        width: 142,
-        height: 112,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Transform.rotate(
-              angle: -.18,
-              child: const _LogoCard(color: _blue, icon: Icons.help_rounded),
-            ),
-            Transform.translate(
-              offset: const Offset(26, 4),
-              child: Transform.rotate(
-                angle: .18,
-                child: const _LogoCard(color: _coral, icon: Icons.flash_on_rounded),
-              ),
-            ),
-            Transform.translate(
-              offset: const Offset(10, -8),
-              child: const _LogoCard(color: _purple, icon: Icons.style_rounded),
-            ),
-          ],
+  Widget build(BuildContext context) => const SizedBox(
+        width: 152,
+        height: 122,
+        child: Center(
+          child: _StealLogoMark(size: 110, showGlow: true),
         ),
       );
 }
 
-class _LogoCard extends StatelessWidget {
-  const _LogoCard({required this.color, required this.icon});
+class _StealLogoMark extends StatelessWidget {
+  const _StealLogoMark({
+    this.size = 48,
+    this.showGlow = false,
+  });
+
+  final double size;
+  final bool showGlow;
+
+  @override
+  Widget build(BuildContext context) {
+    final cardW = size * .54;
+    final cardH = size * .72;
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        alignment: Alignment.center,
+        clipBehavior: Clip.none,
+        children: [
+          if (showGlow)
+            Container(
+              width: size * .95,
+              height: size * .95,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _purple.withValues(alpha: .08),
+              ),
+            ),
+          Transform.translate(
+            offset: Offset(-size * .13, size * .04),
+            child: Transform.rotate(
+              angle: -.20,
+              child: _BrandCard(
+                width: cardW,
+                height: cardH,
+                color: _blue,
+                child: const Icon(
+                  Icons.help_rounded,
+                  color: Colors.white,
+                  size: 28,
+                ),
+              ),
+            ),
+          ),
+          Transform.translate(
+            offset: Offset(size * .12, -size * .03),
+            child: Transform.rotate(
+              angle: .12,
+              child: _BrandCard(
+                width: cardW,
+                height: cardH,
+                color: _purple,
+                child: const Icon(
+                  Icons.question_mark_rounded,
+                  color: Colors.white,
+                  size: 30,
+                ),
+              ),
+            ),
+          ),
+          PositionedDirectional(
+            top: size * .03,
+            end: size * .01,
+            child: Container(
+              width: size * .28,
+              height: size * .28,
+              decoration: const BoxDecoration(
+                color: _gold,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.north_west_rounded,
+                color: _ink,
+                size: size * .16,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BrandCard extends StatelessWidget {
+  const _BrandCard({
+    required this.width,
+    required this.height,
+    required this.color,
+    required this.child,
+  });
+
+  final double width;
+  final double height;
   final Color color;
-  final IconData icon;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) => Container(
-        width: 70,
-        height: 94,
+        width: width,
+        height: height,
         decoration: BoxDecoration(
           color: color,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(width * .22),
           border: Border.all(color: Colors.white, width: 3),
           boxShadow: [
             BoxShadow(
-              color: color.withValues(alpha: .24),
+              color: color.withValues(alpha: .28),
               blurRadius: 16,
               offset: const Offset(0, 8),
             ),
           ],
         ),
-        child: Icon(icon, color: Colors.white, size: 32),
+        child: child,
       );
 }
+
+IconData _categoryIcon(GameCategoryId category) => switch (category) {
+      GameCategoryId.football => Icons.sports_soccer_rounded,
+      GameCategoryId.anime => Icons.auto_awesome_rounded,
+      GameCategoryId.movies => Icons.movie_creation_rounded,
+      GameCategoryId.geography => Icons.public_rounded,
+      GameCategoryId.animals => Icons.pets_rounded,
+      GameCategoryId.science => Icons.science_rounded,
+      GameCategoryId.general => Icons.psychology_alt_rounded,
+    };
 
 class _MiniFeature extends StatelessWidget {
   const _MiniFeature({
@@ -3231,26 +3325,7 @@ class _GameHeader extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 10, 12, 8),
         child: Row(
           children: [
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [_purple, _blue],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: _purple.withValues(alpha: .2),
-                    blurRadius: 14,
-                    offset: const Offset(0, 7),
-                  ),
-                ],
-              ),
-              child: const Icon(Icons.style_rounded, color: Colors.white),
-            ),
+            const _StealLogoMark(size: 48),
             const SizedBox(width: 10),
             const Expanded(
               child: Column(
@@ -3578,6 +3653,81 @@ class _GameHeroCard extends StatelessWidget {
       );
 }
 
+class _JourneyStrip extends StatelessWidget {
+  const _JourneyStrip({
+    required this.arabic,
+    required this.ownedCount,
+  });
+
+  final bool arabic;
+  final int ownedCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final steps = [
+      (Icons.style_rounded, arabic ? 'اجمع' : 'Collect'),
+      (Icons.layers_rounded, arabic ? 'كوّن' : 'Build'),
+      (Icons.flash_on_rounded, arabic ? 'نافس' : 'Duel'),
+      (Icons.north_west_rounded, arabic ? 'اسرق' : 'Steal'),
+    ];
+    final reached = ownedCount >= kDeckSizeV2 ? 2 : ownedCount > 0 ? 1 : 0;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+      decoration: BoxDecoration(
+        color: _cardSurface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _softPurple),
+      ),
+      child: Row(
+        children: List.generate(steps.length, (index) {
+          final active = index <= reached;
+          return Expanded(
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 34,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          color: active ? _purple : _softPurple,
+                          borderRadius: BorderRadius.circular(11),
+                        ),
+                        child: Icon(
+                          steps[index].$1,
+                          size: 17,
+                          color: active ? Colors.white : _muted,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        steps[index].$2,
+                        style: TextStyle(
+                          color: active ? _ink : _muted,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (index < steps.length - 1)
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    size: 14,
+                    color: _purple.withValues(alpha: .35),
+                  ),
+              ],
+            ),
+          );
+        }),
+      ),
+    );
+  }
+}
+
 class _QuickStatCard extends StatelessWidget {
   const _QuickStatCard({
     required this.icon,
@@ -3751,9 +3901,14 @@ class _ActionTile extends StatelessWidget {
 }
 
 class _CategoryTile extends StatelessWidget {
-  const _CategoryTile({required this.title, required this.color});
+  const _CategoryTile({
+    required this.title,
+    required this.color,
+    required this.category,
+  });
   final String title;
   final Color color;
+  final GameCategoryId category;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -3774,8 +3929,8 @@ class _CategoryTile extends StatelessWidget {
                 color: color,
                 borderRadius: BorderRadius.circular(11),
               ),
-              child: const Icon(
-                Icons.style_rounded,
+              child: Icon(
+                _categoryIcon(category),
                 color: Colors.white,
                 size: 18,
               ),
