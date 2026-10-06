@@ -98,6 +98,16 @@ void main() {
     expect(activeSource, contains('Challenger club'));
   });
 
+  test('final identity covers deck editing results loading and error states', () {
+    final activeSource = File('lib/v2_active_app.dart').readAsStringSync();
+
+    expect(activeSource, contains('class _DeckChoiceCard'));
+    expect(activeSource, contains('class _DeckSelectionSlots'));
+    expect(activeSource, contains('class _DuelResultCard'));
+    expect(activeSource, contains('class _BrandedLoadingState'));
+    expect(activeSource, contains('class _BrandedErrorState'));
+  });
+
   test('Android auth requires Google sign-in and has no anonymous fallback', () {
     final runtimeSource =
         File('lib/backend/online_runtime_v2.dart').readAsStringSync();
