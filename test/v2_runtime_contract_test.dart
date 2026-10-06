@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:steal_the_questions/game/core_engine_v2.dart';
 import 'package:steal_the_questions/game/player_profile_v2.dart';
@@ -23,5 +25,15 @@ void main() {
     expect(profile.prestige.second, 0);
     expect(profile.prestige.third, 0);
     expect(profile.subscriptionActive, isFalse);
+  });
+  test('release entry point and active UI contain no retired product model', () {
+    final mainSource = File('lib/main.dart').readAsStringSync();
+    final activeSource = File('lib/v2_active_app.dart').readAsStringSync();
+
+    expect(mainSource, contains('StealQuestionsV2App'));
+    expect(mainSource, isNot(contains('SevenCategoriesApp')));
+    expect(activeSource, isNot(contains('222')));
+    expect(activeSource.toLowerCase(), isNot(contains('weekly pass')));
+    expect(activeSource.toLowerCase(), isNot(contains('rarity system')));
   });
 }
