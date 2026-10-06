@@ -1266,10 +1266,15 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
 
   Future<void> _equipPrestige() => _run(() async {
         if (_demoMode) {
-          _showDemoMessage(
-            'وضع تجريبي: مزامنة ألقاب وإطارات Prestige ستعمل بعد تفعيل Blaze.',
-            'Demo mode: Prestige title/frame sync will work after Blaze is enabled.',
-          );
+          final profile = await _session!.equipSparkTestPrestige();
+          if (!mounted) return;
+          setState(() {
+            _profile = profile;
+            _syncSparkTestPanels(profile);
+            _notice = _arabic
+                ? 'تم تجهيز لقب وإطار Prestige محليًا للاختبار. عند الإطلاق تتم المزامنة عبر Blaze.'
+                : 'Prestige title/frame equipped locally for testing. Production sync uses Blaze.';
+          });
           return;
         }
         final profile = _profile!;
@@ -4930,8 +4935,8 @@ class _DemoModeBanner extends StatelessWidget {
             Expanded(
               child: Text(
                 arabic
-                    ? 'وضع تجريبي — التصفح والبيانات المحلية تعمل. ميزات السيرفر ستتفعل بعد Blaze.'
-                    : 'Demo mode — browsing and local data work. Server features unlock after Blaze.',
+                    ? 'وضع اختبار Spark — الجولات والفوز والتعادل والسرقة والاشتراك تعمل محليًا الآن. قبل الإطلاق يجب تفعيل Blaze.'
+                    : 'Spark test mode — duels, results, stealing and subscription work locally now. Enable Blaze before launch.',
                 style: const TextStyle(
                   color: _ink,
                   fontSize: 10,
