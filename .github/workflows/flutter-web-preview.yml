@@ -84,8 +84,9 @@ jobs:
           test -n "$APKSIGNER"
           CERTS="$("$APKSIGNER" verify --print-certs build/app/outputs/flutter-apk/app-release.apk)"
           echo "$CERTS"
-          echo "$CERTS" | grep -qi "c4:16:1e:e3:89:19:ce:66:29:6c:a2:4b:c7:c1:50:23:25:3c:cf:63"
-          echo "$CERTS" | grep -qi "dc:17:6b:cf:9e:ff:53:f0:a1:b9:d9:ef:fb:f6:c1:25:c5:63:45:75:19:60:f9:e8:13:5f:a4:9b:63:48:6d:d8"
+          NORMALIZED="$(echo "$CERTS" | tr '[:upper:]' '[:lower:]' | tr -d ':')"
+          echo "$NORMALIZED" | grep -q "c4161ee38919ce66296ca24bc7c15023253ccf63"
+          echo "$NORMALIZED" | grep -q "dc176bcf9eff53f0a1b9d9effbf6c125c56345751960f9e8135fa49b63486dd8"
 
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
