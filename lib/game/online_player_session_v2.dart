@@ -44,28 +44,58 @@ class OnlinePlayerSessionV2 {
   }
 
   Future<PlayerProfileV2> refreshProfile() async {
-    final remote = await api.loadProfile();
-    _remoteConnected = true;
-    _profile = remote;
-    await store.save(remote);
-    return remote;
+    try {
+      final remote = await api.loadProfile();
+      _remoteConnected = true;
+      _profile = remote;
+      await store.save(remote);
+      return remote;
+    } catch (_) {
+      _remoteConnected = false;
+      _profile ??= await store.load();
+      return profile;
+    }
   }
 
   Future<PlayerProfileV2> saveDeck(int deckIndex, List<String> packIds) async {
-    final remote = await api.saveDeck(
-      deckIndex: deckIndex,
-      packIds: packIds,
-    );
-    _profile = remote;
-    await store.save(remote);
-    return remote;
+    try {
+      final remote = await api.saveDeck(
+        deckIndex: deckIndex,
+        packIds: packIds,
+      );
+      _remoteConnected = true;
+      _profile = remote;
+      await store.save(remote);
+      return remote;
+    } catch (_) {
+      _remoteConnected = false;
+      final current = profile;
+      if (!current.setDeck(deckIndex, packIds)) {
+        throw StateError('INVALID_LOCAL_DECK');
+      }
+      await store.save(current);
+      return current;
+    }
   }
 
   Future<PlayerProfileV2> setActiveDeck(int deckIndex) async {
-    final remote = await api.setActiveDeck(deckIndex);
-    _profile = remote;
-    await store.save(remote);
-    return remote;
+    try {
+      final remote = await api.setActiveDeck(deckIndex);
+      _remoteConnected = true;
+      _profile = remote;
+      await store.save(remote);
+      return remote;
+    } catch (_) {
+      _remoteConnected = false;
+      final current = profile;
+      if (!current.canUseDeckIndex(deckIndex) ||
+          !PlayerDeckV2(current.decks[deckIndex]).isValid(current.ownedPackIds)) {
+        throw StateError('INVALID_LOCAL_DECK');
+      }
+      current.activeDeckIndex = deckIndex;
+      await store.save(current);
+      return current;
+    }
   }
 
   Future<CustomWrongChoicesV2> customWrongChoices({
