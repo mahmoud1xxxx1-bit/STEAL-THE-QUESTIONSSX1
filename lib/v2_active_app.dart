@@ -52,6 +52,9 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
   String? _subscriptionPrice;
   bool _storeReady = false;
 
+  bool get _demoMode =>
+      !_backendAvailable && !_requiresGoogleSignIn && _profile != null;
+
   @override
   void initState() {
     super.initState();
@@ -181,6 +184,13 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
   }
 
   Future<void> _buySubscription() => _run(() async {
+        if (_demoMode) {
+          _showDemoMessage(
+            'وضع تجريبي: الشراء الحقيقي يحتاج خدمات السيرفر بعد تفعيل Blaze.',
+            'Demo mode: real purchases require server services after Blaze is enabled.',
+          );
+          return;
+        }
         final started = await _purchaseService.buy();
         if (!mounted) return;
         if (!started) {
@@ -193,6 +203,13 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
       });
 
   Future<void> _restoreSubscription() => _run(() async {
+        if (_demoMode) {
+          _showDemoMessage(
+            'وضع تجريبي: استعادة المشتريات ستعمل بعد تفعيل Blaze.',
+            'Demo mode: purchase restore will work after Blaze is enabled.',
+          );
+          return;
+        }
         final started = await _purchaseService.restorePurchases();
         if (!mounted) return;
         if (!started) {
@@ -260,11 +277,23 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
         : 'The operation could not be completed.';
   }
 
+  void _showDemoMessage(String ar, String en) {
+    if (!mounted) return;
+    setState(() => _notice = _arabic ? ar : en);
+  }
+
   Future<void> _refreshProfile() => _run(() async {
         final session = _session!;
         final profile = await session.refreshProfile();
         if (!mounted) return;
         setState(() => _profile = profile);
+        if (_demoMode) {
+          _showDemoMessage(
+            'تم تحديث البيانات المحلية. مزامنة السيرفر ستعمل بعد تفعيل Blaze.',
+            'Local data refreshed. Server sync will work after Blaze is enabled.',
+          );
+          return;
+        }
         await _refreshRemote();
       });
 
@@ -426,6 +455,13 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
   }
 
   Future<void> _refreshSubscription() => _run(() async {
+        if (_demoMode) {
+          _showDemoMessage(
+            'وضع تجريبي: التحقق من الاشتراك يحتاج السيرفر بعد تفعيل Blaze.',
+            'Demo mode: subscription verification requires the server after Blaze is enabled.',
+          );
+          return;
+        }
         final status = await _session!.refreshSubscription();
         if (!mounted) return;
         setState(() {
@@ -442,6 +478,13 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
       });
 
   Future<void> _startBotRound() => _run(() async {
+        if (_demoMode) {
+          _showDemoMessage(
+            'وضع تجريبي: واجهة البوت جاهزة. تشغيل الجولة الفعلية ينتظر Blaze وإضافة محتوى الأسئلة.',
+            'Demo mode: the bot UI is ready. A real round waits for Blaze and question content.',
+          );
+          return;
+        }
         final session = _session!;
         final status = await session.botStatus();
         if (!mounted) return;
@@ -701,6 +744,13 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
   }
 
   Future<void> _startOrCheckMatchmaking() => _run(() async {
+        if (_demoMode) {
+          _showDemoMessage(
+            'وضع تجريبي: PvP والبحث عن خصم والسرقة ستعمل فعليًا بعد تفعيل Blaze.',
+            'Demo mode: PvP matchmaking and stealing will work after Blaze is enabled.',
+          );
+          return;
+        }
         final profile = _profile!;
         if (!profile.pvpUnlocked || !profile.activeDeckReady) {
           setState(() => _notice = _arabic
@@ -728,6 +778,13 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
       });
 
   Future<void> _cancelMatchmaking() => _run(() async {
+        if (_demoMode) {
+          _showDemoMessage(
+            'لا يوجد بحث حقيقي عن خصم في الوضع التجريبي.',
+            'There is no live matchmaking search in demo mode.',
+          );
+          return;
+        }
         await _session!.cancelMatchmaking();
         if (!mounted) return;
         setState(() {
@@ -914,6 +971,13 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
   }
 
   Future<void> _equipPrestige() => _run(() async {
+        if (_demoMode) {
+          _showDemoMessage(
+            'وضع تجريبي: مزامنة ألقاب وإطارات Prestige ستعمل بعد تفعيل Blaze.',
+            'Demo mode: Prestige title/frame sync will work after Blaze is enabled.',
+          );
+          return;
+        }
         final profile = _profile!;
         String? title;
         String? frame;
@@ -1168,7 +1232,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
         refreshSubscription: _refreshSubscription,
         buySubscription: _buySubscription,
         restoreSubscription: _restoreSubscription,
-        storeReady: _storeReady,
+        storeReady: _demoMode || _storeReady,
         subscriptionPrice: _subscriptionPrice,
         equipPrestige: _equipPrestige,
         signOut: _signOutGoogle,
@@ -1189,6 +1253,11 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
                 weeklyPoints: profile.weeklyPoints,
                 onLanguage: () => setState(() => _arabic = !_arabic),
               ),
+              if (_demoMode)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 2, 14, 2),
+                  child: _DemoModeBanner(arabic: _arabic),
+                ),
               if (_notice != null)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(14, 4, 14, 0),
@@ -4540,6 +4609,41 @@ class _HeaderCounter extends StatelessWidget {
                 color: _ink,
                 fontSize: 11,
                 fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _DemoModeBanner extends StatelessWidget {
+  const _DemoModeBanner({required this.arabic});
+  final bool arabic;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+        decoration: BoxDecoration(
+          color: _blue.withValues(alpha: .08),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _blue.withValues(alpha: .18)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.science_rounded, color: _blue, size: 17),
+            const SizedBox(width: 7),
+            Expanded(
+              child: Text(
+                arabic
+                    ? 'وضع تجريبي — التصفح والبيانات المحلية تعمل. ميزات السيرفر ستتفعل بعد Blaze.'
+                    : 'Demo mode — browsing and local data work. Server features unlock after Blaze.',
+                style: const TextStyle(
+                  color: _ink,
+                  fontSize: 10,
+                  height: 1.3,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
           ],
