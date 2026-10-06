@@ -2,6 +2,7 @@ import '../backend/bot_api_v2.dart';
 import '../backend/firebase_game_api_v2.dart';
 import '../backend/profile_features_api_v2.dart';
 import '../data/player_profile_store_v2.dart';
+import 'core_engine_v2.dart';
 import 'player_profile_v2.dart';
 
 /// Coordinates the local V2 profile cache with server-authoritative APIs.
@@ -96,6 +97,53 @@ class OnlinePlayerSessionV2 {
       await store.save(current);
       return current;
     }
+  }
+
+  Future<PlayerProfileV2> ensureSparkTestProfile() async {
+    final current = profile;
+    if (current.ownedPackIds.length < 12) {
+      for (var i = 1; i <= 14; i++) {
+        current.ownedPackIds.add('spark_test_card_${i.toString().padLeft(2, '0')}');
+      }
+    }
+    if (!PlayerDeckV2(current.decks[0]).isValid(current.ownedPackIds)) {
+      current.decks[0] = current.ownedPackIds.take(kDeckSizeV2).toList(growable: false);
+      current.activeDeckIndex = 0;
+    }
+    await store.save(current);
+    return current;
+  }
+
+  Future<PlayerProfileV2> saveSparkTestProfile() async {
+    await store.save(profile);
+    return profile;
+  }
+
+  Future<PlayerProfileV2> applySparkTestResult(DuelResultV2 result) async {
+    profile.applyDuelResult(result);
+    await store.save(profile);
+    return profile;
+  }
+
+  Future<PlayerProfileV2> addSparkTestCard(String packId) async {
+    profile.ownedPackIds.add(packId);
+    await store.save(profile);
+    return profile;
+  }
+
+  Future<PlayerProfileV2> setSparkTestSubscription(bool active) async {
+    profile.subscriptionActive = active;
+    profile.subscriptionExpiresAt =
+        active ? DateTime.now().add(const Duration(days: 30)) : null;
+    await store.save(profile);
+    return profile;
+  }
+
+  Future<PlayerProfileV2> equipSparkTestPrestige() async {
+    profile.currentTitleKey = 'champion_of_the_week';
+    profile.currentFrameKey = 'weekly_gold_frame';
+    await store.save(profile);
+    return profile;
   }
 
   Future<CustomWrongChoicesV2> customWrongChoices({
