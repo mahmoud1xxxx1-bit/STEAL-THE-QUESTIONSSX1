@@ -434,6 +434,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
     final result = await showDialog<int>(
       context: context,
       barrierDismissible: false,
+      barrierColor: _ink.withValues(alpha: .72),
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) {
           timer ??= Timer.periodic(const Duration(seconds: 1), (value) {
@@ -451,64 +452,180 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
             setDialogState(() => secondsLeft -= 1);
           });
 
-          return AlertDialog(
-            title: Row(
-              children: [
-                Expanded(child: Text(title)),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: secondsLeft <= 5
-                        ? const Color(0xFFFFE8E7)
-                        : const Color(0xFFEAF0FF),
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                  child: Text(
-                    '${secondsLeft}s',
-                    style: TextStyle(
-                      color: secondsLeft <= 5 ? _coral : _blue,
-                      fontWeight: FontWeight.w900,
+          final danger = secondsLeft <= 5;
+          return Dialog(
+            insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            backgroundColor: Colors.transparent,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 460),
+              child: Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: _page,
+                  borderRadius: BorderRadius.circular(28),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: .18),
+                      blurRadius: 30,
+                      offset: const Offset(0, 16),
                     ),
-                  ),
+                  ],
                 ),
-              ],
-            ),
-            content: SizedBox(
-              width: 480,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  LinearProgressIndicator(
-                    value: secondsLeft / kSecondsPerQuestionV2,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    prompt,
-                    style: const TextStyle(
-                      color: _ink,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: _purple,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(
+                            Icons.help_rounded,
+                            color: Colors.white,
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            title,
+                            style: const TextStyle(
+                              color: _ink,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 11,
+                            vertical: 7,
+                          ),
+                          decoration: BoxDecoration(
+                            color: danger
+                                ? _coral.withValues(alpha: .13)
+                                : _softPurple,
+                            borderRadius: BorderRadius.circular(99),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.timer_rounded,
+                                size: 16,
+                                color: danger ? _coral : _purple,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '$secondsLeft',
+                                style: TextStyle(
+                                  color: danger ? _coral : _purple,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  ...List.generate(
-                    choices.length,
-                    (index) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: FilledButton.tonal(
-                        onPressed: () {
-                          timer?.cancel();
-                          Navigator.pop(context, index);
-                        },
-                        child: Text(choices[index]),
+                    const SizedBox(height: 14),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(99),
+                      child: LinearProgressIndicator(
+                        minHeight: 7,
+                        value: secondsLeft / kSecondsPerQuestionV2,
+                        backgroundColor: _softPurple,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          danger ? _coral : _purple,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 20),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: _cardSurface,
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(color: _softPurple),
+                      ),
+                      child: Text(
+                        prompt,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: _ink,
+                          fontSize: 20,
+                          height: 1.4,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ...List.generate(
+                      choices.length,
+                      (index) => Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: SizedBox(
+                          width: double.infinity,
+                          minHeight: 54,
+                          child: OutlinedButton(
+                            onPressed: () {
+                              timer?.cancel();
+                              Navigator.pop(context, index);
+                            },
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: _ink,
+                              backgroundColor: _cardSurface,
+                              side: BorderSide(
+                                color: _purple.withValues(alpha: .18),
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                              alignment: AlignmentDirectional.centerStart,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 15,
+                                vertical: 13,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 30,
+                                  height: 30,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: _softPurple,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    String.fromCharCode(65 + index),
+                                    style: const TextStyle(
+                                      color: _purple,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 11),
+                                Expanded(
+                                  child: Text(
+                                    choices[index],
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           );
@@ -639,23 +756,65 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
     final selected = await showDialog<String>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text(
-          _arabic ? 'اختر بطاقة لسرقتها' : 'Choose a card to steal',
-        ),
-        content: SizedBox(
-          width: 420,
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: options.packIds
-                .map(
-                  (id) => ActionChip(
-                    label: Text(id),
-                    onPressed: () => Navigator.pop(context, id),
+      barrierColor: _ink.withValues(alpha: .74),
+      builder: (context) => Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 28),
+        backgroundColor: Colors.transparent,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 440),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: _page,
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const _StealVictoryMark(),
+                const SizedBox(height: 14),
+                Text(
+                  _arabic ? 'اختر بطاقة لسرقتها' : 'Choose a card to steal',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: _ink,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
                   ),
-                )
-                .toList(growable: false),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  _arabic
+                      ? 'فزت بالمواجهة. اختر بطاقة واحدة من خيارات خصمك.'
+                      : 'You won the duel. Pick one card from your opponent.',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: _muted,
+                    height: 1.4,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      alignment: WrapAlignment.center,
+                      children: options.packIds
+                          .map(
+                            (id) => _StealOptionCard(
+                              id: id,
+                              onTap: () => Navigator.pop(context, id),
+                            ),
+                          )
+                          .toList(growable: false),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -1254,6 +1413,7 @@ class _PlayV2 extends StatelessWidget {
     required this.startOrCheckMatchmaking,
     required this.cancelMatchmaking,
   });
+
   final bool arabic;
   final PlayerProfileV2 profile;
   final bool busy;
@@ -1267,55 +1427,73 @@ class _PlayV2 extends StatelessWidget {
   Widget build(BuildContext context) {
     final needsBot = profile.ownedCount < kDeckSizeV2;
     final searching = matchmaking?.searching == true;
-    return _Scroll(children: [
-      _Section(title: arabic ? 'اللعب' : 'Play'),
-      const SizedBox(height: 10),
-      _Panel(
-        child: Column(children: [
-          _Empty(
-            icon: needsBot ? Icons.smart_toy_rounded : Icons.flash_on_rounded,
-            title: needsBot ? (arabic ? 'مسار البوت' : 'Bot onboarding') : (arabic ? 'مسار PvP' : 'PvP path'),
-            text: needsBot
-                ? (arabic ? 'البوت مربوط الآن بالسيرفر وسيعمل فور إضافة المحتوى.' : 'Bot onboarding is now wired to the server and will run as soon as content is added.')
-                : (profile.activeDeckReady
-                    ? (arabic ? 'الـDeck جاهزة وMatchmaking مربوط بالسيرفر.' : 'The active deck is ready and matchmaking is wired to the server.')
-                    : (arabic ? 'تحتاج Deck صالحة من 10 بطاقات مختلفة قبل PvP.' : 'A valid 10-card deck is required before PvP.')),
-          ),
+
+    return _Scroll(
+      children: [
+        _PlayHero(
+          arabic: arabic,
+          needsBot: needsBot,
+          searching: searching,
+        ),
+        const SizedBox(height: 18),
+        _ModeCard(
+          arabic: arabic,
+          icon: Icons.smart_toy_rounded,
+          title: arabic ? 'تحدي البوت' : 'Bot challenge',
+          subtitle: arabic
+              ? 'مرحلة البداية لجمع أول 10 بطاقات.'
+              : 'Your path to the first 10 cards.',
+          accent: _mint,
+          badge: needsBot
+              ? (arabic ? 'متاح' : 'AVAILABLE')
+              : (arabic ? 'مكتمل' : 'COMPLETE'),
+          enabled: needsBot && !busy,
+          buttonText: arabic ? 'ابدأ جولة' : 'Start round',
+          onTap: startBot,
+        ),
+        const SizedBox(height: 12),
+        _ModeCard(
+          arabic: arabic,
+          icon: Icons.flash_on_rounded,
+          title: arabic ? 'مواجهة PvP' : 'PvP duel',
+          subtitle: profile.activeDeckReady
+              ? (arabic
+                  ? 'Deck جاهزة. واجه لاعبًا واسرق بطاقة عند الفوز.'
+                  : 'Deck ready. Face a player and steal a card if you win.')
+              : (arabic
+                  ? 'جهّز Deck من 10 بطاقات مختلفة لفتح المواجهة.'
+                  : 'Build a 10-card deck to unlock duels.'),
+          accent: _coral,
+          badge: searching
+              ? (arabic ? 'جاري البحث' : 'SEARCHING')
+              : profile.activeDeckReady
+                  ? (arabic ? 'جاهز' : 'READY')
+                  : (arabic ? 'مغلق' : 'LOCKED'),
+          enabled: !busy && profile.activeDeckReady,
+          buttonText: searching
+              ? (arabic ? 'تحقق من الخصم' : 'Check opponent')
+              : (arabic ? 'ابحث عن خصم' : 'Find opponent'),
+          onTap: startOrCheckMatchmaking,
+          secondaryText:
+              searching ? (arabic ? 'إلغاء البحث' : 'Cancel search') : null,
+          onSecondary: searching ? cancelMatchmaking : null,
+        ),
+        const SizedBox(height: 18),
+        _BattleRulesCard(
+          arabic: arabic,
+          recentCount: profile.recentQuestionIds.length,
+        ),
+        if (botStatus != null) ...[
           const SizedBox(height: 12),
-          if (needsBot)
-            FilledButton.icon(
-              onPressed: busy ? null : startBot,
-              icon: const Icon(Icons.smart_toy_rounded),
-              label: Text(arabic ? 'ابدأ جولة البوت' : 'Start bot round'),
-            )
-          else
-            FilledButton.icon(
-              onPressed: busy || !profile.activeDeckReady ? null : startOrCheckMatchmaking,
-              icon: Icon(searching ? Icons.refresh_rounded : Icons.sports_esports_rounded),
-              label: Text(searching
-                  ? (arabic ? 'تحقق من الخصم' : 'Check opponent')
-                  : (arabic ? 'ابدأ البحث' : 'Find opponent')),
-            ),
-          if (searching)
-            TextButton(
-              onPressed: busy ? null : cancelMatchmaking,
-              child: Text(arabic ? 'إلغاء البحث' : 'Cancel search'),
-            ),
-          if (botStatus != null) ...[
-            const SizedBox(height: 8),
-            Text('${botStatus!.ownedCount}/${botStatus!.targetCount}', style: const TextStyle(color: _purple, fontWeight: FontWeight.w900)),
-          ],
-        ]),
-      ),
-      const SizedBox(height: 12),
-      _Panel(
-        child: Column(children: [
-          _StatRow(label: arabic ? 'مدة السؤال' : 'Question timer', value: '${kSecondsPerQuestionV2}s'),
-          _StatRow(label: arabic ? 'أسئلة المواجهة' : 'Duel questions', value: '$kDuelCardsV2'),
-          _StatRow(label: arabic ? 'آخر أسئلة محفوظة' : 'Recent history', value: '${profile.recentQuestionIds.length}/$kRecentQuestionLimitV2'),
-        ]),
-      ),
-    ]);
+          _ProgressStrip(
+            label: arabic ? 'تقدم البطاقات' : 'Card progress',
+            value: botStatus!.ownedCount,
+            total: botStatus!.targetCount,
+          ),
+        ],
+        const SizedBox(height: 18),
+      ],
+    );
   }
 }
 
@@ -1335,6 +1513,7 @@ class _ProfileV2 extends StatelessWidget {
     required this.equipPrestige,
     required this.signOut,
   });
+
   final bool arabic;
   final PlayerProfileV2 profile;
   final WeeklyRankingV2? ranking;
@@ -1352,74 +1531,973 @@ class _ProfileV2 extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final total = profile.totalWins + profile.totalLosses + profile.totalDraws;
-    final top = ranking?.players.take(10).toList(growable: false) ?? const <WeeklyRankingPlayerV2>[];
-    return _Scroll(children: [
-      _Section(title: arabic ? 'الملف الشخصي' : 'Profile'),
-      const SizedBox(height: 10),
-      _Panel(
-        child: Column(children: [
-          _StatRow(label: arabic ? 'نقاط هذا الأسبوع' : 'Weekly points', value: '${profile.weeklyPoints}'),
-          _StatRow(label: arabic ? 'فوز' : 'Wins', value: '${profile.totalWins}'),
-          _StatRow(label: arabic ? 'خسارة' : 'Losses', value: '${profile.totalLosses}'),
-          _StatRow(label: arabic ? 'تعادل' : 'Draws', value: '${profile.totalDraws}'),
-          _StatRow(label: arabic ? 'إجمالي المباريات' : 'Total matches', value: '$total'),
-          _StatRow(label: '🥇 / 🥈 / 🥉', value: '${profile.prestige.first} / ${profile.prestige.second} / ${profile.prestige.third}'),
-          _StatRow(label: arabic ? 'اللقب الحالي' : 'Current title', value: profile.currentTitleKey ?? '—'),
-          _StatRow(label: arabic ? 'الإطار الحالي' : 'Current frame', value: profile.currentFrameKey ?? '—'),
-          const SizedBox(height: 6),
-          Wrap(
-            spacing: 8,
-            children: [
-              TextButton.icon(onPressed: busy ? null : refresh, icon: const Icon(Icons.refresh_rounded), label: Text(arabic ? 'تحديث الملف' : 'Refresh profile')),
-              OutlinedButton(onPressed: busy ? null : equipPrestige, child: Text(arabic ? 'جهز أفضل Prestige' : 'Equip best prestige')),
-              OutlinedButton(onPressed: busy ? null : signOut, child: Text(arabic ? 'تسجيل الخروج' : 'Sign out')),
+    final top = ranking?.players.take(10).toList(growable: false) ??
+        const <WeeklyRankingPlayerV2>[];
+
+    return _Scroll(
+      children: [
+        _ProfileHero(
+          arabic: arabic,
+          weeklyPoints: profile.weeklyPoints,
+          wins: profile.totalWins,
+          owned: profile.ownedCount,
+          titleKey: profile.currentTitleKey,
+        ),
+        const SizedBox(height: 18),
+        Row(
+          children: [
+            Expanded(
+              child: _QuickStatCard(
+                icon: Icons.emoji_events_rounded,
+                label: arabic ? 'فوز' : 'Wins',
+                value: '${profile.totalWins}',
+                color: _gold,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _QuickStatCard(
+                icon: Icons.close_rounded,
+                label: arabic ? 'خسارة' : 'Losses',
+                value: '${profile.totalLosses}',
+                color: _coral,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _QuickStatCard(
+                icon: Icons.handshake_rounded,
+                label: arabic ? 'تعادل' : 'Draws',
+                value: '${profile.totalDraws}',
+                color: _blue,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        _PrestigeCard(
+          arabic: arabic,
+          first: profile.prestige.first,
+          second: profile.prestige.second,
+          third: profile.prestige.third,
+          titleKey: profile.currentTitleKey,
+          frameKey: profile.currentFrameKey,
+          onEquip: busy ? null : equipPrestige,
+        ),
+        const SizedBox(height: 18),
+        _SectionRow(
+          title: arabic ? 'الترتيب الأسبوعي' : 'Weekly ranking',
+          action: ranking?.weekKey,
+        ),
+        const SizedBox(height: 10),
+        _RankingCard(arabic: arabic, players: top),
+        const SizedBox(height: 18),
+        _SubscriptionCard(
+          arabic: arabic,
+          active: subscription?.active == true,
+          deckSlots: subscription?.deckSlots ?? profile.entitlement.deckSlots,
+          answerChoices:
+              subscription?.answerChoices ?? profile.entitlement.answerChoices,
+          price: subscriptionPrice,
+          storeReady: storeReady,
+          busy: busy,
+          buy: buySubscription,
+          restore: restoreSubscription,
+          verify: refreshSubscription,
+        ),
+        const SizedBox(height: 14),
+        _ProfileActionsCard(
+          arabic: arabic,
+          totalMatches: total,
+          refresh: busy ? null : refresh,
+          signOut: busy ? null : signOut,
+        ),
+        const SizedBox(height: 18),
+      ],
+    );
+  }
+}
+
+class _StealVictoryMark extends StatelessWidget {
+  const _StealVictoryMark();
+
+  @override
+  Widget build(BuildContext context) => Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: 92,
+            height: 92,
+            decoration: BoxDecoration(
+              color: _gold.withValues(alpha: .16),
+              shape: BoxShape.circle,
+            ),
+          ),
+          Transform.rotate(
+            angle: -.08,
+            child: Container(
+              width: 58,
+              height: 76,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [_purple, _blue]),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white, width: 3),
+              ),
+              child: const Icon(Icons.bolt_rounded,
+                  color: Colors.white, size: 28),
+            ),
+          ),
+          const Positioned(
+            right: 5,
+            top: 6,
+            child: Icon(Icons.emoji_events_rounded, color: _gold, size: 28),
+          ),
+        ],
+      );
+}
+
+class _StealOptionCard extends StatelessWidget {
+  const _StealOptionCard({required this.id, required this.onTap});
+  final String id;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Ink(
+          width: 112,
+          height: 148,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [_purple, _violet],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: _purple.withValues(alpha: .18),
+                blurRadius: 14,
+                offset: const Offset(0, 8),
+              ),
             ],
           ),
-        ]),
-      ),
-      const SizedBox(height: 12),
-      _Section(title: arabic ? 'الاشتراك' : 'Subscription'),
-      const SizedBox(height: 8),
-      _Panel(
-        child: Column(children: [
-          _StatRow(label: arabic ? 'الحالة' : 'Status', value: subscription?.active == true ? (arabic ? 'فعال' : 'Active') : (arabic ? 'مجاني' : 'Free')),
-          _StatRow(label: arabic ? 'Decks المتاحة' : 'Deck slots', value: '${subscription?.deckSlots ?? profile.entitlement.deckSlots}'),
-          _StatRow(label: arabic ? 'خيارات الإجابة' : 'Answer choices', value: '${subscription?.answerChoices ?? profile.entitlement.answerChoices}'),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            alignment: WrapAlignment.center,
+          child: Column(
             children: [
-              FilledButton(
-                onPressed: busy || !storeReady ? null : buySubscription,
-                child: Text(
-                  subscriptionPrice == null
-                      ? (arabic ? 'اشترك شهريًا' : 'Subscribe monthly')
-                      : '${arabic ? 'اشترك' : 'Subscribe'} · $subscriptionPrice',
+              const Align(
+                alignment: AlignmentDirectional.topEnd,
+                child: Icon(Icons.auto_awesome_rounded,
+                    color: Colors.white70, size: 16),
+              ),
+              const Spacer(),
+              const Icon(Icons.style_rounded, color: Colors.white, size: 28),
+              const Spacer(),
+              Text(
+                id,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
-              OutlinedButton(
-                onPressed: busy || !storeReady ? null : restoreSubscription,
-                child: Text(arabic ? 'استعادة الشراء' : 'Restore purchase'),
-              ),
-              FilledButton.tonal(
-                onPressed: busy ? null : refreshSubscription,
-                child: Text(arabic ? 'تحقق من الاشتراك عبر السيرفر' : 'Verify subscription'),
-              ),
             ],
           ),
-        ]),
+        ),
+      );
+}
+
+class _PlayHero extends StatelessWidget {
+  const _PlayHero({
+    required this.arabic,
+    required this.needsBot,
+    required this.searching,
+  });
+
+  final bool arabic;
+  final bool needsBot;
+  final bool searching;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF241B46), Color(0xFF6C3BEA)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(28),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    searching
+                        ? (arabic ? 'نبحث عن خصم...' : 'Finding opponent...')
+                        : needsBot
+                            ? (arabic ? 'ابدأ رحلتك' : 'Start your journey')
+                            : (arabic ? 'وقت المواجهة' : 'Time to duel'),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 23,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 7),
+                  Text(
+                    needsBot
+                        ? (arabic
+                            ? 'اجمع بطاقاتك الأولى ثم افتح مواجهات اللاعبين.'
+                            : 'Collect your first cards, then unlock player duels.')
+                        : (arabic
+                            ? '7 أسئلة. 20 ثانية لكل سؤال. والفائز يسرق بطاقة.'
+                            : '7 questions. 20 seconds each. Winner steals a card.'),
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: .76),
+                      height: 1.4,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 14),
+            Container(
+              width: 70,
+              height: 88,
+              decoration: BoxDecoration(
+                color: _coral,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: Colors.white, width: 3),
+              ),
+              child: const Icon(Icons.flash_on_rounded,
+                  color: Colors.white, size: 32),
+            ),
+          ],
+        ),
+      );
+}
+
+class _ModeCard extends StatelessWidget {
+  const _ModeCard({
+    required this.arabic,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.accent,
+    required this.badge,
+    required this.enabled,
+    required this.buttonText,
+    required this.onTap,
+    this.secondaryText,
+    this.onSecondary,
+  });
+
+  final bool arabic;
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color accent;
+  final String badge;
+  final bool enabled;
+  final String buttonText;
+  final VoidCallback onTap;
+  final String? secondaryText;
+  final VoidCallback? onSecondary;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: _cardSurface,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: accent.withValues(alpha: .16)),
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: accent.withValues(alpha: .13),
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: Icon(icon, color: accent, size: 25),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          color: _ink,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          color: _muted,
+                          height: 1.35,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: accent.withValues(alpha: .12),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                  child: Text(
+                    badge,
+                    style: TextStyle(
+                      color: accent,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: enabled ? onTap : null,
+                style: FilledButton.styleFrom(
+                  backgroundColor: accent,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(48),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                ),
+                icon: Icon(icon, size: 18),
+                label: Text(
+                  buttonText,
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+              ),
+            ),
+            if (secondaryText != null && onSecondary != null)
+              TextButton(
+                onPressed: onSecondary,
+                child: Text(secondaryText!),
+              ),
+          ],
+        ),
+      );
+}
+
+class _BattleRulesCard extends StatelessWidget {
+  const _BattleRulesCard({
+    required this.arabic,
+    required this.recentCount,
+  });
+
+  final bool arabic;
+  final int recentCount;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: _softPurple,
+          borderRadius: BorderRadius.circular(22),
+        ),
+        child: Column(
+          children: [
+            _BattleRuleRow(
+              icon: Icons.quiz_rounded,
+              label: arabic ? 'أسئلة المواجهة' : 'Duel questions',
+              value: '$kDuelCardsV2',
+            ),
+            _BattleRuleRow(
+              icon: Icons.timer_rounded,
+              label: arabic ? 'وقت كل سؤال' : 'Time per question',
+              value: '$kSecondsPerQuestionV2 s',
+            ),
+            _BattleRuleRow(
+              icon: Icons.history_rounded,
+              label: arabic ? 'ذاكرة التكرار' : 'Repeat memory',
+              value: '$recentCount/$kRecentQuestionLimitV2',
+            ),
+          ],
+        ),
+      );
+}
+
+class _BattleRuleRow extends StatelessWidget {
+  const _BattleRuleRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 7),
+        child: Row(
+          children: [
+            Icon(icon, size: 19, color: _purple),
+            const SizedBox(width: 9),
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  color: _muted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            Text(
+              value,
+              style: const TextStyle(
+                color: _ink,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _ProgressStrip extends StatelessWidget {
+  const _ProgressStrip({
+    required this.label,
+    required this.value,
+    required this.total,
+  });
+  final String label;
+  final int value;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: _cardSurface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: _softPurple),
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      color: _ink,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                Text(
+                  '$value/$total',
+                  style: const TextStyle(
+                    color: _purple,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 9),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(99),
+              child: LinearProgressIndicator(
+                minHeight: 7,
+                value: total == 0
+                    ? 0
+                    : (value / total).clamp(0.0, 1.0).toDouble(),
+                backgroundColor: _softPurple,
+                valueColor: const AlwaysStoppedAnimation<Color>(_purple),
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _ProfileHero extends StatelessWidget {
+  const _ProfileHero({
+    required this.arabic,
+    required this.weeklyPoints,
+    required this.wins,
+    required this.owned,
+    required this.titleKey,
+  });
+
+  final bool arabic;
+  final int weeklyPoints;
+  final int wins;
+  final int owned;
+  final String? titleKey;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [_violet, _blue],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(28),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: .15),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 3),
+              ),
+              child: const Icon(Icons.person_rounded,
+                  color: Colors.white, size: 34),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    arabic ? 'ملف اللاعب' : 'Player profile',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 21,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    titleKey ??
+                        (arabic ? 'بدون لقب مجهز' : 'No title equipped'),
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: .74),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 7,
+                    children: [
+                      _DarkBadge(
+                        icon: Icons.emoji_events_rounded,
+                        text: '$weeklyPoints',
+                      ),
+                      _DarkBadge(icon: Icons.bolt_rounded, text: '$wins'),
+                      _DarkBadge(icon: Icons.style_rounded, text: '$owned'),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _PrestigeCard extends StatelessWidget {
+  const _PrestigeCard({
+    required this.arabic,
+    required this.first,
+    required this.second,
+    required this.third,
+    required this.titleKey,
+    required this.frameKey,
+    required this.onEquip,
+  });
+
+  final bool arabic;
+  final int first;
+  final int second;
+  final int third;
+  final String? titleKey;
+  final String? frameKey;
+  final VoidCallback? onEquip;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: _cardSurface,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: _gold.withValues(alpha: .24)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.workspace_premium_rounded,
+                    color: _gold, size: 26),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    arabic ? 'Prestige الأسبوعي' : 'Weekly prestige',
+                    style: const TextStyle(
+                      color: _ink,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                Text(
+                  '🥇 $first  🥈 $second  🥉 $third',
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _StatRow(
+              label: arabic ? 'اللقب الحالي' : 'Current title',
+              value: titleKey ?? '—',
+            ),
+            _StatRow(
+              label: arabic ? 'الإطار الحالي' : 'Current frame',
+              value: frameKey ?? '—',
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: onEquip,
+                icon: const Icon(Icons.auto_awesome_rounded),
+                label: Text(
+                  arabic ? 'تجهيز أفضل Prestige' : 'Equip best prestige',
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _RankingCard extends StatelessWidget {
+  const _RankingCard({required this.arabic, required this.players});
+  final bool arabic;
+  final List<WeeklyRankingPlayerV2> players;
+
+  @override
+  Widget build(BuildContext context) {
+    if (players.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: _cardSurface,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: _softPurple),
+        ),
+        child: Text(
+          arabic ? 'لا توجد نتائج أسبوعية بعد.' : 'No weekly results yet.',
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: _muted,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: _cardSurface,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: _softPurple),
       ),
-      const SizedBox(height: 12),
-      _Section(title: arabic ? 'الترتيب الأسبوعي' : 'Weekly ranking'),
-      const SizedBox(height: 8),
-      _Panel(
-        child: top.isEmpty
-            ? Text(arabic ? 'لا توجد نتائج بعد.' : 'No ranking results yet.', style: const TextStyle(color: _muted))
-            : Column(children: top.map((p) => _StatRow(label: '#${p.rank} ${p.displayName}', value: '${p.weeklyPoints} · ${p.weeklyWins}W')).toList(growable: false)),
+      child: Column(
+        children: players.map((p) {
+          final medal = p.rank == 1
+              ? '🥇'
+              : p.rank == 2
+                  ? '🥈'
+                  : p.rank == 3
+                      ? '🥉'
+                      : '#${p.rank}';
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+            margin: const EdgeInsets.only(bottom: 5),
+            decoration: BoxDecoration(
+              color: p.rank <= 3
+                  ? _gold.withValues(alpha: .08)
+                  : _page,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 36,
+                  child: Text(
+                    medal,
+                    style: const TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    p.displayName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: _ink,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                Text(
+                  '${p.weeklyPoints}',
+                  style: const TextStyle(
+                    color: _purple,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList(growable: false),
       ),
-    ]);
+    );
   }
+}
+
+class _SubscriptionCard extends StatelessWidget {
+  const _SubscriptionCard({
+    required this.arabic,
+    required this.active,
+    required this.deckSlots,
+    required this.answerChoices,
+    required this.price,
+    required this.storeReady,
+    required this.busy,
+    required this.buy,
+    required this.restore,
+    required this.verify,
+  });
+
+  final bool arabic;
+  final bool active;
+  final int deckSlots;
+  final int answerChoices;
+  final String? price;
+  final bool storeReady;
+  final bool busy;
+  final VoidCallback buy;
+  final VoidCallback restore;
+  final VoidCallback verify;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: active
+                ? [_gold.withValues(alpha: .2), _cardSurface]
+                : [_softPurple, _cardSurface],
+          ),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: active ? _gold.withValues(alpha: .35) : _softPurple,
+          ),
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Icon(
+                  active ? Icons.workspace_premium_rounded : Icons.star_rounded,
+                  color: active ? _gold : _purple,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    active
+                        ? (arabic ? 'اشتراك فعال' : 'Active subscription')
+                        : (arabic ? 'الاشتراك الشهري' : 'Monthly subscription'),
+                    style: const TextStyle(
+                      color: _ink,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                if (price != null)
+                  Text(
+                    price!,
+                    style: const TextStyle(
+                      color: _purple,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _EntitlementMini(
+                    icon: Icons.layers_rounded,
+                    value: '$deckSlots',
+                    label: arabic ? 'Decks' : 'Decks',
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _EntitlementMini(
+                    icon: Icons.checklist_rounded,
+                    value: '$answerChoices',
+                    label: arabic ? 'خيارات' : 'Choices',
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (!active)
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: busy || !storeReady ? null : buy,
+                  child: Text(arabic ? 'اشترك الآن' : 'Subscribe'),
+                ),
+              ),
+            Wrap(
+              spacing: 8,
+              alignment: WrapAlignment.center,
+              children: [
+                TextButton(
+                  onPressed: busy || !storeReady ? null : restore,
+                  child: Text(arabic ? 'استعادة الشراء' : 'Restore'),
+                ),
+                TextButton(
+                  onPressed: busy ? null : verify,
+                  child: Text(arabic ? 'تحقق' : 'Verify'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+}
+
+class _EntitlementMini extends StatelessWidget {
+  const _EntitlementMini({
+    required this.icon,
+    required this.value,
+    required this.label,
+  });
+  final IconData icon;
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: .72),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: _purple, size: 20),
+            const SizedBox(height: 5),
+            Text(
+              value,
+              style: const TextStyle(
+                color: _ink,
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            Text(
+              label,
+              style: const TextStyle(
+                color: _muted,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _ProfileActionsCard extends StatelessWidget {
+  const _ProfileActionsCard({
+    required this.arabic,
+    required this.totalMatches,
+    required this.refresh,
+    required this.signOut,
+  });
+
+  final bool arabic;
+  final int totalMatches;
+  final VoidCallback? refresh;
+  final VoidCallback? signOut;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: _cardSurface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: _softPurple),
+        ),
+        child: Column(
+          children: [
+            _StatRow(
+              label: arabic ? 'إجمالي المباريات' : 'Total matches',
+              value: '$totalMatches',
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: refresh,
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: Text(arabic ? 'تحديث' : 'Refresh'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: signOut,
+                    icon: const Icon(Icons.logout_rounded),
+                    label: Text(arabic ? 'خروج' : 'Sign out'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
 }
 
 class _CollectionHeader extends StatelessWidget {
