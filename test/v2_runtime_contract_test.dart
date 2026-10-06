@@ -37,6 +37,27 @@ void main() {
     expect(activeSource.toLowerCase(), isNot(contains('rarity system')));
   });
 
+  test('question timeout never auto-selects an answer', () {
+    final activeSource = File('lib/v2_active_app.dart').readAsStringSync();
+
+    expect(activeSource, isNot(contains('choices.isEmpty ? null : 0')));
+    expect(
+      activeSource,
+      contains('Navigator.of(dialogContext).pop();'),
+    );
+  });
+
+  test('mobile identity remains portrait-first and game-oriented', () {
+    final mainSource = File('lib/main.dart').readAsStringSync();
+    final activeSource = File('lib/v2_active_app.dart').readAsStringSync();
+
+    expect(mainSource, contains('DeviceOrientation.portraitUp'));
+    expect(mainSource, contains('DeviceOrientation.portraitDown'));
+    expect(activeSource, contains('_GameBottomNav'));
+    expect(activeSource, contains('_GameHeroCard'));
+    expect(activeSource, contains('_CardFanMark'));
+  });
+
   test('Android auth requires Google sign-in and has no anonymous fallback', () {
     final runtimeSource =
         File('lib/backend/online_runtime_v2.dart').readAsStringSync();
