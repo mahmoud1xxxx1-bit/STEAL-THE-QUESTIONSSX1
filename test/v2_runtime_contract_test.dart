@@ -68,6 +68,16 @@ void main() {
     expect(activeSource, contains('class _JourneyStrip'));
   });
 
+  test('card collection and deck builder share one visual card language', () {
+    final activeSource = File('lib/v2_active_app.dart').readAsStringSync();
+
+    expect(activeSource, contains('class _CardCornerMark'));
+    expect(activeSource, contains('class _CardOwnedRibbon'));
+    expect(activeSource, contains('class _DeckMiniSlot'));
+    expect(activeSource, contains('class _GameStatusBadge'));
+    expect(activeSource, contains('class _StealVictoryMark'));
+  });
+
   test('Android auth requires Google sign-in and has no anonymous fallback', () {
     final runtimeSource =
         File('lib/backend/online_runtime_v2.dart').readAsStringSync();
