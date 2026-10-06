@@ -75,6 +75,11 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: python3 tool/configure_generated_android.py
 
+      - name: Verify generated Android entrypoint
+        run: |
+          grep -R -q "^package com.STEALTHE.QUESTIONSSX1$" android/app/src/main/kotlin
+          grep -q 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml
+
       - name: Build Android release APK
         run: flutter build apk --release
 
