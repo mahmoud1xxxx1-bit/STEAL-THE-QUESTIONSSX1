@@ -224,16 +224,39 @@ const verifySubscriptionPurchaseV2 = onCall(
     }
 
     const entitlementRef = db.collection('purchaseEntitlementsV2').doc(uid);
-    await entitlementRef.set({
-      verified: true,
-      source: verified.source,
-      productId: verified.productId,
-      transactionId: verified.transactionId,
-      originalTransactionId: verified.originalTransactionId,
-      expiresAt: Timestamp.fromMillis(verified.expiresAtMs),
-      verifiedAt: Timestamp.now(),
-      updatedAt: Timestamp.now(),
-    }, { merge: true });
+    const claimKey = crypto.createHash('sha256')
+      .update(`${verified.source}:${verified.transactionId}`)
+      .digest('hex');
+    const claimRef = db.collection('purchaseReceiptClaimsV2').doc(claimKey);
+
+    await db.runTransaction(async (tx) => {
+      const claimSnap = await tx.get(claimRef);
+      if (claimSnap.exists && claimSnap.data().uid !== uid) {
+        throw new HttpsError(
+          'permission-denied',
+          'This store transaction is already linked to another account.',
+        );
+      }
+
+      tx.set(claimRef, {
+        uid,
+        source: verified.source,
+        productId: verified.productId,
+        transactionId: verified.transactionId,
+        updatedAt: Timestamp.now(),
+      }, { merge: true });
+
+      tx.set(entitlementRef, {
+        verified: true,
+        source: verified.source,
+        productId: verified.productId,
+        transactionId: verified.transactionId,
+        originalTransactionId: verified.originalTransactionId,
+        expiresAt: Timestamp.fromMillis(verified.expiresAtMs),
+        verifiedAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      }, { merge: true });
+    });
 
     return {
       verified: true,
