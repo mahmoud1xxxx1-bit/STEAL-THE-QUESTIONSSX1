@@ -444,9 +444,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
             }
             if (secondsLeft <= 1) {
               value.cancel();
-              Navigator.of(dialogContext).pop(
-                choices.isEmpty ? null : 0,
-              );
+              Navigator.of(dialogContext).pop();
               return;
             }
             setDialogState(() => secondsLeft -= 1);
@@ -3286,7 +3284,7 @@ class _GameHeader extends StatelessWidget {
               value: '$ownedCount',
               color: _purple,
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 4),
             _HeaderCounter(
               icon: Icons.emoji_events_rounded,
               value: '$weeklyPoints',
@@ -3654,17 +3652,36 @@ class _SectionRow extends StatelessWidget {
               ),
             ),
           ),
-          if (action != null && onAction != null)
-            TextButton(
-              onPressed: onAction,
-              child: Text(
-                action!,
-                style: const TextStyle(
-                  color: _purple,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
+          if (action != null)
+            onAction == null
+                ? Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _softPurple,
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                    child: Text(
+                      action!,
+                      style: const TextStyle(
+                        color: _purple,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  )
+                : TextButton(
+                    onPressed: onAction,
+                    child: Text(
+                      action!,
+                      style: const TextStyle(
+                        color: _purple,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
         ],
       );
 }
