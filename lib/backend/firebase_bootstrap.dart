@@ -28,13 +28,13 @@ class FirebaseBootstrap {
         const configuredStorageBucket =
             String.fromEnvironment('FIREBASE_WEB_STORAGE_BUCKET');
 
-        const projectId = configuredProjectId.isEmpty
+        final projectId = configuredProjectId.isEmpty
             ? defaultProjectId
             : configuredProjectId;
-        const authDomain = configuredAuthDomain.isEmpty
+        final authDomain = configuredAuthDomain.isEmpty
             ? '$projectId.firebaseapp.com'
             : configuredAuthDomain;
-        const storageBucket = configuredStorageBucket.isEmpty
+        final storageBucket = configuredStorageBucket.isEmpty
             ? '$projectId.appspot.com'
             : configuredStorageBucket;
 
