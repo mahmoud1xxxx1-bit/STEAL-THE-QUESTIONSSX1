@@ -37,27 +37,35 @@ jobs:
       - name: Run Flutter tests
         run: flutter test
 
+      - name: Require Android production secrets
+        env:
+          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          test -n "$GOOGLE_SERVICES_JSON_BASE64"
+          test -n "$ANDROID_KEYSTORE_BASE64"
+          test -n "$ANDROID_KEYSTORE_PASSWORD"
+          test -n "$ANDROID_KEY_ALIAS"
+          test -n "$ANDROID_KEY_PASSWORD"
+
       - name: Restore Firebase Android configuration
         env:
           GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
         run: |
-          if [ -n "$GOOGLE_SERVICES_JSON_BASE64" ]; then
-            echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > android/app/google-services.json
-            echo "Firebase Android configuration restored."
-          else
-            echo "::warning::GOOGLE_SERVICES_JSON_BASE64 is missing. APK will build, but Firebase/Google Sign-In will not be production-ready."
-          fi
+          echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > android/app/google-services.json
+          test -s android/app/google-services.json
+          echo "Firebase Android configuration restored."
 
       - name: Restore release signing key
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
-          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
-            echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/steal_questions_release.jks
-            echo "Release keystore restored."
-          else
-            echo "::warning::ANDROID_KEYSTORE_BASE64 is missing. Android build will use the template signing fallback."
-          fi
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/steal_questions_release.jks
+          test -s android/app/steal_questions_release.jks
+          echo "Release keystore restored."
 
       - name: Configure Android package Firebase and release signing
         env:
@@ -69,6 +77,15 @@ jobs:
 
       - name: Build Android release APK
         run: flutter build apk --release
+
+      - name: Verify release signing certificate
+        run: |
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)"
+          test -n "$APKSIGNER"
+          CERTS="$("$APKSIGNER" verify --print-certs build/app/outputs/flutter-apk/app-release.apk)"
+          echo "$CERTS"
+          echo "$CERTS" | grep -qi "c4:16:1e:e3:89:19:ce:66:29:6c:a2:4b:c7:c1:50:23:25:3c:cf:63"
+          echo "$CERTS" | grep -qi "dc:17:6b:cf:9e:ff:53:f0:a1:b9:d9:ef:fb:f6:c1:25:c5:63:45:75:19:60:f9:e8:13:5f:a4:9b:63:48:6d:d8"
 
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
