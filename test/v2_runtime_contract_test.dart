@@ -129,9 +129,15 @@ void main() {
 
     expect(appSource, contains('bool get _demoMode'));
     expect(appSource, contains('class _DemoModeBanner'));
-    expect(appSource, contains('وضع تجريبي'));
+    expect(appSource, contains('وضع اختبار Spark'));
     expect(sessionSource, contains('INVALID_LOCAL_DECK'));
     expect(sessionSource, contains('_remoteConnected = false'));
+    expect(sessionSource, contains('ensureSparkTestProfile'));
+    expect(sessionSource, contains('applySparkTestResult'));
+    expect(appSource, contains('_runSparkTestDuel'));
+    expect(appSource, contains('_chooseSparkTestSteal'));
+    expect(appSource, contains('setSparkTestSubscription'));
+    expect(appSource, contains('equipSparkTestPrestige'));
   });
 
   test('Android auth requires Google sign-in and has no anonymous fallback', () {
