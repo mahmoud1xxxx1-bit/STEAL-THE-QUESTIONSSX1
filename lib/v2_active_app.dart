@@ -52,6 +52,9 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
   String? _subscriptionPrice;
   bool _storeReady = false;
 
+  bool get _demoMode =>
+      !_backendAvailable && !_requiresGoogleSignIn && _profile != null;
+
   @override
   void initState() {
     super.initState();
@@ -95,8 +98,11 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
         api: FirebaseGameApiV2(),
         botApi: BotApiV2(),
       );
-      final profile = await session.initialize();
+      var profile = await session.initialize();
       final online = session.remoteConnected;
+      if (!online) {
+        profile = await session.ensureSparkTestProfile();
+      }
       if (!mounted) return;
       setState(() {
         _session = session;
@@ -104,8 +110,18 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
         _backendAvailable = online;
         _requiresGoogleSignIn = false;
         _loadError = null;
+        _notice = null;
         if (!online) {
-          _notice = null;
+          _ranking = _sparkTestRanking(profile);
+          _subscription = _sparkTestSubscription(profile);
+          _botStatus = BotStatusV2(
+            botUnlocked: true,
+            ownedCount: profile.ownedCount,
+            targetCount: 10,
+            contentAvailable: true,
+          );
+          _matchmaking =
+              const MatchmakingStatusV2(status: 'idle', duelId: null);
         }
       });
 
@@ -144,6 +160,70 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
         });
       });
 
+
+  WeeklyRankingV2 _sparkTestRanking(PlayerProfileV2 profile) {
+    final rows = <WeeklyRankingPlayerV2>[
+      WeeklyRankingPlayerV2(
+        rank: 1,
+        uid: 'spark-opponent-1',
+        displayName: _arabic ? 'لاعب تجريبي 1' : 'Test Player 1',
+        weeklyPoints: 120,
+        weeklyWins: 5,
+        weeklyLosses: 2,
+        weeklyDraws: 0,
+        currentTitleKey: 'champion_of_the_week',
+        currentFrameKey: 'weekly_gold_frame',
+      ),
+      WeeklyRankingPlayerV2(
+        rank: 2,
+        uid: FirebaseAuth.instance.currentUser?.uid ?? 'spark-you',
+        displayName: _arabic ? 'أنت — اختبار Spark' : 'You — Spark Test',
+        weeklyPoints: profile.weeklyPoints,
+        weeklyWins: profile.weeklyWins,
+        weeklyLosses: profile.weeklyLosses,
+        weeklyDraws: profile.weeklyDraws,
+        currentTitleKey: profile.currentTitleKey,
+        currentFrameKey: profile.currentFrameKey,
+      ),
+      const WeeklyRankingPlayerV2(
+        rank: 3,
+        uid: 'spark-opponent-2',
+        displayName: 'TEST PLAYER 2',
+        weeklyPoints: 75,
+        weeklyWins: 3,
+        weeklyLosses: 2,
+        weeklyDraws: 1,
+        currentTitleKey: null,
+        currentFrameKey: null,
+      ),
+    ];
+    return WeeklyRankingV2(weekKey: profile.weekKey, players: rows);
+  }
+
+  SubscriptionStatusV2 _sparkTestSubscription(PlayerProfileV2 profile) =>
+      SubscriptionStatusV2(
+        active: profile.subscriptionActive,
+        expiresAt: profile.subscriptionExpiresAt,
+        source: 'spark_test',
+        productId: 'monthly_subscription_v2',
+        deckSlots: profile.entitlement.deckSlots,
+        answerChoices: profile.entitlement.answerChoices,
+        editableWrongChoices: profile.entitlement.editableWrongChoices,
+        profile: profile,
+      );
+
+  void _syncSparkTestPanels(PlayerProfileV2 profile) {
+    if (!_demoMode) return;
+    _ranking = _sparkTestRanking(profile);
+    _subscription = _sparkTestSubscription(profile);
+    _botStatus = BotStatusV2(
+      botUnlocked: true,
+      ownedCount: profile.ownedCount,
+      targetCount: 10,
+      contentAvailable: true,
+    );
+  }
+
   Future<void> _configurePurchases() async {
     final session = _session;
     if (session == null || !_backendAvailable) return;
@@ -181,6 +261,18 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
   }
 
   Future<void> _buySubscription() => _run(() async {
+        if (_demoMode) {
+          final profile = await _session!.setSparkTestSubscription(true);
+          if (!mounted) return;
+          setState(() {
+            _profile = profile;
+            _syncSparkTestPanels(profile);
+            _notice = _arabic
+                ? 'تم تفعيل الاشتراك محليًا للاختبار لمدة 30 يومًا. عند الإطلاق يجب التحقق منه عبر Blaze.'
+                : 'Subscription enabled locally for a 30-day test. Production verification requires Blaze.';
+          });
+          return;
+        }
         final started = await _purchaseService.buy();
         if (!mounted) return;
         if (!started) {
@@ -193,6 +285,18 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
       });
 
   Future<void> _restoreSubscription() => _run(() async {
+        if (_demoMode) {
+          final profile = await _session!.setSparkTestSubscription(true);
+          if (!mounted) return;
+          setState(() {
+            _profile = profile;
+            _syncSparkTestPanels(profile);
+            _notice = _arabic
+                ? 'تمت محاكاة استعادة الاشتراك محليًا للاختبار.'
+                : 'Subscription restore simulated locally for testing.';
+          });
+          return;
+        }
         final started = await _purchaseService.restorePurchases();
         if (!mounted) return;
         if (!started) {
@@ -260,11 +364,23 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
         : 'The operation could not be completed.';
   }
 
+  void _showDemoMessage(String ar, String en) {
+    if (!mounted) return;
+    setState(() => _notice = _arabic ? ar : en);
+  }
+
   Future<void> _refreshProfile() => _run(() async {
         final session = _session!;
         final profile = await session.refreshProfile();
         if (!mounted) return;
         setState(() => _profile = profile);
+        if (_demoMode) {
+          _showDemoMessage(
+            'تم تحديث البيانات المحلية. مزامنة السيرفر ستعمل بعد تفعيل Blaze.',
+            'Local data refreshed. Server sync will work after Blaze is enabled.',
+          );
+          return;
+        }
         await _refreshRemote();
       });
 
@@ -426,6 +542,17 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
   }
 
   Future<void> _refreshSubscription() => _run(() async {
+        if (_demoMode) {
+          final profile = _session!.profile;
+          if (!mounted) return;
+          setState(() {
+            _subscription = _sparkTestSubscription(profile);
+            _notice = _arabic
+                ? 'تم التحقق من حالة الاشتراك المحلية في وضع Spark التجريبي.'
+                : 'Local Spark-test subscription state verified.';
+          });
+          return;
+        }
         final status = await _session!.refreshSubscription();
         if (!mounted) return;
         setState(() {
@@ -442,6 +569,38 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
       });
 
   Future<void> _startBotRound() => _run(() async {
+        if (_demoMode) {
+          final answer = await _answerDialog(
+            title: _arabic ? 'سؤال اختبار Spark' : 'Spark test question',
+            prompt: _arabic
+                ? 'هذا سؤال تجريبي لاختبار تدفق اللعب فقط. اختر الإجابة الصحيحة.'
+                : 'This is a test-only question for gameplay flow. Choose the correct answer.',
+            choices: _arabic
+                ? const ['الإجابة الصحيحة', 'خيار تجريبي 1', 'خيار تجريبي 2']
+                : const ['Correct answer', 'Test option 1', 'Test option 2'],
+          );
+          if (answer == null) return;
+          final correct = answer == 0;
+          var profile = _session!.profile;
+          if (correct) {
+            final id =
+                'spark_bonus_card_${DateTime.now().millisecondsSinceEpoch}';
+            profile = await _session!.addSparkTestCard(id);
+          }
+          if (!mounted) return;
+          setState(() {
+            _profile = profile;
+            _syncSparkTestPanels(profile);
+            _notice = correct
+                ? (_arabic
+                    ? 'إجابة صحيحة. أضيفت بطاقة اختبارية إلى مجموعتك.'
+                    : 'Correct. A test card was added to your collection.')
+                : (_arabic
+                    ? 'إجابة غير صحيحة. لم تتم إضافة بطاقة.'
+                    : 'Incorrect. No card was added.');
+          });
+          return;
+        }
         final session = _session!;
         final status = await session.botStatus();
         if (!mounted) return;
@@ -700,7 +859,192 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
     return result;
   }
 
+
+  Future<String?> _sparkTestScenario() => showDialog<String>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(_arabic ? 'اختبار مواجهة Spark' : 'Spark duel test'),
+          content: Text(
+            _arabic
+                ? 'اختر السيناريو الذي تريد تجربته. الأسئلة هنا تجريبية فقط ولا تضيف محتوى اللعبة الحقيقي.'
+                : 'Choose the flow you want to test. These questions are test-only and are not real game content.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, 'easy'),
+              child: Text(_arabic ? 'اختبار الفوز' : 'Test win'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, 'draw'),
+              child: Text(_arabic ? 'اختبار التعادل' : 'Test draw'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, 'hard'),
+              child: Text(_arabic ? 'اختبار الخسارة' : 'Test loss'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, 'real'),
+              child: Text(_arabic ? 'مباراة واقعية' : 'Realistic match'),
+            ),
+          ],
+        ),
+      );
+
+  Future<void> _runSparkTestDuel() async {
+    final scenario = await _sparkTestScenario();
+    if (scenario == null || !mounted) return;
+
+    var correctCount = 0;
+    var elapsedMs = 0;
+    for (var index = 0; index < kDuelCardsV2; index++) {
+      final started = DateTime.now();
+      final answer = await _answerDialog(
+        title: '${_arabic ? 'السؤال التجريبي' : 'Test question'} ${index + 1}/$kDuelCardsV2',
+        prompt: _arabic
+            ? 'سؤال اختبار داخلي رقم ${index + 1}. اختر الإجابة الصحيحة لاختبار نظام المواجهة.'
+            : 'Internal test question ${index + 1}. Choose the correct answer to test the duel flow.',
+        choices: _arabic
+            ? const ['الإجابة الصحيحة', 'إجابة تجريبية 1', 'إجابة تجريبية 2']
+            : const ['Correct answer', 'Test answer 1', 'Test answer 2'],
+      );
+      elapsedMs += DateTime.now().difference(started).inMilliseconds;
+      if (answer == null) {
+        _showDemoMessage(
+          'تم إيقاف المواجهة التجريبية.',
+          'The test duel was paused.',
+        );
+        return;
+      }
+      if (answer == 0) correctCount += 1;
+    }
+
+    final int opponentCorrect;
+    final int opponentElapsedMs;
+    if (scenario == 'easy') {
+      opponentCorrect = 2;
+      opponentElapsedMs = 90000;
+    } else if (scenario == 'hard') {
+      opponentCorrect = 7;
+      opponentElapsedMs = 25000;
+    } else if (scenario == 'draw') {
+      opponentCorrect = correctCount;
+      opponentElapsedMs = elapsedMs;
+    } else {
+      opponentCorrect = 4;
+      opponentElapsedMs = 70000;
+    }
+
+    final DuelResultV2 result;
+    if (correctCount > opponentCorrect) {
+      result = DuelResultV2.win;
+    } else if (correctCount < opponentCorrect) {
+      result = DuelResultV2.loss;
+    } else if (elapsedMs < opponentElapsedMs) {
+      result = DuelResultV2.win;
+    } else if (elapsedMs > opponentElapsedMs) {
+      result = DuelResultV2.loss;
+    } else {
+      result = DuelResultV2.draw;
+    }
+
+    final profile = await _session!.applySparkTestResult(result);
+    if (!mounted) return;
+    setState(() {
+      _profile = profile;
+      _syncSparkTestPanels(profile);
+    });
+
+    switch (result) {
+      case DuelResultV2.win:
+        await _chooseSparkTestSteal();
+        break;
+      case DuelResultV2.loss:
+        await _showDuelResult('loss');
+        break;
+      case DuelResultV2.draw:
+        await _showDuelResult('draw');
+        break;
+    }
+
+    if (!mounted) return;
+    _showDemoMessage(
+      'اكتملت مواجهة Spark محليًا. قبل الإطلاق يجب تفعيل Blaze ليصبح PvP حقيقيًا وآمنًا بين اللاعبين.',
+      'Spark test duel completed locally. Enable Blaze before launch for secure real-player PvP.',
+    );
+  }
+
+  Future<void> _chooseSparkTestSteal() async {
+    final options = List<String>.generate(
+      3,
+      (index) => 'spark_opponent_card_${index + 1}',
+    );
+    final selected = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: _ink.withValues(alpha: .74),
+      builder: (context) => Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 28),
+        backgroundColor: Colors.transparent,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 440),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: _page,
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const _StealVictoryMark(),
+                const SizedBox(height: 14),
+                Text(
+                  _arabic
+                      ? 'فزت — اختر بطاقة لتسرقها'
+                      : 'You won — choose a card to steal',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: _ink,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  alignment: WrapAlignment.center,
+                  children: options
+                      .map(
+                        (id) => _StealOptionCard(
+                          id: id,
+                          onTap: () => Navigator.pop(context, id),
+                        ),
+                      )
+                      .toList(growable: false),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    if (selected == null) return;
+    final profile = await _session!.addSparkTestCard(selected);
+    if (!mounted) return;
+    setState(() {
+      _profile = profile;
+      _syncSparkTestPanels(profile);
+      _notice = (_arabic ? 'تمت سرقة البطاقة التجريبية: ' : 'Test card stolen: ') +
+          selected;
+    });
+  }
+
   Future<void> _startOrCheckMatchmaking() => _run(() async {
+        if (_demoMode) {
+          await _runSparkTestDuel();
+          return;
+        }
         final profile = _profile!;
         if (!profile.pvpUnlocked || !profile.activeDeckReady) {
           setState(() => _notice = _arabic
@@ -728,6 +1072,13 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
       });
 
   Future<void> _cancelMatchmaking() => _run(() async {
+        if (_demoMode) {
+          _showDemoMessage(
+            'لا يوجد بحث حقيقي عن خصم في الوضع التجريبي.',
+            'There is no live matchmaking search in demo mode.',
+          );
+          return;
+        }
         await _session!.cancelMatchmaking();
         if (!mounted) return;
         setState(() {
@@ -914,6 +1265,18 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
   }
 
   Future<void> _equipPrestige() => _run(() async {
+        if (_demoMode) {
+          final profile = await _session!.equipSparkTestPrestige();
+          if (!mounted) return;
+          setState(() {
+            _profile = profile;
+            _syncSparkTestPanels(profile);
+            _notice = _arabic
+                ? 'تم تجهيز لقب وإطار Prestige محليًا للاختبار. عند الإطلاق تتم المزامنة عبر Blaze.'
+                : 'Prestige title/frame equipped locally for testing. Production sync uses Blaze.';
+          });
+          return;
+        }
         final profile = _profile!;
         String? title;
         String? frame;
@@ -1168,7 +1531,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
         refreshSubscription: _refreshSubscription,
         buySubscription: _buySubscription,
         restoreSubscription: _restoreSubscription,
-        storeReady: _storeReady,
+        storeReady: _demoMode || _storeReady,
         subscriptionPrice: _subscriptionPrice,
         equipPrestige: _equipPrestige,
         signOut: _signOutGoogle,
@@ -1189,6 +1552,11 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
                 weeklyPoints: profile.weeklyPoints,
                 onLanguage: () => setState(() => _arabic = !_arabic),
               ),
+              if (_demoMode)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 2, 14, 2),
+                  child: _DemoModeBanner(arabic: _arabic),
+                ),
               if (_notice != null)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(14, 4, 14, 0),
@@ -4540,6 +4908,41 @@ class _HeaderCounter extends StatelessWidget {
                 color: _ink,
                 fontSize: 11,
                 fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _DemoModeBanner extends StatelessWidget {
+  const _DemoModeBanner({required this.arabic});
+  final bool arabic;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+        decoration: BoxDecoration(
+          color: _blue.withValues(alpha: .08),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _blue.withValues(alpha: .18)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.science_rounded, color: _blue, size: 17),
+            const SizedBox(width: 7),
+            Expanded(
+              child: Text(
+                arabic
+                    ? 'وضع اختبار Spark — الجولات والفوز والتعادل والسرقة والاشتراك تعمل محليًا الآن. قبل الإطلاق يجب تفعيل Blaze.'
+                    : 'Spark test mode — duels, results, stealing and subscription work locally now. Enable Blaze before launch.',
+                style: const TextStyle(
+                  color: _ink,
+                  fontSize: 10,
+                  height: 1.3,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
           ],
