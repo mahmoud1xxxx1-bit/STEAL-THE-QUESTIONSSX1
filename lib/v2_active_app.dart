@@ -568,10 +568,11 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
                       choices.length,
                       (index) => Padding(
                         padding: const EdgeInsets.only(bottom: 10),
-                        child: SizedBox(
-                          width: double.infinity,
-                          minHeight: 54,
-                          child: OutlinedButton(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(minHeight: 54),
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton(
                             onPressed: () {
                               timer?.cancel();
                               Navigator.pop(context, index);
@@ -619,6 +620,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
                                   ),
                                 ),
                               ],
+                            ),
                             ),
                           ),
                         ),
