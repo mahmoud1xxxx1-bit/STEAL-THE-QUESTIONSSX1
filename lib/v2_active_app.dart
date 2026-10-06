@@ -910,7 +910,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
                         const Text(
                           'STEAL THE\nQUESTIONS',
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: _ink,
                             fontSize: 31,
                             height: .98,
