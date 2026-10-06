@@ -1109,29 +1109,77 @@ class _HomeV2 extends StatelessWidget {
 
 class _CardsV2 extends StatelessWidget {
   const _CardsV2({required this.arabic, required this.profile});
+
   final bool arabic;
   final PlayerProfileV2 profile;
 
   @override
-  Widget build(BuildContext context) => _Scroll(children: [
-        _Section(title: arabic ? 'بطاقاتي' : 'My cards'),
-        const SizedBox(height: 10),
-        _Panel(
-          child: profile.ownedPackIds.isEmpty
-              ? _Empty(
-                  icon: Icons.inventory_2_outlined,
-                  title: arabic ? 'لا توجد بطاقات V2 بعد' : 'No V2 cards yet',
-                  text: arabic
-                      ? 'هذا متعمد. سنضيف أسماء البطاقات وبنك الأسئلة في مرحلة المحتوى الأخيرة فقط.'
-                      : 'This is intentional. Card topics and the question bank will be added only in the final content phase.',
-                )
-              : Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: profile.ownedPackIds.map((id) => Chip(label: Text(id))).toList(growable: false),
-                ),
+  Widget build(BuildContext context) {
+    final owned = profile.ownedPackIds.toList()..sort();
+
+    return _Scroll(
+      children: [
+        _CollectionHeader(
+          arabic: arabic,
+          ownedCount: profile.ownedCount,
+          deckReady: profile.activeDeckReady,
         ),
-      ]);
+        const SizedBox(height: 18),
+        _SectionRow(
+          title: arabic ? 'الفئات' : 'Categories',
+          action: arabic ? '7 فئات' : '7 worlds',
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 92,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: kCategoriesV2.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 9),
+            itemBuilder: (context, index) {
+              final category = kCategoriesV2[index];
+              return _CategoryPillCard(
+                title: arabic ? category.nameAr : category.nameEn,
+                color: Color(category.colorHex),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 22),
+        _SectionRow(
+          title: arabic ? 'مجموعتي' : 'My collection',
+          action: '${profile.ownedCount}',
+        ),
+        const SizedBox(height: 10),
+        if (owned.isEmpty)
+          _EmptyCollectionCard(arabic: arabic)
+        else
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final width = (constraints.maxWidth - 12) / 2;
+              return Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: List.generate(owned.length, (index) {
+                  final color = Color(
+                    kCategoriesV2[index % kCategoriesV2.length].colorHex,
+                  );
+                  return SizedBox(
+                    width: width,
+                    child: _OwnedCardTile(
+                      id: owned[index],
+                      color: color,
+                      arabic: arabic,
+                    ),
+                  );
+                }),
+              );
+            },
+          ),
+        const SizedBox(height: 18),
+      ],
+    );
+  }
 }
 
 class _DecksV2 extends StatelessWidget {
@@ -1142,6 +1190,7 @@ class _DecksV2 extends StatelessWidget {
     required this.editDeck,
     required this.setActiveDeck,
   });
+
   final bool arabic;
   final PlayerProfileV2 profile;
   final bool busy;
@@ -1149,44 +1198,49 @@ class _DecksV2 extends StatelessWidget {
   final Future<void> Function(int index) setActiveDeck;
 
   @override
-  Widget build(BuildContext context) => _Scroll(children: [
-        _Section(title: arabic ? 'المجموعات' : 'Decks'),
+  Widget build(BuildContext context) {
+    final activeDeck = profile.decks[profile.activeDeckIndex];
+
+    return _Scroll(
+      children: [
+        _DeckBuilderHero(
+          arabic: arabic,
+          filled: activeDeck.length,
+          ready: profile.activeDeckReady,
+        ),
+        const SizedBox(height: 18),
+        _SectionRow(
+          title: arabic ? 'مجموعاتك' : 'Your decks',
+          action: '${profile.entitlement.deckSlots}',
+        ),
         const SizedBox(height: 10),
         ...List.generate(profile.entitlement.deckSlots, (index) {
           final deck = profile.decks[index];
           final active = index == profile.activeDeckIndex;
+          final valid = PlayerDeckV2(deck).isValid(profile.ownedPackIds);
+
           return Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: _Panel(
-              child: Row(children: [
-                Icon(active ? Icons.radio_button_checked : Icons.radio_button_off, color: active ? _blue : _muted),
-                const SizedBox(width: 10),
-                Expanded(child: Text('${arabic ? 'مجموعة' : 'Deck'} ${index + 1}', style: const TextStyle(color: _ink, fontWeight: FontWeight.w900))),
-                Text('${deck.length}/$kDeckSizeV2', style: const TextStyle(color: _purple, fontWeight: FontWeight.w900)),
-                const SizedBox(width: 8),
-                IconButton(
-                  tooltip: arabic ? 'تعديل المجموعة' : 'Edit deck',
-                  onPressed: busy ? null : () => editDeck(index),
-                  icon: const Icon(Icons.edit_outlined),
-                ),
-                IconButton(
-                  tooltip: arabic ? 'تفعيل المجموعة' : 'Set active deck',
-                  onPressed: busy || active || !PlayerDeckV2(deck).isValid(profile.ownedPackIds)
-                      ? null
-                      : () => setActiveDeck(index),
-                  icon: const Icon(Icons.check_circle_outline),
-                ),
-              ]),
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _DeckSlotCard(
+              arabic: arabic,
+              index: index,
+              count: deck.length,
+              active: active,
+              valid: valid,
+              busy: busy,
+              onEdit: () => editDeck(index),
+              onActivate: active || !valid
+                  ? null
+                  : () => setActiveDeck(index),
             ),
           );
         }),
-        _Panel(
-          child: Text(
-            arabic ? 'لا يمكن بناء Deck صالحة قبل وصول بطاقات المحتوى. التحقق النهائي يبقى 10 بطاقات مختلفة ومملوكة.' : 'A valid deck cannot be built before content cards arrive. Final validation remains 10 distinct owned cards.',
-            style: const TextStyle(color: _muted, height: 1.5, fontWeight: FontWeight.w700),
-          ),
-        ),
-      ]);
+        const SizedBox(height: 6),
+        _DeckRuleStrip(arabic: arabic),
+        const SizedBox(height: 18),
+      ],
+    );
+  }
 }
 
 class _PlayV2 extends StatelessWidget {
@@ -1366,6 +1420,613 @@ class _ProfileV2 extends StatelessWidget {
       ),
     ]);
   }
+}
+
+class _CollectionHeader extends StatelessWidget {
+  const _CollectionHeader({
+    required this.arabic,
+    required this.ownedCount,
+    required this.deckReady,
+  });
+
+  final bool arabic;
+  final int ownedCount;
+  final bool deckReady;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF20183C), Color(0xFF5030A8)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(26),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 68,
+              height: 84,
+              decoration: BoxDecoration(
+                color: _purple,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: Colors.white, width: 3),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: .18),
+                    blurRadius: 16,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.style_rounded,
+                  color: Colors.white, size: 30),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    arabic ? 'مجموعة بطاقاتك' : 'Your card collection',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    arabic
+                        ? 'اجمع مواضيع جديدة وابنِ Deck جاهزة للمواجهة.'
+                        : 'Collect new topics and build a duel-ready deck.',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: .76),
+                      height: 1.35,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      _DarkBadge(
+                        icon: Icons.style_rounded,
+                        text: '$ownedCount',
+                      ),
+                      _DarkBadge(
+                        icon: deckReady
+                            ? Icons.check_circle_rounded
+                            : Icons.lock_outline_rounded,
+                        text: deckReady
+                            ? (arabic ? 'Deck جاهزة' : 'Deck ready')
+                            : (arabic ? 'تحتاج 10' : 'Need 10'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _DarkBadge extends StatelessWidget {
+  const _DarkBadge({required this.icon, required this.text});
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: .12),
+          borderRadius: BorderRadius.circular(99),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 13, color: Colors.white),
+            const SizedBox(width: 4),
+            Text(
+              text,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _CategoryPillCard extends StatelessWidget {
+  const _CategoryPillCard({required this.title, required this.color});
+  final String title;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 116,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: _cardSurface,
+          borderRadius: BorderRadius.circular(19),
+          border: Border.all(color: color.withValues(alpha: .18)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: .14),
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: Icon(Icons.category_rounded, color: color, size: 18),
+            ),
+            const Spacer(),
+            Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: _ink,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _EmptyCollectionCard extends StatelessWidget {
+  const _EmptyCollectionCard({required this.arabic});
+  final bool arabic;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(22),
+        decoration: BoxDecoration(
+          color: _cardSurface,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: _softPurple),
+        ),
+        child: Column(
+          children: [
+            SizedBox(
+              height: 108,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Transform.translate(
+                    offset: const Offset(-30, 7),
+                    child: Transform.rotate(
+                      angle: -.12,
+                      child: const _GhostCard(color: _blue),
+                    ),
+                  ),
+                  Transform.translate(
+                    offset: const Offset(30, 7),
+                    child: Transform.rotate(
+                      angle: .12,
+                      child: const _GhostCard(color: _coral),
+                    ),
+                  ),
+                  const _GhostCard(color: _purple),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              arabic ? 'مجموعتك تنتظر أول بطاقة' : 'Your collection awaits',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: _ink,
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 7),
+            Text(
+              arabic
+                  ? 'شكل المجموعة جاهز. ستظهر البطاقات الحقيقية هنا بعد إضافة المحتوى.'
+                  : 'The collection is ready. Real cards will appear here when content is added.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: _muted,
+                height: 1.45,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _GhostCard extends StatelessWidget {
+  const _GhostCard({required this.color});
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 68,
+        height: 92,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: .14),
+          borderRadius: BorderRadius.circular(17),
+          border: Border.all(color: color.withValues(alpha: .34), width: 2),
+        ),
+        child: Icon(Icons.lock_outline_rounded, color: color, size: 25),
+      );
+}
+
+class _OwnedCardTile extends StatelessWidget {
+  const _OwnedCardTile({
+    required this.id,
+    required this.color,
+    required this.arabic,
+  });
+
+  final String id;
+  final Color color;
+  final bool arabic;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        height: 190,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [color, Color.lerp(color, _ink, .28)!],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: .2),
+              blurRadius: 16,
+              offset: const Offset(0, 9),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Align(
+              alignment: AlignmentDirectional.topEnd,
+              child: Icon(Icons.auto_awesome_rounded,
+                  color: Colors.white70, size: 18),
+            ),
+            const Spacer(),
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: .16),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(Icons.style_rounded,
+                  color: Colors.white, size: 23),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              id,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                height: 1.15,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 5),
+            Text(
+              arabic ? 'بطاقة مملوكة' : 'OWNED CARD',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: .7),
+                fontSize: 9,
+                letterSpacing: .7,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _DeckBuilderHero extends StatelessWidget {
+  const _DeckBuilderHero({
+    required this.arabic,
+    required this.filled,
+    required this.ready,
+  });
+
+  final bool arabic;
+  final int filled;
+  final bool ready;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: _ink,
+          borderRadius: BorderRadius.circular(26),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: _purple,
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: const Icon(Icons.layers_rounded,
+                      color: Colors.white, size: 25),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        arabic ? 'ابنِ Deck المواجهة' : 'Build your duel deck',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        ready
+                            ? (arabic
+                                ? 'Deck النشطة جاهزة للمواجهة'
+                                : 'Your active deck is duel-ready')
+                            : (arabic
+                                ? 'اختر 10 بطاقات مختلفة'
+                                : 'Choose 10 different cards'),
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: .68),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Text(
+                  '$filled/$kDeckSizeV2',
+                  style: const TextStyle(
+                    color: _gold,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(99),
+              child: LinearProgressIndicator(
+                minHeight: 8,
+                value: (filled / kDeckSizeV2).clamp(0.0, 1.0).toDouble(),
+                backgroundColor: Colors.white.withValues(alpha: .1),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  ready ? _mint : _gold,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _DeckSlotCard extends StatelessWidget {
+  const _DeckSlotCard({
+    required this.arabic,
+    required this.index,
+    required this.count,
+    required this.active,
+    required this.valid,
+    required this.busy,
+    required this.onEdit,
+    required this.onActivate,
+  });
+
+  final bool arabic;
+  final int index;
+  final int count;
+  final bool active;
+  final bool valid;
+  final bool busy;
+  final VoidCallback onEdit;
+  final VoidCallback? onActivate;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: _cardSurface,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(
+            color: active ? _purple : _softPurple,
+            width: active ? 1.6 : 1,
+          ),
+          boxShadow: active
+              ? [
+                  BoxShadow(
+                    color: _purple.withValues(alpha: .08),
+                    blurRadius: 18,
+                    offset: const Offset(0, 8),
+                  ),
+                ]
+              : null,
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 43,
+                  height: 43,
+                  decoration: BoxDecoration(
+                    color: active ? _purple : _softPurple,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(
+                    active ? Icons.bolt_rounded : Icons.layers_outlined,
+                    color: active ? Colors.white : _purple,
+                  ),
+                ),
+                const SizedBox(width: 11),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${arabic ? 'مجموعة' : 'Deck'} ${index + 1}',
+                        style: const TextStyle(
+                          color: _ink,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        active
+                            ? (arabic ? 'المجموعة النشطة' : 'ACTIVE DECK')
+                            : valid
+                                ? (arabic ? 'جاهزة للتفعيل' : 'READY')
+                                : (arabic ? 'غير مكتملة' : 'INCOMPLETE'),
+                        style: TextStyle(
+                          color: active
+                              ? _purple
+                              : valid
+                                  ? _mint
+                                  : _muted,
+                          fontSize: 9,
+                          letterSpacing: .5,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Text(
+                  '$count/$kDeckSizeV2',
+                  style: const TextStyle(
+                    color: _ink,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 13),
+            Row(
+              children: List.generate(
+                kDeckSizeV2,
+                (slot) => Expanded(
+                  child: Container(
+                    height: 7,
+                    margin: EdgeInsetsDirectional.only(
+                      end: slot == kDeckSizeV2 - 1 ? 0 : 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: slot < count
+                          ? (active ? _purple : _blue)
+                          : _softPurple,
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 13),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: busy ? null : onEdit,
+                    icon: const Icon(Icons.edit_rounded, size: 18),
+                    label: Text(arabic ? 'تعديل' : 'Edit'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: busy ? null : onActivate,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: active ? _softPurple : _purple,
+                      foregroundColor: active ? _purple : Colors.white,
+                    ),
+                    icon: Icon(
+                      active
+                          ? Icons.check_circle_rounded
+                          : Icons.bolt_rounded,
+                      size: 18,
+                    ),
+                    label: Text(
+                      active
+                          ? (arabic ? 'نشطة' : 'Active')
+                          : (arabic ? 'تفعيل' : 'Activate'),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+}
+
+class _DeckRuleStrip extends StatelessWidget {
+  const _DeckRuleStrip({required this.arabic});
+  final bool arabic;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: _gold.withValues(alpha: .12),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: _gold.withValues(alpha: .26)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.info_outline_rounded, color: _ink, size: 21),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                arabic
+                    ? 'كل Deck صالحة تحتاج 10 بطاقات مختلفة تملكها.'
+                    : 'A valid deck needs 10 different cards you own.',
+                style: const TextStyle(
+                  color: _ink,
+                  height: 1.4,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
 }
 
 class _GlowOrb extends StatelessWidget {
