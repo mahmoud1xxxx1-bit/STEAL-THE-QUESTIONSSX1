@@ -131,7 +131,9 @@ class ContentCatalogV2 {
 
 class RecentQuestionHistoryV2 {
   RecentQuestionHistoryV2([Iterable<String> initial = const []]) {
-    for (final id in initial) record(id);
+    for (final id in initial) {
+      record(id);
+    }
   }
 
   final List<String> _ids = <String>[];

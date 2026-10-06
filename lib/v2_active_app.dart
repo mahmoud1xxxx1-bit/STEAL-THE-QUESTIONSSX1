@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import 'backend/bot_api_v2.dart';
-import 'backend/firebase_bootstrap.dart';
 import 'backend/firebase_game_api_v2.dart';
 import 'backend/google_auth_v2.dart';
 import 'backend/online_runtime_v2.dart';
@@ -302,8 +301,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    (_arabic ? 'مجموعة ' : 'Deck ') +
-                        '${index + 1} · ${selected.length}/$kDeckSizeV2',
+                    '${_arabic ? 'مجموعة' : 'Deck'} ${index + 1} · ${selected.length}/$kDeckSizeV2',
                     style: const TextStyle(
                       color: _ink,
                       fontSize: 20,
@@ -697,8 +695,8 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
         publicQuestion['choices'] as List? ?? const <dynamic>[],
       );
       final answer = await _answerDialog(
-        title: (_arabic ? 'السؤال ' : 'Question ') +
-            '${question.questionIndex + 1}/$kDuelCardsV2',
+        title:
+            '${_arabic ? 'السؤال' : 'Question'} ${question.questionIndex + 1}/$kDuelCardsV2',
         prompt: publicQuestion['prompt'] as String? ?? '',
         choices: choices,
       );
@@ -746,6 +744,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
 
   Future<void> _chooseSteal(String duelId) async {
     final options = await _session!.stealOptions(duelId);
+    if (!mounted) return;
     if (options.alreadyConfirmed || options.packIds.isEmpty) {
       setState(() => _notice = _arabic
           ? 'تم إنهاء نقل البطاقة.'
@@ -908,7 +907,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
                       children: [
                         const _CardFanMark(),
                         const SizedBox(height: 28),
-                        Text(
+                        const Text(
                           'STEAL THE\nQUESTIONS',
                           textAlign: TextAlign.center,
                           style: const TextStyle(
@@ -3135,18 +3134,18 @@ class _CardFanMark extends StatelessWidget {
           children: [
             Transform.rotate(
               angle: -.18,
-              child: _LogoCard(color: _blue, icon: Icons.help_rounded),
+              child: const _LogoCard(color: _blue, icon: Icons.help_rounded),
             ),
             Transform.translate(
               offset: const Offset(26, 4),
               child: Transform.rotate(
                 angle: .18,
-                child: _LogoCard(color: _coral, icon: Icons.flash_on_rounded),
+                child: const _LogoCard(color: _coral, icon: Icons.flash_on_rounded),
               ),
             ),
             Transform.translate(
               offset: const Offset(10, -8),
-              child: _LogoCard(color: _purple, icon: Icons.style_rounded),
+              child: const _LogoCard(color: _purple, icon: Icons.style_rounded),
             ),
           ],
         ),
@@ -3808,62 +3807,6 @@ class _Scroll extends StatelessWidget {
       );
 }
 
-class _Hero extends StatelessWidget {
-  const _Hero({required this.title, required this.subtitle, required this.action, required this.actionText});
-  final String title;
-  final String subtitle;
-  final VoidCallback action;
-  final String actionText;
-  @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(22),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          gradient: const LinearGradient(colors: [_blue, _purple]),
-        ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title, style: const TextStyle(color: Colors.white, fontSize: 26, height: 1.2, fontWeight: FontWeight.w900)),
-          const SizedBox(height: 8),
-          Text(subtitle, style: TextStyle(color: Colors.white.withValues(alpha: .9), height: 1.45, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 16),
-          FilledButton(onPressed: action, style: FilledButton.styleFrom(backgroundColor: _gold, foregroundColor: _ink), child: Text(actionText)),
-        ]),
-      );
-}
-
-class _Panel extends StatelessWidget {
-  const _Panel({required this.child});
-  final Widget child;
-  @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: _cardSurface, borderRadius: BorderRadius.circular(22), border: Border.all(color: _softPurple), boxShadow: [BoxShadow(color: _purple.withValues(alpha: .04), blurRadius: 16, offset: const Offset(0, 8))]),
-        child: child,
-      );
-}
-
-class _Section extends StatelessWidget {
-  const _Section({required this.title});
-  final String title;
-  @override
-  Widget build(BuildContext context) => Text(title, style: const TextStyle(color: _ink, fontSize: 20, fontWeight: FontWeight.w900));
-}
-
-class _Empty extends StatelessWidget {
-  const _Empty({required this.icon, required this.title, required this.text});
-  final IconData icon;
-  final String title;
-  final String text;
-  @override
-  Widget build(BuildContext context) => Column(children: [
-        Icon(icon, size: 42, color: _blue),
-        const SizedBox(height: 10),
-        Text(title, textAlign: TextAlign.center, style: const TextStyle(color: _ink, fontSize: 16, fontWeight: FontWeight.w900)),
-        const SizedBox(height: 6),
-        Text(text, textAlign: TextAlign.center, style: const TextStyle(color: _muted, height: 1.5, fontWeight: FontWeight.w600)),
-      ]);
-}
-
 class _StatRow extends StatelessWidget {
   const _StatRow({required this.label, required this.value});
   final String label;
@@ -3875,17 +3818,5 @@ class _StatRow extends StatelessWidget {
           Expanded(child: Text(label, style: const TextStyle(color: _muted, fontWeight: FontWeight.w700))),
           Text(value, style: const TextStyle(color: _ink, fontWeight: FontWeight.w900)),
         ]),
-      );
-}
-
-class _Pill extends StatelessWidget {
-  const _Pill({required this.text, required this.icon});
-  final String text;
-  final IconData icon;
-  @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-        decoration: BoxDecoration(color: const Color(0xFFF1ECFF), borderRadius: BorderRadius.circular(99)),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(icon, size: 15, color: _purple), const SizedBox(width: 4), Text(text, style: const TextStyle(color: _purple, fontWeight: FontWeight.w900))]),
       );
 }
