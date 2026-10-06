@@ -117,6 +117,23 @@ class ProfileFeaturesApiV2 {
     return PlayerProfileV2.fromMap(Map<String, dynamic>.from(profileRaw));
   }
 
+  Future<bool> verifySubscriptionPurchase({
+    required String productId,
+    required String source,
+    required String serverVerificationData,
+    String? purchaseId,
+  }) async {
+    final response = await _functions.httpsCallable('verifySubscriptionPurchaseV2').call({
+      'productId': productId,
+      'source': source,
+      'platform': source,
+      'serverVerificationData': serverVerificationData,
+      'purchaseId': purchaseId,
+    });
+    final raw = _map(response.data, 'Invalid purchase verification response.');
+    return raw['verified'] == true;
+  }
+
   Future<SubscriptionStatusV2> loadSubscriptionStatus() async {
     final response =
         await _functions.httpsCallable('getSubscriptionStatusV2').call();
