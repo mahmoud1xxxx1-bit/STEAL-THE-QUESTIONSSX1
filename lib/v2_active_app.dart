@@ -105,9 +105,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
         _requiresGoogleSignIn = false;
         _loadError = null;
         if (!online) {
-          _notice = _arabic
-              ? 'تم تسجيل الدخول، لكن الاتصال بخدمات اللعبة غير متاح حاليًا.'
-              : 'Signed in, but game services are currently unavailable.';
+          _notice = null;
         }
       });
 
@@ -1208,10 +1206,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
                   ),
                 ),
               Expanded(
-                child: IgnorePointer(
-                  ignoring: !_backendAvailable,
-                  child: IndexedStack(index: _tab, children: screens),
-                ),
+                child: IndexedStack(index: _tab, children: screens),
               ),
             ],
           ),
@@ -5093,7 +5088,11 @@ class _Scroll extends StatelessWidget {
   final List<Widget> children;
   @override
   Widget build(BuildContext context) => ListView(
-        padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        padding: const EdgeInsets.fromLTRB(16, 18, 16, 36),
         children: [Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 520), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children)))],
       );
 }
