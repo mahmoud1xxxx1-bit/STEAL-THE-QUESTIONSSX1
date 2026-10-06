@@ -291,62 +291,130 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
     final result = await showModalBottomSheet<List<String>>(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
         builder: (context, setSheetState) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
+          child: Container(
+            margin: const EdgeInsets.only(top: 40),
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+            decoration: const BoxDecoration(
+              color: _page,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+            ),
             child: SizedBox(
-              height: MediaQuery.sizeOf(context).height * .68,
+              height: MediaQuery.sizeOf(context).height * .74,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    '${_arabic ? 'مجموعة' : 'Deck'} ${index + 1} · ${selected.length}/$kDeckSizeV2',
-                    style: const TextStyle(
-                      color: _ink,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
+                  Center(
+                    child: Container(
+                      width: 42,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: _muted.withValues(alpha: .22),
+                        borderRadius: BorderRadius.circular(99),
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      const _StealLogoMark(size: 48),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${_arabic ? 'ابنِ مجموعتك' : 'Build your deck'} ${index + 1}',
+                              style: const TextStyle(
+                                color: _ink,
+                                fontSize: 19,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              _arabic
+                                  ? 'اختر 10 بطاقات مختلفة للمواجهة.'
+                                  : 'Choose 10 different cards for the duel.',
+                              style: const TextStyle(
+                                color: _muted,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      _GameStatusBadge(
+                        text: '${selected.length}/$kDeckSizeV2',
+                        color: selected.length == kDeckSizeV2 ? _mint : _purple,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  _DeckSelectionSlots(count: selected.length),
+                  const SizedBox(height: 14),
                   Expanded(
                     child: owned.isEmpty
-                        ? Center(
-                            child: Text(
-                              _arabic
-                                  ? 'لا توجد بطاقات بعد. سنضيف المحتوى في آخر مرحلة.'
-                                  : 'No cards yet. Content will be added last.',
-                              textAlign: TextAlign.center,
+                        ? _DeckEditorEmpty(arabic: _arabic)
+                        : GridView.builder(
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 10,
+                              mainAxisSpacing: 10,
+                              childAspectRatio: 1.55,
                             ),
-                          )
-                        : ListView(
-                            children: owned.map((id) {
+                            itemCount: owned.length,
+                            itemBuilder: (context, itemIndex) {
+                              final id = owned[itemIndex];
                               final checked = selected.contains(id);
-                              return CheckboxListTile(
-                                value: checked,
-                                title: Text(id),
-                                onChanged: (value) {
+                              final color = Color(
+                                kCategoriesV2[
+                                        itemIndex % kCategoriesV2.length]
+                                    .colorHex,
+                              );
+                              return _DeckChoiceCard(
+                                id: id,
+                                selected: checked,
+                                color: color,
+                                onTap: () {
                                   setSheetState(() {
-                                    if (value == true &&
-                                        selected.length < kDeckSizeV2) {
-                                      selected.add(id);
-                                    } else if (value != true) {
+                                    if (checked) {
                                       selected.remove(id);
+                                    } else if (selected.length <
+                                        kDeckSizeV2) {
+                                      selected.add(id);
                                     }
                                   });
                                 },
                               );
-                            }).toList(growable: false),
+                            },
                           ),
                   ),
-                  FilledButton(
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
                     onPressed: selected.length == kDeckSizeV2
                         ? () => Navigator.pop(
                               context,
                               selected.toList(growable: false),
                             )
                         : null,
-                    child: Text(_arabic ? 'حفظ المجموعة' : 'Save deck'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _purple,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size.fromHeight(52),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(17),
+                      ),
+                    ),
+                    icon: const Icon(Icons.check_circle_rounded),
+                    label: Text(
+                      _arabic ? 'احفظ Deck المواجهة' : 'Save duel deck',
+                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
                   ),
                 ],
               ),
@@ -725,9 +793,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
     }
 
     if (state.result == 'draw') {
-      setState(() => _notice = _arabic
-          ? 'تعادل. لا تتم سرقة أي بطاقة.'
-          : 'Draw. No card is stolen.');
+      await _showDuelResult('draw');
       await _refreshRemote();
       return;
     }
@@ -735,11 +801,28 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
     if (state.winnerUid == FirebaseAuth.instance.currentUser?.uid) {
       await _chooseSteal(duelId);
     } else {
-      setState(() => _notice = _arabic
-          ? 'انتهت المباراة بفوز الخصم.'
-          : 'The opponent won the duel.');
+      await _showDuelResult('loss');
     }
     await _refreshRemote();
+  }
+
+  Future<void> _showDuelResult(String result) async {
+    if (!mounted) return;
+    final draw = result == 'draw';
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: _ink.withValues(alpha: .72),
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 22),
+        child: _DuelResultCard(
+          arabic: _arabic,
+          draw: draw,
+          onClose: () => Navigator.pop(context),
+        ),
+      ),
+    );
   }
 
   Future<void> _chooseSteal(String duelId) async {
@@ -1039,21 +1122,16 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
     if (_loadError != null) {
       return Scaffold(
         backgroundColor: _page,
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Text(
-              _arabic ? 'تعذر تحميل ملف اللاعب.' : 'Could not load the player profile.',
-              style: const TextStyle(color: _ink, fontWeight: FontWeight.w800),
-            ),
-          ),
+        body: _BrandedErrorState(
+          arabic: _arabic,
+          retry: _initializeOnline,
         ),
       );
     }
     if (profile == null) {
       return const Scaffold(
         backgroundColor: _page,
-        body: Center(child: CircularProgressIndicator()),
+        body: _BrandedLoadingState(),
       );
     }
 
@@ -1974,6 +2052,307 @@ class _PodiumPlayer extends StatelessWidget {
             child: const _StealLogoMark(size: 34),
           ),
         ],
+      );
+}
+
+class _DeckSelectionSlots extends StatelessWidget {
+  const _DeckSelectionSlots({required this.count});
+  final int count;
+
+  @override
+  Widget build(BuildContext context) => Row(
+        children: List.generate(
+          kDeckSizeV2,
+          (index) => Expanded(
+            child: Padding(
+              padding: EdgeInsetsDirectional.only(
+                end: index == kDeckSizeV2 - 1 ? 0 : 4,
+              ),
+              child: _DeckMiniSlot(
+                filled: index < count,
+                active: true,
+                index: index + 1,
+              ),
+            ),
+          ),
+        ),
+      );
+}
+
+class _DeckChoiceCard extends StatelessWidget {
+  const _DeckChoiceCard({
+    required this.id,
+    required this.selected,
+    required this.color,
+    required this.onTap,
+  });
+
+  final String id;
+  final bool selected;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Ink(
+          padding: const EdgeInsets.all(11),
+          decoration: BoxDecoration(
+            color: selected ? color.withValues(alpha: .14) : _cardSurface,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: selected ? color : _softPurple,
+              width: selected ? 1.7 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: const Icon(
+                  Icons.help_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Text(
+                  id,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _ink,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              Icon(
+                selected
+                    ? Icons.check_circle_rounded
+                    : Icons.add_circle_outline_rounded,
+                color: selected ? color : _muted,
+                size: 20,
+              ),
+            ],
+          ),
+        ),
+      );
+}
+
+class _DeckEditorEmpty extends StatelessWidget {
+  const _DeckEditorEmpty({required this.arabic});
+  final bool arabic;
+
+  @override
+  Widget build(BuildContext context) => Center(
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: _cardSurface,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: _softPurple),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const _StealLogoMark(size: 66, showGlow: true),
+              const SizedBox(height: 10),
+              Text(
+                arabic ? 'لا توجد بطاقات للاختيار بعد' : 'No cards to choose yet',
+                style: const TextStyle(
+                  color: _ink,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                arabic
+                    ? 'ستظهر بطاقاتك هنا بعد إضافة المحتوى الحقيقي.'
+                    : 'Your cards will appear here after real content is added.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: _muted,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+}
+
+class _DuelResultCard extends StatelessWidget {
+  const _DuelResultCard({
+    required this.arabic,
+    required this.draw,
+    required this.onClose,
+  });
+
+  final bool arabic;
+  final bool draw;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = draw ? _blue : _coral;
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: _page,
+        borderRadius: BorderRadius.circular(28),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 94,
+            height: 94,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: .12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              draw ? Icons.handshake_rounded : Icons.shield_rounded,
+              color: accent,
+              size: 42,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            draw
+                ? (arabic ? 'تعادل!' : 'Draw!')
+                : (arabic ? 'انتهت المواجهة' : 'Duel complete'),
+            style: const TextStyle(
+              color: _ink,
+              fontSize: 23,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 7),
+          Text(
+            draw
+                ? (arabic
+                    ? 'تعادلتما، لذلك لا تتم سرقة أي بطاقة.'
+                    : 'The duel ended level, so no card is stolen.')
+                : (arabic
+                    ? 'فاز خصمك هذه المرة. احتفظ بتشكيلتك وارجع للمواجهة.'
+                    : 'Your rival won this time. Keep your deck and return stronger.'),
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: _muted,
+              height: 1.45,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 18),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: onClose,
+              style: FilledButton.styleFrom(
+                backgroundColor: accent,
+                foregroundColor: Colors.white,
+                minimumSize: const Size.fromHeight(50),
+              ),
+              child: Text(
+                arabic ? 'العودة للعبة' : 'Back to game',
+                style: const TextStyle(fontWeight: FontWeight.w900),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BrandedLoadingState extends StatelessWidget {
+  const _BrandedLoadingState();
+
+  @override
+  Widget build(BuildContext context) => Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const _StealLogoMark(size: 86, showGlow: true),
+            const SizedBox(height: 18),
+            const SizedBox(
+              width: 34,
+              height: 34,
+              child: CircularProgressIndicator(strokeWidth: 3),
+            ),
+          ],
+        ),
+      );
+}
+
+class _BrandedErrorState extends StatelessWidget {
+  const _BrandedErrorState({
+    required this.arabic,
+    required this.retry,
+  });
+
+  final bool arabic;
+  final VoidCallback retry;
+
+  @override
+  Widget build(BuildContext context) => SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Container(
+              padding: const EdgeInsets.all(22),
+              decoration: BoxDecoration(
+                color: _cardSurface,
+                borderRadius: BorderRadius.circular(26),
+                border: Border.all(color: _softPurple),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const _StealLogoMark(size: 74, showGlow: true),
+                  const SizedBox(height: 14),
+                  Text(
+                    arabic ? 'تعذر تحميل ملف اللاعب' : 'Could not load player profile',
+                    style: const TextStyle(
+                      color: _ink,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 7),
+                  Text(
+                    arabic
+                        ? 'تحقق من الاتصال ثم حاول مرة أخرى.'
+                        : 'Check your connection and try again.',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: _muted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  FilledButton.icon(
+                    onPressed: retry,
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: Text(arabic ? 'إعادة المحاولة' : 'Try again'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       );
 }
 
