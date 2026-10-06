@@ -1124,7 +1124,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
         backgroundColor: _page,
         body: _BrandedErrorState(
           arabic: _arabic,
-          retry: _initializeOnline,
+          retry: _load,
         ),
       );
     }
@@ -2280,13 +2280,13 @@ class _BrandedLoadingState extends StatelessWidget {
   const _BrandedLoadingState();
 
   @override
-  Widget build(BuildContext context) => Center(
+  Widget build(BuildContext context) => const Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const _StealLogoMark(size: 86, showGlow: true),
-            const SizedBox(height: 18),
-            const SizedBox(
+            _StealLogoMark(size: 86, showGlow: true),
+            SizedBox(height: 18),
+            SizedBox(
               width: 34,
               height: 34,
               child: CircularProgressIndicator(strokeWidth: 3),
