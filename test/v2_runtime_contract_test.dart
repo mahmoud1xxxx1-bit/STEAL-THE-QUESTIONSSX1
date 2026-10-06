@@ -108,6 +108,20 @@ void main() {
     expect(activeSource, contains('class _BrandedErrorState'));
   });
 
+  test('mobile screens stay scrollable when backend is unavailable', () {
+    final activeSource = File('lib/v2_active_app.dart').readAsStringSync();
+
+    expect(activeSource, isNot(contains('ignoring: !_backendAvailable')));
+    expect(
+      activeSource,
+      contains('AlwaysScrollableScrollPhysics'),
+    );
+    expect(
+      activeSource,
+      isNot(contains('Signed in, but game services are currently unavailable.')),
+    );
+  });
+
   test('Android auth requires Google sign-in and has no anonymous fallback', () {
     final runtimeSource =
         File('lib/backend/online_runtime_v2.dart').readAsStringSync();
