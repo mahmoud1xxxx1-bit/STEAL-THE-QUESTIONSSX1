@@ -39,6 +39,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
   int _tab = 0;
   bool _arabic = true;
   bool _busy = false;
+  bool _backendAvailable = false;
   String? _notice;
   final MonthlySubscriptionPurchaseServiceV2 _purchaseService =
       MonthlySubscriptionPurchaseServiceV2();
@@ -52,31 +53,70 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
   }
 
   Future<void> _load() async {
+    final store = SharedPreferencesPlayerProfileStoreV2();
     try {
       final ready = await OnlineRuntimeV2.ensureReady();
-      if (!ready) throw StateError('Firebase V2 is unavailable.');
+      if (!ready) {
+        final cached = await store.load();
+        if (!mounted) return;
+        setState(() {
+          _profile = cached;
+          _backendAvailable = false;
+          _loadError = null;
+          _notice = _arabic
+              ? 'تم فتح التطبيق من النسخة المحلية. إعداد Firebase للويب غير متاح حاليًا.'
+              : 'The app opened from the local cache. Firebase web configuration is currently unavailable.';
+        });
+        return;
+      }
+
       final session = OnlinePlayerSessionV2(
-        store: SharedPreferencesPlayerProfileStoreV2(),
+        store: store,
         api: FirebaseGameApiV2(),
         botApi: BotApiV2(),
       );
       final profile = await session.initialize();
+      final online = session.remoteConnected &&
+          FirebaseAuth.instance.currentUser != null;
       if (!mounted) return;
       setState(() {
         _session = session;
         _profile = profile;
+        _backendAvailable = online;
+        _loadError = null;
+        if (!online) {
+          _notice = _arabic
+              ? 'تم تحميل ملف اللاعب محليًا. اتصال Firebase/Auth أو Functions غير متاح حاليًا.'
+              : 'Player profile loaded locally. Firebase/Auth or Functions is currently unavailable.';
+        }
       });
-      await _refreshRemote();
-      await _configurePurchases();
+
+      if (online) {
+        await _refreshRemote();
+        await _configurePurchases();
+      }
     } catch (error) {
-      if (!mounted) return;
-      setState(() => _loadError = error);
+      try {
+        final cached = await store.load();
+        if (!mounted) return;
+        setState(() {
+          _profile = cached;
+          _backendAvailable = false;
+          _loadError = null;
+          _notice = _arabic
+              ? 'تم فتح التطبيق من النسخة المحلية بدل إيقاف الصفحة.'
+              : 'The app opened from the local cache instead of blocking the page.';
+        });
+      } catch (_) {
+        if (!mounted) return;
+        setState(() => _loadError = error);
+      }
     }
   }
 
   Future<void> _configurePurchases() async {
     final session = _session;
-    if (session == null) return;
+    if (session == null || !_backendAvailable) return;
 
     _purchaseService.listen(
       onVerifiedByServer: (payload) async {
@@ -136,7 +176,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
 
   Future<void> _refreshRemote() async {
     final session = _session;
-    if (session == null) return;
+    if (session == null || !_backendAvailable) return;
     try {
       final values = await Future.wait<dynamic>([
         session.weeklyRanking(),
@@ -752,7 +792,12 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
                 ],
               ),
             if (_busy) const LinearProgressIndicator(minHeight: 2),
-            Expanded(child: IndexedStack(index: _tab, children: screens)),
+            Expanded(
+              child: IgnorePointer(
+                ignoring: !_backendAvailable,
+                child: IndexedStack(index: _tab, children: screens),
+              ),
+            ),
           ],
         ),
         bottomNavigationBar: NavigationBar(
