@@ -1368,13 +1368,685 @@ class _ProfileV2 extends StatelessWidget {
   }
 }
 
+class _GlowOrb extends StatelessWidget {
+  const _GlowOrb({required this.size, required this.color});
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: color,
+        ),
+      );
+}
+
+class _CardFanMark extends StatelessWidget {
+  const _CardFanMark();
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: 142,
+        height: 112,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Transform.rotate(
+              angle: -.18,
+              child: _LogoCard(color: _blue, icon: Icons.help_rounded),
+            ),
+            Transform.translate(
+              offset: const Offset(26, 4),
+              child: Transform.rotate(
+                angle: .18,
+                child: _LogoCard(color: _coral, icon: Icons.flash_on_rounded),
+              ),
+            ),
+            Transform.translate(
+              offset: const Offset(10, -8),
+              child: _LogoCard(color: _purple, icon: Icons.style_rounded),
+            ),
+          ],
+        ),
+      );
+}
+
+class _LogoCard extends StatelessWidget {
+  const _LogoCard({required this.color, required this.icon});
+  final Color color;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 70,
+        height: 94,
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white, width: 3),
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: .24),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Icon(icon, color: Colors.white, size: 32),
+      );
+}
+
+class _MiniFeature extends StatelessWidget {
+  const _MiniFeature({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: .12),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: color, size: 22),
+          ),
+          const SizedBox(height: 7),
+          Text(
+            label,
+            style: const TextStyle(
+              color: _ink,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      );
+}
+
+class _GameHeader extends StatelessWidget {
+  const _GameHeader({
+    required this.arabic,
+    required this.ownedCount,
+    required this.weeklyPoints,
+    required this.onLanguage,
+  });
+
+  final bool arabic;
+  final int ownedCount;
+  final int weeklyPoints;
+  final VoidCallback onLanguage;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 10, 12, 8),
+        child: Row(
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [_purple, _blue],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: _purple.withValues(alpha: .2),
+                    blurRadius: 14,
+                    offset: const Offset(0, 7),
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.style_rounded, color: Colors.white),
+            ),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'STEAL THE QUESTIONS',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: _ink,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  Text(
+                    'CARD DUEL',
+                    style: TextStyle(
+                      color: _purple,
+                      fontSize: 10,
+                      letterSpacing: 1.2,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            _HeaderCounter(
+              icon: Icons.style_rounded,
+              value: '$ownedCount',
+              color: _purple,
+            ),
+            const SizedBox(width: 6),
+            _HeaderCounter(
+              icon: Icons.emoji_events_rounded,
+              value: '$weeklyPoints',
+              color: _gold,
+            ),
+            const SizedBox(width: 2),
+            IconButton(
+              onPressed: onLanguage,
+              visualDensity: VisualDensity.compact,
+              icon: Text(
+                arabic ? 'EN' : 'ع',
+                style: const TextStyle(
+                  color: _ink,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _HeaderCounter extends StatelessWidget {
+  const _HeaderCounter({
+    required this.icon,
+    required this.value,
+    required this.color,
+  });
+  final IconData icon;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: .12),
+          borderRadius: BorderRadius.circular(13),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 3),
+            Text(
+              value,
+              style: const TextStyle(
+                color: _ink,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _InlineNotice extends StatelessWidget {
+  const _InlineNotice({required this.text, required this.dismiss});
+  final String text;
+  final VoidCallback dismiss;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsetsDirectional.fromSTEB(14, 10, 6, 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF4D8),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: _gold.withValues(alpha: .35)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.info_outline_rounded, color: _ink, size: 18),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                text,
+                style: const TextStyle(
+                  color: _ink,
+                  fontSize: 12,
+                  height: 1.35,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            IconButton(
+              onPressed: dismiss,
+              visualDensity: VisualDensity.compact,
+              icon: const Icon(Icons.close_rounded, size: 18),
+            ),
+          ],
+        ),
+      );
+}
+
+class _GameBottomNav extends StatelessWidget {
+  const _GameBottomNav({
+    required this.arabic,
+    required this.index,
+    required this.onSelected,
+  });
+
+  final bool arabic;
+  final int index;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = [
+      (Icons.home_rounded, arabic ? 'الرئيسية' : 'Home'),
+      (Icons.style_rounded, arabic ? 'البطاقات' : 'Cards'),
+      (Icons.layers_rounded, arabic ? 'Decks' : 'Decks'),
+      (Icons.flash_on_rounded, arabic ? 'اللعب' : 'Play'),
+      (Icons.person_rounded, arabic ? 'الملف' : 'Profile'),
+    ];
+
+    return SafeArea(
+      top: false,
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 7),
+        decoration: BoxDecoration(
+          color: _ink,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: _ink.withValues(alpha: .18),
+              blurRadius: 22,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Row(
+          children: List.generate(items.length, (i) {
+            final selected = i == index;
+            final item = items[i];
+            return Expanded(
+              child: InkWell(
+                onTap: () => onSelected(i),
+                borderRadius: BorderRadius.circular(18),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color: selected ? Colors.white : Colors.transparent,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        item.$1,
+                        color: selected ? _purple : Colors.white70,
+                        size: 22,
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        item.$2,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: selected ? _ink : Colors.white70,
+                          fontSize: 9,
+                          fontWeight:
+                              selected ? FontWeight.w900 : FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+      ),
+    );
+  }
+}
+
+class _GameHeroCard extends StatelessWidget {
+  const _GameHeroCard({
+    required this.arabic,
+    required this.ready,
+    required this.onPlay,
+  });
+
+  final bool arabic;
+  final bool ready;
+  final VoidCallback onPlay;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [_violet, _blue],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: [
+            BoxShadow(
+              color: _purple.withValues(alpha: .24),
+              blurRadius: 24,
+              offset: const Offset(0, 14),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              top: -36,
+              right: -26,
+              child: Container(
+                width: 116,
+                height: 116,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: .08),
+                ),
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: .14),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                  child: Text(
+                    ready
+                        ? (arabic ? 'جاهز للمواجهة' : 'READY TO DUEL')
+                        : (arabic ? 'ابنِ مجموعتك' : 'BUILD YOUR DECK'),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      letterSpacing: .5,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  arabic
+                      ? 'اجمع. نافس.\nواسرق البطاقة.'
+                      : 'Collect. Compete.\nSteal the card.',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 27,
+                    height: 1.05,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  arabic
+                      ? 'كل بطاقة تقرّبك من Deck أقوى ومواجهة جديدة.'
+                      : 'Every card brings you closer to a stronger deck and a new duel.',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: .82),
+                    height: 1.4,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                SizedBox(
+                  height: 48,
+                  child: FilledButton.icon(
+                    onPressed: onPlay,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _gold,
+                      foregroundColor: _ink,
+                      padding: const EdgeInsets.symmetric(horizontal: 18),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    icon: const Icon(Icons.play_arrow_rounded),
+                    label: Text(
+                      arabic ? 'ابدأ اللعب' : 'PLAY NOW',
+                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+}
+
+class _QuickStatCard extends StatelessWidget {
+  const _QuickStatCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 13),
+        decoration: BoxDecoration(
+          color: _cardSurface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: color.withValues(alpha: .13)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 20),
+            const SizedBox(height: 6),
+            Text(
+              value,
+              style: const TextStyle(
+                color: _ink,
+                fontSize: 17,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: _muted,
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _SectionRow extends StatelessWidget {
+  const _SectionRow({
+    required this.title,
+    this.action,
+    this.onAction,
+  });
+
+  final String title;
+  final String? action;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) => Row(
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(
+                color: _ink,
+                fontSize: 19,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          if (action != null && onAction != null)
+            TextButton(
+              onPressed: onAction,
+              child: Text(
+                action!,
+                style: const TextStyle(
+                  color: _purple,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+        ],
+      );
+}
+
+class _ActionTile extends StatelessWidget {
+  const _ActionTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(22),
+        child: Ink(
+          padding: const EdgeInsets.all(15),
+          decoration: BoxDecoration(
+            color: _cardSurface,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: color.withValues(alpha: .16)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: .13),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: color),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: _ink,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                subtitle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: _muted,
+                  fontSize: 11,
+                  height: 1.35,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+}
+
+class _CategoryTile extends StatelessWidget {
+  const _CategoryTile({required this.title, required this.color});
+  final String title;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 126,
+        padding: const EdgeInsets.all(13),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: .11),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withValues(alpha: .23)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(11),
+              ),
+              child: const Icon(
+                Icons.style_rounded,
+                color: Colors.white,
+                size: 18,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: _ink,
+                fontSize: 12,
+                height: 1.15,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
 class _Scroll extends StatelessWidget {
   const _Scroll({required this.children});
   final List<Widget> children;
   @override
   Widget build(BuildContext context) => ListView(
         padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
-        children: [Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 960), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children)))],
+        children: [Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 520), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children)))],
       );
 }
 
@@ -1407,7 +2079,7 @@ class _Panel extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFFE5EBF5))),
+        decoration: BoxDecoration(color: _cardSurface, borderRadius: BorderRadius.circular(22), border: Border.all(color: _softPurple), boxShadow: [BoxShadow(color: _purple.withValues(alpha: .04), blurRadius: 16, offset: const Offset(0, 8))]),
         child: child,
       );
 }
