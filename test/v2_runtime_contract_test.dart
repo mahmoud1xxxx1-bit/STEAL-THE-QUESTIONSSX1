@@ -36,4 +36,16 @@ void main() {
     expect(activeSource.toLowerCase(), isNot(contains('weekly pass')));
     expect(activeSource.toLowerCase(), isNot(contains('rarity system')));
   });
+
+  test('Android auth requires Google sign-in and has no anonymous fallback', () {
+    final runtimeSource =
+        File('lib/backend/online_runtime_v2.dart').readAsStringSync();
+    final authSource = File('lib/backend/google_auth_v2.dart').readAsStringSync();
+    final activeSource = File('lib/v2_active_app.dart').readAsStringSync();
+
+    expect(runtimeSource, isNot(contains('signInAnonymously')));
+    expect(authSource, contains('GoogleSignIn'));
+    expect(authSource, contains('GoogleAuthProvider.credential'));
+    expect(activeSource, contains('Continue with Google'));
+  });
 }

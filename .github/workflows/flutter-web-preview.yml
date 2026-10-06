@@ -1,4 +1,4 @@
-name: Flutter Web Preview
+name: Android CI
 
 on:
   push:
@@ -8,88 +8,8 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: true
 
 jobs:
-  build-web:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-
-      - name: Create Flutter web platform
-        run: flutter create --platforms=web .
-
-      - name: Get dependencies
-        run: flutter pub get
-
-      - name: Run Flutter tests
-        run: flutter test
-
-      - name: Check Firebase web configuration
-        env:
-          FIREBASE_WEB_API_KEY: ${{ secrets.FIREBASE_WEB_API_KEY || vars.FIREBASE_WEB_API_KEY }}
-          FIREBASE_WEB_APP_ID: ${{ secrets.FIREBASE_WEB_APP_ID || vars.FIREBASE_WEB_APP_ID }}
-          FIREBASE_WEB_MESSAGING_SENDER_ID: ${{ secrets.FIREBASE_WEB_MESSAGING_SENDER_ID || vars.FIREBASE_WEB_MESSAGING_SENDER_ID }}
-        run: |
-          missing=""
-          [ -z "$FIREBASE_WEB_API_KEY" ] && missing="$missing FIREBASE_WEB_API_KEY"
-          [ -z "$FIREBASE_WEB_APP_ID" ] && missing="$missing FIREBASE_WEB_APP_ID"
-          [ -z "$FIREBASE_WEB_MESSAGING_SENDER_ID" ] && missing="$missing FIREBASE_WEB_MESSAGING_SENDER_ID"
-          if [ -n "$missing" ]; then
-            echo "::warning::Firebase Web will run in local fallback mode. Missing:$missing"
-            echo "### Firebase Web configuration" >> "$GITHUB_STEP_SUMMARY"
-            echo "Local fallback mode will be used because these values are missing:$missing" >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "Firebase Web required configuration is present." >> "$GITHUB_STEP_SUMMARY"
-          fi
-
-      - name: Build web preview
-        env:
-          FIREBASE_WEB_API_KEY: ${{ secrets.FIREBASE_WEB_API_KEY || vars.FIREBASE_WEB_API_KEY }}
-          FIREBASE_WEB_APP_ID: ${{ secrets.FIREBASE_WEB_APP_ID || vars.FIREBASE_WEB_APP_ID }}
-          FIREBASE_WEB_MESSAGING_SENDER_ID: ${{ secrets.FIREBASE_WEB_MESSAGING_SENDER_ID || vars.FIREBASE_WEB_MESSAGING_SENDER_ID }}
-          FIREBASE_WEB_AUTH_DOMAIN: ${{ secrets.FIREBASE_WEB_AUTH_DOMAIN || vars.FIREBASE_WEB_AUTH_DOMAIN || 'steal-the-questionssx1.firebaseapp.com' }}
-          FIREBASE_WEB_STORAGE_BUCKET: ${{ secrets.FIREBASE_WEB_STORAGE_BUCKET || vars.FIREBASE_WEB_STORAGE_BUCKET || 'steal-the-questionssx1.appspot.com' }}
-          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID || vars.FIREBASE_PROJECT_ID || 'steal-the-questionssx1' }}
-        run: >
-          flutter build web --release --pwa-strategy=none
-          --base-href "/STEAL-THE-QUESTIONSSX1/"
-          --dart-define=FIREBASE_WEB_API_KEY="$FIREBASE_WEB_API_KEY"
-          --dart-define=FIREBASE_WEB_APP_ID="$FIREBASE_WEB_APP_ID"
-          --dart-define=FIREBASE_WEB_MESSAGING_SENDER_ID="$FIREBASE_WEB_MESSAGING_SENDER_ID"
-          --dart-define=FIREBASE_WEB_AUTH_DOMAIN="$FIREBASE_WEB_AUTH_DOMAIN"
-          --dart-define=FIREBASE_WEB_STORAGE_BUCKET="$FIREBASE_WEB_STORAGE_BUCKET"
-          --dart-define=FIREBASE_PROJECT_ID="$FIREBASE_PROJECT_ID"
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: build/web
-
-  deploy-pages:
-    needs: build-web
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-
-
   build-android:
     runs-on: ubuntu-latest
     steps:
@@ -113,6 +33,39 @@ jobs:
 
       - name: Get dependencies
         run: flutter pub get
+
+      - name: Run Flutter tests
+        run: flutter test
+
+      - name: Restore Firebase Android configuration
+        env:
+          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON_BASE64" ]; then
+            echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > android/app/google-services.json
+            echo "Firebase Android configuration restored."
+          else
+            echo "::warning::GOOGLE_SERVICES_JSON_BASE64 is missing. APK will build, but Firebase/Google Sign-In will not be production-ready."
+          fi
+
+      - name: Restore release signing key
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/steal_questions_release.jks
+            echo "Release keystore restored."
+          else
+            echo "::warning::ANDROID_KEYSTORE_BASE64 is missing. Android build will use the template signing fallback."
+          fi
+
+      - name: Configure Android package Firebase and release signing
+        env:
+          ANDROID_RELEASE_STORE_FILE: steal_questions_release.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: python3 tool/configure_generated_android.py
 
       - name: Build Android release APK
         run: flutter build apk --release

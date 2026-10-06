@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'backend/bot_api_v2.dart';
 import 'backend/firebase_bootstrap.dart';
 import 'backend/firebase_game_api_v2.dart';
+import 'backend/google_auth_v2.dart';
 import 'backend/online_runtime_v2.dart';
 import 'backend/profile_features_api_v2.dart';
 import 'data/player_profile_store_v2.dart';
@@ -41,6 +42,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
   bool _arabic = true;
   bool _busy = false;
   bool _backendAvailable = false;
+  bool _requiresGoogleSignIn = false;
   String? _notice;
   final MonthlySubscriptionPurchaseServiceV2 _purchaseService =
       MonthlySubscriptionPurchaseServiceV2();
@@ -63,10 +65,24 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
         setState(() {
           _profile = cached;
           _backendAvailable = false;
+          _requiresGoogleSignIn = false;
           _loadError = null;
           _notice = _arabic
-              ? 'تم فتح التطبيق محليًا. ينقص إعداد Firebase Web: ${FirebaseBootstrap.missingWebConfig.join(', ')}.'
-              : 'The app opened locally. Missing Firebase Web config: ${FirebaseBootstrap.missingWebConfig.join(', ')}.';
+              ? 'تعذر تهيئة Firebase على هذا الجهاز.'
+              : 'Firebase could not be initialized on this device.';
+        });
+        return;
+      }
+
+      if (FirebaseAuth.instance.currentUser == null) {
+        if (!mounted) return;
+        setState(() {
+          _profile = null;
+          _session = null;
+          _backendAvailable = false;
+          _requiresGoogleSignIn = true;
+          _loadError = null;
+          _notice = null;
         });
         return;
       }
@@ -77,18 +93,18 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
         botApi: BotApiV2(),
       );
       final profile = await session.initialize();
-      final online = session.remoteConnected &&
-          FirebaseAuth.instance.currentUser != null;
+      final online = session.remoteConnected;
       if (!mounted) return;
       setState(() {
         _session = session;
         _profile = profile;
         _backendAvailable = online;
+        _requiresGoogleSignIn = false;
         _loadError = null;
         if (!online) {
           _notice = _arabic
-              ? 'تم تحميل ملف اللاعب محليًا. اتصال Firebase/Auth أو Functions غير متاح حاليًا.'
-              : 'Player profile loaded locally. Firebase/Auth or Functions is currently unavailable.';
+              ? 'تم تسجيل الدخول، لكن الاتصال بخدمات اللعبة غير متاح حاليًا.'
+              : 'Signed in, but game services are currently unavailable.';
         }
       });
 
@@ -97,23 +113,35 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
         await _configurePurchases();
       }
     } catch (error) {
-      try {
-        final cached = await store.load();
-        if (!mounted) return;
-        setState(() {
-          _profile = cached;
-          _backendAvailable = false;
-          _loadError = null;
-          _notice = _arabic
-              ? 'تم فتح التطبيق من النسخة المحلية بدل إيقاف الصفحة.'
-              : 'The app opened from the local cache instead of blocking the page.';
-        });
-      } catch (_) {
-        if (!mounted) return;
-        setState(() => _loadError = error);
-      }
+      if (!mounted) return;
+      setState(() => _loadError = error);
     }
   }
+
+  Future<void> _signInWithGoogle() => _run(() async {
+        final credential = await GoogleAuthV2.instance.signIn();
+        if (credential.user == null) {
+          throw StateError('GOOGLE_SIGN_IN_FAILED');
+        }
+        await _load();
+      });
+
+  Future<void> _signOutGoogle() => _run(() async {
+        await GoogleAuthV2.instance.signOut();
+        if (!mounted) return;
+        setState(() {
+          _session = null;
+          _profile = null;
+          _ranking = null;
+          _subscription = null;
+          _botStatus = null;
+          _matchmaking = null;
+          _backendAvailable = false;
+          _requiresGoogleSignIn = true;
+          _notice = null;
+          _tab = 0;
+        });
+      });
 
   Future<void> _configurePurchases() async {
     final session = _session;
@@ -681,8 +709,88 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
     super.dispose();
   }
 
+  Widget _googleSignInScreen() {
+    return Directionality(
+      textDirection: _arabic ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        backgroundColor: _page,
+        body: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: _Panel(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CircleAvatar(
+                      radius: 34,
+                      backgroundColor: _purple,
+                      child: Icon(
+                        Icons.style_rounded,
+                        color: Colors.white,
+                        size: 34,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Text(
+                      _arabic
+                          ? 'تسجيل الدخول إلى STEAL THE QUESTIONS'
+                          : 'Sign in to STEAL THE QUESTIONS',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: _ink,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      _arabic
+                          ? 'استخدم حساب Google لحفظ بطاقاتك وDecks وترتيبك ومواجهاتك.'
+                          : 'Use your Google account to keep your cards, decks, ranking, and duels.',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: _muted,
+                        height: 1.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    FilledButton.icon(
+                      onPressed: _busy ? null : _signInWithGoogle,
+                      icon: const Icon(Icons.login_rounded),
+                      label: Text(
+                        _arabic
+                            ? 'المتابعة باستخدام Google'
+                            : 'Continue with Google',
+                      ),
+                    ),
+                    if (_busy) ...[
+                      const SizedBox(height: 14),
+                      const LinearProgressIndicator(),
+                    ],
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: () => setState(() => _arabic = !_arabic),
+                      child: Text(_arabic ? 'English' : 'العربية'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_requiresGoogleSignIn) {
+      return _googleSignInScreen();
+    }
+
     final profile = _profile;
     if (_loadError != null) {
       return Scaffold(
@@ -743,6 +851,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
         storeReady: _storeReady,
         subscriptionPrice: _subscriptionPrice,
         equipPrestige: _equipPrestige,
+        signOut: _signOutGoogle,
       ),
     ];
 
@@ -1048,6 +1157,7 @@ class _ProfileV2 extends StatelessWidget {
     required this.storeReady,
     required this.subscriptionPrice,
     required this.equipPrestige,
+    required this.signOut,
   });
   final bool arabic;
   final PlayerProfileV2 profile;
@@ -1061,6 +1171,7 @@ class _ProfileV2 extends StatelessWidget {
   final bool storeReady;
   final String? subscriptionPrice;
   final VoidCallback equipPrestige;
+  final VoidCallback signOut;
 
   @override
   Widget build(BuildContext context) {
@@ -1085,6 +1196,7 @@ class _ProfileV2 extends StatelessWidget {
             children: [
               TextButton.icon(onPressed: busy ? null : refresh, icon: const Icon(Icons.refresh_rounded), label: Text(arabic ? 'تحديث الملف' : 'Refresh profile')),
               OutlinedButton(onPressed: busy ? null : equipPrestige, child: Text(arabic ? 'جهز أفضل Prestige' : 'Equip best prestige')),
+              OutlinedButton(onPressed: busy ? null : signOut, child: Text(arabic ? 'تسجيل الخروج' : 'Sign out')),
             ],
           ),
         ]),
