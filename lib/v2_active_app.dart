@@ -570,10 +570,35 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
 
   Future<void> _startBotRound() => _run(() async {
         if (_demoMode) {
-          _showDemoMessage(
-            'وضع تجريبي: واجهة البوت جاهزة. تشغيل الجولة الفعلية ينتظر Blaze وإضافة محتوى الأسئلة.',
-            'Demo mode: the bot UI is ready. A real round waits for Blaze and question content.',
+          final answer = await _answerDialog(
+            title: _arabic ? 'سؤال اختبار Spark' : 'Spark test question',
+            prompt: _arabic
+                ? 'هذا سؤال تجريبي لاختبار تدفق اللعب فقط. اختر الإجابة الصحيحة.'
+                : 'This is a test-only question for gameplay flow. Choose the correct answer.',
+            choices: _arabic
+                ? const ['الإجابة الصحيحة', 'خيار تجريبي 1', 'خيار تجريبي 2']
+                : const ['Correct answer', 'Test option 1', 'Test option 2'],
           );
+          if (answer == null) return;
+          final correct = answer == 0;
+          var profile = _session!.profile;
+          if (correct) {
+            final id =
+                'spark_bonus_card_${DateTime.now().millisecondsSinceEpoch}';
+            profile = await _session!.addSparkTestCard(id);
+          }
+          if (!mounted) return;
+          setState(() {
+            _profile = profile;
+            _syncSparkTestPanels(profile);
+            _notice = correct
+                ? (_arabic
+                    ? 'إجابة صحيحة. أضيفت بطاقة اختبارية إلى مجموعتك.'
+                    : 'Correct. A test card was added to your collection.')
+                : (_arabic
+                    ? 'إجابة غير صحيحة. لم تتم إضافة بطاقة.'
+                    : 'Incorrect. No card was added.');
+          });
           return;
         }
         final session = _session!;
