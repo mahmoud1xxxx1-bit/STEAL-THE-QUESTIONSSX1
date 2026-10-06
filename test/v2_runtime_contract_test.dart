@@ -88,6 +88,16 @@ void main() {
     expect(activeSource, contains('class _PodiumPlayer'));
   });
 
+  test('profile prestige and membership share player identity language', () {
+    final activeSource = File('lib/v2_active_app.dart').readAsStringSync();
+
+    expect(activeSource, contains('class _PlayerIdentityFrame'));
+    expect(activeSource, contains('class _TitleRibbon'));
+    expect(activeSource, contains('class _PrestigeMedal'));
+    expect(activeSource, contains('class _IdentityEquipRow'));
+    expect(activeSource, contains('Challenger club'));
+  });
+
   test('Android auth requires Google sign-in and has no anonymous fallback', () {
     final runtimeSource =
         File('lib/backend/online_runtime_v2.dart').readAsStringSync();

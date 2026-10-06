@@ -2413,64 +2413,140 @@ class _ProfileHero extends StatelessWidget {
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [_violet, _blue],
+            colors: [Color(0xFF241B46), Color(0xFF5B36C5), _blue],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(28),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: .15),
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 3),
-              ),
-              child: const Icon(Icons.person_rounded,
-                  color: Colors.white, size: 34),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    arabic ? 'ملف اللاعب' : 'Player profile',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 21,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    titleKey ??
-                        (arabic ? 'بدون لقب مجهز' : 'No title equipped'),
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: .74),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 7,
-                    children: [
-                      _DarkBadge(
-                        icon: Icons.emoji_events_rounded,
-                        text: '$weeklyPoints',
-                      ),
-                      _DarkBadge(icon: Icons.bolt_rounded, text: '$wins'),
-                      _DarkBadge(icon: Icons.style_rounded, text: '$owned'),
-                    ],
-                  ),
-                ],
-              ),
+          boxShadow: [
+            BoxShadow(
+              color: _purple.withValues(alpha: .18),
+              blurRadius: 22,
+              offset: const Offset(0, 12),
             ),
           ],
+        ),
+        child: Stack(
+          children: [
+            PositionedDirectional(
+              top: -36,
+              end: -22,
+              child: Container(
+                width: 126,
+                height: 126,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: .06),
+                ),
+              ),
+            ),
+            Row(
+              children: [
+                _PlayerIdentityFrame(titleKey: titleKey),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        arabic ? 'هوية اللاعب' : 'Player identity',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 21,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      _TitleRibbon(
+                        text: titleKey ??
+                            (arabic ? 'المنافس الجديد' : 'New challenger'),
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 7,
+                        runSpacing: 7,
+                        children: [
+                          _DarkBadge(
+                            icon: Icons.emoji_events_rounded,
+                            text: '$weeklyPoints',
+                          ),
+                          _DarkBadge(
+                            icon: Icons.bolt_rounded,
+                            text: '$wins',
+                          ),
+                          _DarkBadge(
+                            icon: Icons.style_rounded,
+                            text: '$owned',
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+}
+
+class _PlayerIdentityFrame extends StatelessWidget {
+  const _PlayerIdentityFrame({required this.titleKey});
+  final String? titleKey;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 82,
+        height: 92,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [_gold, Color(0xFFFFE79B)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: _gold.withValues(alpha: .22),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(3),
+        child: Container(
+          decoration: BoxDecoration(
+            color: _ink,
+            borderRadius: BorderRadius.circular(21),
+          ),
+          child: const Center(
+            child: _StealLogoMark(size: 58),
+          ),
+        ),
+      );
+}
+
+class _TitleRibbon extends StatelessWidget {
+  const _TitleRibbon({required this.text});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+        decoration: BoxDecoration(
+          color: _gold.withValues(alpha: .16),
+          borderRadius: BorderRadius.circular(99),
+          border: Border.all(color: _gold.withValues(alpha: .28)),
+        ),
+        child: Text(
+          text,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: _gold,
+            fontSize: 10,
+            fontWeight: FontWeight.w900,
+          ),
         ),
       );
 }
@@ -2498,52 +2574,206 @@ class _PrestigeCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: _cardSurface,
+          gradient: LinearGradient(
+            colors: [
+              _gold.withValues(alpha: .15),
+              _cardSurface,
+            ],
+            begin: Alignment.topRight,
+            end: Alignment.bottomLeft,
+          ),
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: _gold.withValues(alpha: .24)),
+          border: Border.all(color: _gold.withValues(alpha: .28)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                const Icon(Icons.workspace_premium_rounded,
-                    color: _gold, size: 26),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    arabic ? 'Prestige الأسبوعي' : 'Weekly prestige',
-                    style: const TextStyle(
-                      color: _ink,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w900,
-                    ),
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: _gold,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(
+                    Icons.workspace_premium_rounded,
+                    color: _ink,
+                    size: 24,
                   ),
                 ),
-                Text(
-                  '🥇 $first  🥈 $second  🥉 $third',
-                  style: const TextStyle(fontWeight: FontWeight.w900),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        arabic ? 'قاعة الـPrestige' : 'Prestige hall',
+                        style: const TextStyle(
+                          color: _ink,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        arabic
+                            ? 'مراكزك تبني هوية دائمة لحسابك.'
+                            : 'Your podium finishes build a permanent identity.',
+                        style: const TextStyle(
+                          color: _muted,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            _StatRow(
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: _PrestigeMedal(
+                    medal: '🥇',
+                    value: first,
+                    label: arabic ? 'أول' : 'First',
+                    tone: _gold,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _PrestigeMedal(
+                    medal: '🥈',
+                    value: second,
+                    label: arabic ? 'ثاني' : 'Second',
+                    tone: const Color(0xFFBFC7D6),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _PrestigeMedal(
+                    medal: '🥉',
+                    value: third,
+                    label: arabic ? 'ثالث' : 'Third',
+                    tone: const Color(0xFFC98A52),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            _IdentityEquipRow(
+              icon: Icons.workspace_premium_rounded,
               label: arabic ? 'اللقب الحالي' : 'Current title',
               value: titleKey ?? '—',
             ),
-            _StatRow(
+            _IdentityEquipRow(
+              icon: Icons.crop_square_rounded,
               label: arabic ? 'الإطار الحالي' : 'Current frame',
               value: frameKey ?? '—',
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             SizedBox(
               width: double.infinity,
-              child: OutlinedButton.icon(
+              child: FilledButton.icon(
                 onPressed: onEquip,
+                style: FilledButton.styleFrom(
+                  backgroundColor: _ink,
+                  foregroundColor: Colors.white,
+                ),
                 icon: const Icon(Icons.auto_awesome_rounded),
                 label: Text(
-                  arabic ? 'تجهيز أفضل Prestige' : 'Equip best prestige',
+                  arabic ? 'جهز أفضل هوية Prestige' : 'Equip best prestige identity',
                 ),
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _PrestigeMedal extends StatelessWidget {
+  const _PrestigeMedal({
+    required this.medal,
+    required this.value,
+    required this.label,
+    required this.tone,
+  });
+
+  final String medal;
+  final int value;
+  final String label;
+  final Color tone;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: tone.withValues(alpha: .10),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: tone.withValues(alpha: .20)),
+        ),
+        child: Column(
+          children: [
+            Text(medal, style: const TextStyle(fontSize: 24)),
+            const SizedBox(height: 4),
+            Text(
+              '$value',
+              style: const TextStyle(
+                color: _ink,
+                fontSize: 17,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            Text(
+              label,
+              style: const TextStyle(
+                color: _muted,
+                fontSize: 9,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _IdentityEquipRow extends StatelessWidget {
+  const _IdentityEquipRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        child: Row(
+          children: [
+            Icon(icon, size: 18, color: _purple),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  color: _muted,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            Text(
+              value,
+              style: const TextStyle(
+                color: _ink,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
               ),
             ),
           ],
@@ -2669,53 +2899,85 @@ class _SubscriptionCard extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: active
-                ? [_gold.withValues(alpha: .2), _cardSurface]
-                : [_softPurple, _cardSurface],
+                ? [const Color(0xFF20183C), const Color(0xFF5A3ACB)]
+                : [const Color(0xFFF0EBFF), _cardSurface],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: active ? _gold.withValues(alpha: .35) : _softPurple,
+            color: active
+                ? _gold.withValues(alpha: .45)
+                : _purple.withValues(alpha: .14),
           ),
         ),
         child: Column(
           children: [
             Row(
               children: [
-                Icon(
-                  active ? Icons.workspace_premium_rounded : Icons.star_rounded,
-                  color: active ? _gold : _purple,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: active ? _gold : _purple,
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: Icon(
                     active
-                        ? (arabic ? 'اشتراك فعال' : 'Active subscription')
-                        : (arabic ? 'الاشتراك الشهري' : 'Monthly subscription'),
-                    style: const TextStyle(
-                      color: _ink,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                    ),
+                        ? Icons.workspace_premium_rounded
+                        : Icons.star_rounded,
+                    color: active ? _ink : Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        active
+                            ? (arabic ? 'نادي المنافسين' : 'Challenger club')
+                            : (arabic ? 'عضوية المنافسين' : 'Challenger membership'),
+                        style: TextStyle(
+                          color: active ? Colors.white : _ink,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        active
+                            ? (arabic ? 'عضويتك فعالة' : 'Membership active')
+                            : (arabic
+                                ? 'خيارات أكثر لبناء مجموعتك.'
+                                : 'More options to build your collection.'),
+                        style: TextStyle(
+                          color: active
+                              ? Colors.white.withValues(alpha: .68)
+                              : _muted,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 if (price != null)
-                  Text(
-                    price!,
-                    style: const TextStyle(
-                      color: _purple,
-                      fontWeight: FontWeight.w900,
-                    ),
+                  _GameStatusBadge(
+                    text: price!,
+                    color: active ? _gold : _purple,
                   ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             Row(
               children: [
                 Expanded(
                   child: _EntitlementMini(
                     icon: Icons.layers_rounded,
                     value: '$deckSlots',
-                    label: arabic ? 'Decks' : 'Decks',
+                    label: arabic ? 'مجموعات' : 'Decks',
+                    inverted: active,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -2724,6 +2986,7 @@ class _SubscriptionCard extends StatelessWidget {
                     icon: Icons.checklist_rounded,
                     value: '$answerChoices',
                     label: arabic ? 'خيارات' : 'Choices',
+                    inverted: active,
                   ),
                 ),
               ],
@@ -2732,9 +2995,10 @@ class _SubscriptionCard extends StatelessWidget {
             if (!active)
               SizedBox(
                 width: double.infinity,
-                child: FilledButton(
+                child: FilledButton.icon(
                   onPressed: busy || !storeReady ? null : buy,
-                  child: Text(arabic ? 'اشترك الآن' : 'Subscribe'),
+                  icon: const Icon(Icons.star_rounded),
+                  label: Text(arabic ? 'انضم للعضوية' : 'Join membership'),
                 ),
               ),
             Wrap(
@@ -2743,10 +3007,16 @@ class _SubscriptionCard extends StatelessWidget {
               children: [
                 TextButton(
                   onPressed: busy || !storeReady ? null : restore,
+                  style: TextButton.styleFrom(
+                    foregroundColor: active ? Colors.white70 : _purple,
+                  ),
                   child: Text(arabic ? 'استعادة الشراء' : 'Restore'),
                 ),
                 TextButton(
                   onPressed: busy ? null : verify,
+                  style: TextButton.styleFrom(
+                    foregroundColor: active ? Colors.white70 : _purple,
+                  ),
                   child: Text(arabic ? 'تحقق' : 'Verify'),
                 ),
               ],
@@ -2761,34 +3031,38 @@ class _EntitlementMini extends StatelessWidget {
     required this.icon,
     required this.value,
     required this.label,
+    this.inverted = false,
   });
   final IconData icon;
   final String value;
   final String label;
+  final bool inverted;
 
   @override
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: .72),
+          color: inverted
+              ? Colors.white.withValues(alpha: .10)
+              : Colors.white.withValues(alpha: .72),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
           children: [
-            Icon(icon, color: _purple, size: 20),
+            Icon(icon, color: inverted ? _gold : _purple, size: 20),
             const SizedBox(height: 5),
             Text(
               value,
-              style: const TextStyle(
-                color: _ink,
+              style: TextStyle(
+                color: inverted ? Colors.white : _ink,
                 fontSize: 16,
                 fontWeight: FontWeight.w900,
               ),
             ),
             Text(
               label,
-              style: const TextStyle(
-                color: _muted,
+              style: TextStyle(
+                color: inverted ? Colors.white70 : _muted,
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
               ),
