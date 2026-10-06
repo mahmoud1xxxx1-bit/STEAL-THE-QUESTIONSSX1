@@ -3053,7 +3053,7 @@ class _EntitlementMini extends StatelessWidget {
             const SizedBox(height: 5),
             Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 color: inverted ? Colors.white : _ink,
                 fontSize: 16,
                 fontWeight: FontWeight.w900,
@@ -3061,7 +3061,7 @@ class _EntitlementMini extends StatelessWidget {
             ),
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 color: inverted ? Colors.white70 : _muted,
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
