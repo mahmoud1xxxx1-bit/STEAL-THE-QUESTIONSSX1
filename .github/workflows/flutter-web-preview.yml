@@ -1,5 +1,7 @@
 name: Android CI
 
+# Android-first quality gate: analyze, test, sign, verify, then upload.
+
 on:
   push:
     branches:
