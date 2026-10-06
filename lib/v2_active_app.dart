@@ -262,10 +262,15 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
 
   Future<void> _buySubscription() => _run(() async {
         if (_demoMode) {
-          _showDemoMessage(
-            'وضع تجريبي: الشراء الحقيقي يحتاج خدمات السيرفر بعد تفعيل Blaze.',
-            'Demo mode: real purchases require server services after Blaze is enabled.',
-          );
+          final profile = await _session!.setSparkTestSubscription(true);
+          if (!mounted) return;
+          setState(() {
+            _profile = profile;
+            _syncSparkTestPanels(profile);
+            _notice = _arabic
+                ? 'تم تفعيل الاشتراك محليًا للاختبار لمدة 30 يومًا. عند الإطلاق يجب التحقق منه عبر Blaze.'
+                : 'Subscription enabled locally for a 30-day test. Production verification requires Blaze.';
+          });
           return;
         }
         final started = await _purchaseService.buy();
@@ -281,10 +286,15 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
 
   Future<void> _restoreSubscription() => _run(() async {
         if (_demoMode) {
-          _showDemoMessage(
-            'وضع تجريبي: استعادة المشتريات ستعمل بعد تفعيل Blaze.',
-            'Demo mode: purchase restore will work after Blaze is enabled.',
-          );
+          final profile = await _session!.setSparkTestSubscription(true);
+          if (!mounted) return;
+          setState(() {
+            _profile = profile;
+            _syncSparkTestPanels(profile);
+            _notice = _arabic
+                ? 'تمت محاكاة استعادة الاشتراك محليًا للاختبار.'
+                : 'Subscription restore simulated locally for testing.';
+          });
           return;
         }
         final started = await _purchaseService.restorePurchases();
@@ -533,10 +543,14 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
 
   Future<void> _refreshSubscription() => _run(() async {
         if (_demoMode) {
-          _showDemoMessage(
-            'وضع تجريبي: التحقق من الاشتراك يحتاج السيرفر بعد تفعيل Blaze.',
-            'Demo mode: subscription verification requires the server after Blaze is enabled.',
-          );
+          final profile = _session!.profile;
+          if (!mounted) return;
+          setState(() {
+            _subscription = _sparkTestSubscription(profile);
+            _notice = _arabic
+                ? 'تم التحقق من حالة الاشتراك المحلية في وضع Spark التجريبي.'
+                : 'Local Spark-test subscription state verified.';
+          });
           return;
         }
         final status = await _session!.refreshSubscription();
