@@ -152,7 +152,7 @@ const getStealOptionsV2 = onCall(async (request) => {
   const winnerProfile = profileFromUserData(winnerSnap.data());
   let packIds;
   try {
-    packIds = stealablePackIds(opponentDeckPackIds, winnerProfile.ownedPackIds);
+    packIds = stealablePackIds(opponentDeckPackIds);
   } catch (_) {
     throw new HttpsError('failed-precondition', 'Opponent duel deck is invalid.');
   }
@@ -191,13 +191,32 @@ const confirmStealV2 = onCall(async (request) => {
     const opponentDeckPackIds = Array.isArray(secret.loserDeckPackIds) ? secret.loserDeckPackIds.map(String) : [];
     let transfer;
     try {
-      transfer = applySteal({ packId, winnerOwnedPackIds: winner.ownedPackIds, loserOwnedPackIds: loser.ownedPackIds, opponentDeckPackIds });
+      transfer = applySteal({
+        packId,
+        winnerOwnedPackIds: winner.ownedPackIds,
+        loserOwnedPackIds: loser.ownedPackIds,
+        opponentDeckPackIds,
+        winnerOwnedPackCounts: winner.ownedPackCounts,
+        loserOwnedPackCounts: loser.ownedPackCounts,
+      });
     } catch (_) {
       throw new HttpsError('failed-precondition', 'Selected card is not eligible for transfer.');
     }
 
-    const nextWinner = sanitizeDecksAfterOwnershipChange({ ...winner, ownedPackIds: transfer.winnerOwnedPackIds });
-    const nextLoser = sanitizeDecksAfterOwnershipChange({ ...loser, ownedPackIds: transfer.loserOwnedPackIds });
+    const nextWinner = sanitizeDecksAfterOwnershipChange({
+      ...winner,
+      ownedPackIds: transfer.winnerOwnedPackIds,
+      ownedPackCounts: transfer.winnerOwnedPackCounts,
+      packLastPvpUsedAtMs: {
+        ...winner.packLastPvpUsedAtMs,
+        [packId]: Timestamp.now().toMillis(),
+      },
+    });
+    const nextLoser = sanitizeDecksAfterOwnershipChange({
+      ...loser,
+      ownedPackIds: transfer.loserOwnedPackIds,
+      ownedPackCounts: transfer.loserOwnedPackCounts,
+    });
     const now = Timestamp.now();
     tx.update(winnerRef, { profileV2: nextWinner, activeDuelV2: null, schemaVersion: 2, updatedAt: now });
     tx.update(loserRef, { profileV2: nextLoser, activeDuelV2: null, schemaVersion: 2, updatedAt: now });
