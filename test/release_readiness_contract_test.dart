@@ -61,6 +61,10 @@ void main() {
     expect(onlineSession, contains('refreshSubscription() async'));
     expect(activeApp, contains('final verified = await session.verifySubscriptionPurchase'));
     expect(activeApp, contains('final status = await session.refreshSubscription'));
+    expect(activeApp, contains('bool get _demoMode'));
+    expect(activeApp, contains('if (_demoMode)'));
+    expect(activeApp, contains('_DemoModeBanner'));
+    expect(activeApp, contains('await _runSparkTestDuel()'));
     expect(profileFeatures, contains('if (!verified.active && next.activeDeckIndex >= 2)'));
 
     expect(weeklyRanking, contains("onDocumentWritten('users/{uid}'"));
