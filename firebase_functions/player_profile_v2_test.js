@@ -16,6 +16,7 @@ const now = Date.UTC(2026, 9, 5, 12, 0, 0);
 const empty = emptyProfileV2(now);
 assert.strictEqual(empty.schemaVersion, 2);
 assert.strictEqual(empty.ownedPackIds.length, 0);
+assert.deepStrictEqual(empty.ownedPackCounts, {});
 assert.strictEqual(empty.decks.length, 5);
 assert.strictEqual(empty.weeklyPoints, 0);
 assert.deepStrictEqual(empty.packLastPvpUsedAtMs, {});
@@ -28,6 +29,7 @@ let profile = normalizeProfileV2({
 }, now);
 
 assert.strictEqual(pvpUnlockedV2(profile, now), true);
+assert.strictEqual(profile.ownedPackCounts.p0, 1);
 assert.strictEqual(canSaveDeckV2(profile, 0, owned, now), true);
 assert.strictEqual(canSaveDeckV2(profile, 2, owned, now), false);
 profile = saveDeckV2(profile, 0, owned, now);
@@ -71,3 +73,11 @@ assert.strictEqual(profile.recentQuestionIds.length, 50);
 assert.strictEqual(profile.recentQuestionIds[0], 'q10');
 
 console.log('player_profile_v2 tests passed');
+
+const duplicateCounts = normalizeProfileV2({
+  ...profile,
+  ownedPackCounts: { p0: 3, p1: 2 },
+}, later);
+assert.strictEqual(duplicateCounts.ownedPackCounts.p0, 3);
+assert.strictEqual(duplicateCounts.ownedPackCounts.p1, 2);
+assert.strictEqual(duplicateCounts.ownedPackCounts.p2, 1);
