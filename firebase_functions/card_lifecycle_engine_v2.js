@@ -2,6 +2,12 @@
 
 const { DECK_SIZE } = require('./core_engine_v2');
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+const CARD_INACTIVITY_MS = Object.freeze({
+  gold: 12 * DAY_MS,
+  legendary: 7 * DAY_MS,
+});
+
 function uniqueStrings(value) {
   return [...new Set((Array.isArray(value) ? value : []).map(String))];
 }
@@ -41,7 +47,7 @@ function markPvpDeckActivity(profile, deckPackIds, nowMs = Date.now()) {
 function expiredPackIds({
   profile,
   rarityByPackId,
-  inactivityMsByRarity,
+  inactivityMsByRarity = CARD_INACTIVITY_MS,
   nowMs = Date.now(),
 }) {
   const owned = uniqueStrings(profile && profile.ownedPackIds);
@@ -67,6 +73,8 @@ function expiredPackIds({
 }
 
 module.exports = {
+  DAY_MS,
+  CARD_INACTIVITY_MS,
   normalizeActivityMap,
   markPvpDeckActivity,
   expiredPackIds,
