@@ -2304,6 +2304,7 @@ class _PlayV2 extends StatelessWidget {
   Widget build(BuildContext context) {
     final needsBot = profile.ownedCount < kDeckSizeV2;
     final searching = matchmaking?.searching == true;
+    final matched = matchmaking?.matched == true;
 
     return _Scroll(
       children: [
@@ -2311,12 +2312,14 @@ class _PlayV2 extends StatelessWidget {
           arabic: arabic,
           needsBot: needsBot,
           searching: searching,
+          matched: matched,
         ),
         const SizedBox(height: 12),
         _DuelArenaStrip(
           arabic: arabic,
           unlocked: profile.activeDeckReady,
           searching: searching,
+          matched: matched,
         ),
         const SizedBox(height: 18),
         _ModeCard(
@@ -2339,27 +2342,36 @@ class _PlayV2 extends StatelessWidget {
           arabic: arabic,
           icon: Icons.flash_on_rounded,
           title: arabic ? 'مواجهة PvP' : 'PvP duel',
-          subtitle: profile.activeDeckReady
+          subtitle: matched
               ? (arabic
-                  ? 'Deck جاهزة. واجه لاعبًا واسرق بطاقة عند الفوز.'
-                  : 'Deck ready. Face a player and steal a card if you win.')
-              : (arabic
-                  ? 'جهّز Deck من 10 بطاقات مختلفة لفتح المواجهة.'
-                  : 'Build a 10-card deck to unlock duels.'),
-          accent: _coral,
-          badge: searching
-              ? (arabic ? 'جاري البحث' : 'SEARCHING')
+                  ? 'لديك مواجهة نشطة محفوظة على السيرفر. عد إليها وأكمل من آخر نقطة.'
+                  : 'You have an active duel saved on the server. Resume it from the last checkpoint.')
               : profile.activeDeckReady
-                  ? (arabic ? 'جاهز' : 'READY')
-                  : (arabic ? 'مغلق' : 'LOCKED'),
+                  ? (arabic
+                      ? 'Deck جاهزة. واجه لاعبًا واسرق بطاقة عند الفوز.'
+                      : 'Deck ready. Face a player and steal a card if you win.')
+                  : (arabic
+                      ? 'جهّز Deck من 10 بطاقات مختلفة لفتح المواجهة.'
+                      : 'Build a 10-card deck to unlock duels.'),
+          accent: _coral,
+          badge: matched
+              ? (arabic ? 'مباراة نشطة' : 'ACTIVE DUEL')
+              : searching
+                  ? (arabic ? 'جاري البحث' : 'SEARCHING')
+                  : profile.activeDeckReady
+                      ? (arabic ? 'جاهز' : 'READY')
+                      : (arabic ? 'مغلق' : 'LOCKED'),
           enabled: !busy && profile.activeDeckReady,
-          buttonText: searching
-              ? (arabic ? 'تحقق من الخصم' : 'Check opponent')
-              : (arabic ? 'ابحث عن خصم' : 'Find opponent'),
+          buttonText: matched
+              ? (arabic ? 'استئناف المباراة' : 'Resume duel')
+              : searching
+                  ? (arabic ? 'تحقق من الخصم' : 'Check opponent')
+                  : (arabic ? 'ابحث عن خصم' : 'Find opponent'),
           onTap: startOrCheckMatchmaking,
-          secondaryText:
-              searching ? (arabic ? 'إلغاء البحث' : 'Cancel search') : null,
-          onSecondary: searching ? cancelMatchmaking : null,
+          secondaryText: searching && !matched
+              ? (arabic ? 'إلغاء البحث' : 'Cancel search')
+              : null,
+          onSecondary: searching && !matched ? cancelMatchmaking : null,
         ),
         const SizedBox(height: 18),
         _BattleRulesCard(
@@ -2687,11 +2699,13 @@ class _DuelArenaStrip extends StatelessWidget {
     required this.arabic,
     required this.unlocked,
     required this.searching,
+    required this.matched,
   });
 
   final bool arabic;
   final bool unlocked;
   final bool searching;
+  final bool matched;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -2715,16 +2729,20 @@ class _DuelArenaStrip extends StatelessWidget {
               ),
             ),
             _ArenaPlayer(
-              icon: searching
-                  ? Icons.radar_rounded
-                  : unlocked
-                      ? Icons.person_search_rounded
-                      : Icons.lock_rounded,
-              label: searching
-                  ? (arabic ? 'نبحث...' : 'SEARCHING')
-                  : unlocked
-                      ? (arabic ? 'خصم' : 'RIVAL')
-                      : (arabic ? 'مغلق' : 'LOCKED'),
+              icon: matched
+                  ? Icons.sports_esports_rounded
+                  : searching
+                      ? Icons.radar_rounded
+                      : unlocked
+                          ? Icons.person_search_rounded
+                          : Icons.lock_rounded,
+              label: matched
+                  ? (arabic ? 'جاهز' : 'MATCHED')
+                  : searching
+                      ? (arabic ? 'نبحث...' : 'SEARCHING')
+                      : unlocked
+                          ? (arabic ? 'خصم' : 'RIVAL')
+                          : (arabic ? 'مغلق' : 'LOCKED'),
               color: _coral,
             ),
           ],
@@ -3564,11 +3582,13 @@ class _PlayHero extends StatelessWidget {
     required this.arabic,
     required this.needsBot,
     required this.searching,
+    required this.matched,
   });
 
   final bool arabic;
   final bool needsBot;
   final bool searching;
+  final bool matched;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -3588,9 +3608,11 @@ class _PlayHero extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    searching
-                        ? (arabic ? 'نبحث عن خصم...' : 'Finding opponent...')
-                        : needsBot
+                    matched
+                        ? (arabic ? 'مباراتك بانتظارك' : 'Your duel is waiting')
+                        : searching
+                            ? (arabic ? 'نبحث عن خصم...' : 'Finding opponent...')
+                            : needsBot
                             ? (arabic ? 'ابدأ رحلتك' : 'Start your journey')
                             : (arabic ? 'وقت المواجهة' : 'Time to duel'),
                     style: const TextStyle(
