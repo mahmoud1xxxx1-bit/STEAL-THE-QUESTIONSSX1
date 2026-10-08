@@ -122,6 +122,10 @@ const findOrCreateDuelV2 = onCall(async (request) => {
         duelId: duelRef.id,
         p1DeckPackIds: ownQueue.deckPackIds.map(String),
         p2DeckPackIds: candidateQueue.deckPackIds.map(String),
+        p1Prepared: false,
+        p2Prepared: false,
+        p1ChallengeSelections: [],
+        p2ChallengeSelections: [],
         createdAt: now,
       });
       tx.update(ownQueueRef, { status: MATCH_STATUS_MATCHED, duelId: duelRef.id, updatedAt: now });
