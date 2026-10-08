@@ -8,11 +8,14 @@ const { entitlement } = require('./core_engine_v2');
 const { validateQuestionDocument, localizedQuestion } = require('./content_contract_v2');
 const { publicDuelState, submitAnswer, finalizeDuel, validateQuestionPlan } = require('./duel_lifecycle_v2');
 const {
-  selectOpponentPacks,
-  chooseQuestionEntry,
   buildPlanItem,
   nextRecent,
 } = require('./duel_question_plan_v2');
+const {
+  buildPrepOptions,
+  validatePrepSelections,
+  enoughSelectableCards,
+} = require('./duel_preparation_engine_v2');
 
 const db = admin.firestore();
 
@@ -77,48 +80,199 @@ async function loadCustomChoices(ownerUid, cardId, questionId, language, limit) 
   return snap.data().choices.map(String).slice(0, Math.max(0, limit));
 }
 
-async function buildPlanForPlayer({ playerProfile, opponentUid, opponentDeckPackIds, language }) {
-  const selectedPackIds = selectOpponentPacks(opponentDeckPackIds);
-  const usedQuestionIds = new Set();
-  const plan = [];
-  let recentQuestionIds = Array.isArray(playerProfile.recentQuestionIds)
-    ? [...playerProfile.recentQuestionIds]
-    : [];
-  const answerChoiceCount = entitlement(playerProfile.subscriptionActive).answerChoices;
-  const wrongChoiceCount = answerChoiceCount - 1;
 
-  for (const packId of selectedPackIds) {
+async function loadPrepOptions({ deckPackIds, playerProfile, opponentProfile, language }) {
+  const entriesByPack = {};
+  for (const packId of deckPackIds) {
+    entriesByPack[String(packId)] = await loadQuestionEntries(String(packId), language);
+  }
+  return {
+    entriesByPack,
+    options: buildPrepOptions({
+      deckPackIds,
+      entriesByPack,
+      playerRecent: playerProfile.recentQuestionIds,
+      opponentRecent: opponentProfile.recentQuestionIds,
+    }),
+  };
+}
+
+async function buildPlanFromSelections({
+  selections,
+  answeringProfile,
+  attackerUid,
+  language,
+}) {
+  const answerChoiceCount = entitlement(answeringProfile.subscriptionActive).answerChoices;
+  const wrongChoiceCount = answerChoiceCount - 1;
+  const plan = [];
+  let recentQuestionIds = Array.isArray(answeringProfile.recentQuestionIds)
+    ? [...answeringProfile.recentQuestionIds]
+    : [];
+
+  for (const selection of selections) {
+    const packId = String(selection.packId);
+    const questionId = String(selection.questionId);
     const entries = await loadQuestionEntries(packId, language);
-    if (!entries.length) throw new HttpsError('failed-precondition', 'CONTENT_NOT_AVAILABLE');
-    const question = chooseQuestionEntry(entries, recentQuestionIds, usedQuestionIds);
+    const question = entries.find((entry) => String(entry.id) === questionId);
+    if (!question) throw new HttpsError('failed-precondition', 'SELECTED_QUESTION_NOT_AVAILABLE');
     const customWrongChoices = await loadCustomChoices(
-      opponentUid,
+      attackerUid,
       packId,
-      question.id,
+      questionId,
       language,
       wrongChoiceCount,
     );
-    let item;
-    try {
-      item = buildPlanItem({
-        packId,
-        question,
-        customWrongChoices,
-        answerChoiceCount,
-      });
-    } catch (_) {
-      throw new HttpsError('failed-precondition', 'CONTENT_NOT_AVAILABLE');
-    }
-    usedQuestionIds.add(String(question.id));
-    recentQuestionIds = nextRecent(recentQuestionIds, question.id);
+    const item = buildPlanItem({
+      packId,
+      question,
+      customWrongChoices,
+      answerChoiceCount,
+    });
     plan.push(item);
+    recentQuestionIds = nextRecent(recentQuestionIds, questionId);
   }
 
   if (!validateQuestionPlan(plan)) {
-    throw new HttpsError('failed-precondition', 'Invalid generated duel question plan.');
+    throw new HttpsError('failed-precondition', 'Invalid selected duel question plan.');
   }
   return { plan, recentQuestionIds };
 }
+
+
+const getDuelPreparationV2 = onCall(async (request) => {
+  const uid = authUid(request);
+  const duelId = duelIdFromRequest(request);
+  const language = languageFromRequest(request);
+  const duelRef = db.collection('duelsV2').doc(duelId);
+  const secretRef = db.collection('duelSecretsV2').doc(duelId);
+  const [duelSnap, secretSnap] = await Promise.all([duelRef.get(), secretRef.get()]);
+  if (!duelSnap.exists || !secretSnap.exists) throw new HttpsError('not-found', 'Duel not found.');
+
+  const duel = duelSnap.data();
+  const secret = secretSnap.data();
+  ensureParticipant(duel, uid);
+  const isP1 = uid === duel.p1Uid;
+  const ownUid = uid;
+  const opponentUid = isP1 ? duel.p2Uid : duel.p1Uid;
+  const ownDeck = isP1 ? secret.p1DeckPackIds : secret.p2DeckPackIds;
+  const [ownSnap, opponentSnap] = await Promise.all([
+    db.collection('users').doc(ownUid).get(),
+    db.collection('users').doc(opponentUid).get(),
+  ]);
+  if (!ownSnap.exists || !opponentSnap.exists) throw new HttpsError('not-found', 'Player data not found.');
+
+  const ownProfile = profileFromUserData(ownSnap.data());
+  const opponentProfile = profileFromUserData(opponentSnap.data());
+  const prep = await loadPrepOptions({
+    deckPackIds: ownDeck,
+    playerProfile: ownProfile,
+    opponentProfile,
+    language,
+  });
+
+  return {
+    duelId,
+    requiredSelections: 7,
+    cards: prep.options,
+    canSubmit: enoughSelectableCards(prep.options),
+    prepared: isP1 ? secret.p1Prepared === true : secret.p2Prepared === true,
+    opponentPrepared: isP1 ? secret.p2Prepared === true : secret.p1Prepared === true,
+    questionPlanReady: duel.questionPlanReady === true,
+  };
+});
+
+const submitDuelPreparationV2 = onCall(async (request) => {
+  const uid = authUid(request);
+  const duelId = duelIdFromRequest(request);
+  const language = languageFromRequest(request);
+  const rawSelections = Array.isArray(request.data && request.data.selections)
+    ? request.data.selections
+    : [];
+  const selections = rawSelections.map((item) => ({
+    packId: String(item && item.packId || '').trim(),
+    questionId: String(item && item.questionId || '').trim(),
+  }));
+
+  const duelRef = db.collection('duelsV2').doc(duelId);
+  const secretRef = db.collection('duelSecretsV2').doc(duelId);
+  const [duelSnap, secretSnap] = await Promise.all([duelRef.get(), secretRef.get()]);
+  if (!duelSnap.exists || !secretSnap.exists) throw new HttpsError('not-found', 'Duel not found.');
+  const duel = duelSnap.data();
+  const secret = secretSnap.data();
+  ensureParticipant(duel, uid);
+  if (duel.status === 'finished') throw new HttpsError('failed-precondition', 'Duel already finished.');
+
+  const isP1 = uid === duel.p1Uid;
+  const opponentUid = isP1 ? duel.p2Uid : duel.p1Uid;
+  const ownDeck = isP1 ? secret.p1DeckPackIds : secret.p2DeckPackIds;
+  const [ownSnap, opponentSnap] = await Promise.all([
+    db.collection('users').doc(uid).get(),
+    db.collection('users').doc(opponentUid).get(),
+  ]);
+  if (!ownSnap.exists || !opponentSnap.exists) throw new HttpsError('not-found', 'Player data not found.');
+
+  const ownProfile = profileFromUserData(ownSnap.data());
+  const opponentProfile = profileFromUserData(opponentSnap.data());
+  const prep = await loadPrepOptions({
+    deckPackIds: ownDeck,
+    playerProfile: ownProfile,
+    opponentProfile,
+    language,
+  });
+  if (!enoughSelectableCards(prep.options)) {
+    throw new HttpsError('failed-precondition', 'NOT_ENOUGH_FRESH_QUESTIONS');
+  }
+  try {
+    validatePrepSelections({
+      selections,
+      deckPackIds: ownDeck,
+      options: prep.options,
+    });
+  } catch (error) {
+    throw new HttpsError('failed-precondition', error.message || 'Invalid preparation selection.');
+  }
+
+  return db.runTransaction(async (tx) => {
+    const currentDuelSnap = await tx.get(duelRef);
+    const currentSecretSnap = await tx.get(secretRef);
+    if (!currentDuelSnap.exists || !currentSecretSnap.exists) {
+      throw new HttpsError('not-found', 'Duel not found.');
+    }
+    const currentDuel = currentDuelSnap.data();
+    const currentSecret = currentSecretSnap.data();
+    ensureParticipant(currentDuel, uid);
+
+    const preparedKey = isP1 ? 'p1Prepared' : 'p2Prepared';
+    const selectionsKey = isP1 ? 'p1ChallengeSelections' : 'p2ChallengeSelections';
+    const languageKey = isP1 ? 'p1PrepLanguage' : 'p2PrepLanguage';
+    const otherSelections = isP1
+      ? currentSecret.p2ChallengeSelections
+      : currentSecret.p1ChallengeSelections;
+
+    if (currentSecret[preparedKey] === true) {
+      return publicDuelState(currentDuel, uid);
+    }
+
+    const otherQuestionIds = new Set(
+      (Array.isArray(otherSelections) ? otherSelections : [])
+        .map((item) => String(item && item.questionId || '')),
+    );
+    if (selections.some((item) => otherQuestionIds.has(item.questionId))) {
+      throw new HttpsError('aborted', 'QUESTION_SELECTION_CHANGED');
+    }
+
+    const now = Timestamp.now();
+    tx.update(secretRef, {
+      [preparedKey]: true,
+      [selectionsKey]: selections,
+      [languageKey]: language,
+      updatedAt: now,
+    });
+    tx.update(duelRef, { updatedAt: now });
+    return publicDuelState(currentDuel, uid);
+  });
+});
 
 const getDuelStateV2 = onCall(async (request) => {
   const uid = authUid(request);
@@ -154,18 +308,23 @@ const prepareDuelQuestionsV2 = onCall(async (request) => {
   const isP1 = uid === duel.p1Uid;
   const planKey = isP1 ? 'p1QuestionPlan' : 'p2QuestionPlan';
   const otherPlanKey = isP1 ? 'p2QuestionPlan' : 'p1QuestionPlan';
-  const languageKey = isP1 ? 'p1Language' : 'p2Language';
+  const attackerUid = isP1 ? duel.p2Uid : duel.p1Uid;
+  const attackerSelections = isP1
+    ? secret.p2ChallengeSelections
+    : secret.p1ChallengeSelections;
+
   if (validateQuestionPlan(secret[planKey])) {
+    return publicDuelState(duel, uid);
+  }
+  if (!Array.isArray(attackerSelections) || attackerSelections.length !== 7) {
     return publicDuelState(duel, uid);
   }
 
   const playerProfile = profileFromUserData(userSnap.data());
-  const opponentUid = isP1 ? duel.p2Uid : duel.p1Uid;
-  const opponentDeckPackIds = isP1 ? secret.p2DeckPackIds : secret.p1DeckPackIds;
-  const generated = await buildPlanForPlayer({
-    playerProfile,
-    opponentUid,
-    opponentDeckPackIds,
+  const generated = await buildPlanFromSelections({
+    selections: attackerSelections,
+    answeringProfile: playerProfile,
+    attackerUid,
     language,
   });
 
@@ -181,7 +340,6 @@ const prepareDuelQuestionsV2 = onCall(async (request) => {
     const currentDuel = currentDuelSnap.data();
     const currentSecret = currentSecretSnap.data();
     ensureParticipant(currentDuel, uid);
-    if (currentDuel.status === 'finished') throw new HttpsError('failed-precondition', 'Duel already finished.');
     if (validateQuestionPlan(currentSecret[planKey])) {
       return publicDuelState(currentDuel, uid);
     }
@@ -192,7 +350,6 @@ const prepareDuelQuestionsV2 = onCall(async (request) => {
     const now = Timestamp.now();
     tx.update(secretRef, {
       [planKey]: generated.plan,
-      [languageKey]: language,
       updatedAt: now,
     });
     tx.update(userRef, {
@@ -207,7 +364,6 @@ const prepareDuelQuestionsV2 = onCall(async (request) => {
     return publicDuelState({ ...currentDuel, questionPlanReady: otherReady }, uid);
   });
 });
-
 const startNextQuestionV2 = onCall(async (request) => {
   const uid = authUid(request);
   const duelId = duelIdFromRequest(request);
@@ -367,6 +523,8 @@ const finalizeDuelV2 = onCall(async (request) => {
 });
 
 module.exports = {
+  getDuelPreparationV2,
+  submitDuelPreparationV2,
   getDuelStateV2,
   prepareDuelQuestionsV2,
   startNextQuestionV2,
