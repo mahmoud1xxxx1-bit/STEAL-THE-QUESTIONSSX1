@@ -174,7 +174,7 @@ class PlayerProfileV2 {
         : const <String, dynamic>{};
     final ownedPackCounts = <String, int>{
       for (final id in ownedPackIds)
-        id: ((rawCounts[id] as num?)?.toInt() ?? 1).clamp(1, 1 << 30),
+        id: ((rawCounts[id] as num?)?.toInt() ?? 1).clamp(1, 1 << 30).toInt(),
     };
 
     final profile = PlayerProfileV2(
