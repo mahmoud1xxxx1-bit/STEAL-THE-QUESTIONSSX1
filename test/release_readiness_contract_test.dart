@@ -36,6 +36,8 @@ void main() {
     final androidCi = File(
       '.github/workflows/flutter-web-preview.yml',
     ).readAsStringSync();
+    final firestoreIndexes =
+        File('firestore.indexes.json').readAsStringSync();
     final admin = File('lib/admin/admin_content_v2.dart').readAsStringSync();
     final catalog =
         File('lib/data/card_catalog_repository_v2.dart').readAsStringSync();
@@ -115,6 +117,11 @@ void main() {
     expect(androidCi, contains('Build Android release APK'));
     expect(androidCi, contains('Verify release signing certificate'));
     expect(androidCi, contains('Upload Android APK'));
+    expect(firestoreIndexes, contains('profileV2.weekKey'));
+    expect(firestoreIndexes, contains('profileV2.weeklyPoints'));
+    expect(firestoreIndexes, contains('profileV2.weeklyWins'));
+    expect(firestoreIndexes, contains('matchQueueV2'));
+    expect(firestoreIndexes, contains('createdAt'));
   });
 
   test('release source contains no retired project identities', () {
