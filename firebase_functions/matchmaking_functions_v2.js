@@ -4,6 +4,7 @@ const admin = require('firebase-admin');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { normalizeProfileV2 } = require('./player_profile_v2');
 const { validateDeck } = require('./core_engine_v2');
+const { markPvpDeckActivity } = require('./card_lifecycle_engine_v2');
 const {
   MATCH_STATUS_SEARCHING,
   MATCH_STATUS_MATCHED,
@@ -103,7 +104,24 @@ const findOrCreateDuelV2 = onCall(async (request) => {
       if (!validateDeck(ownQueue.deckPackIds, ownProfile.ownedPackIds) || !validateDeck(candidateQueue.deckPackIds, candidateProfile.ownedPackIds)) return null;
 
       const now = Timestamp.now();
-      const deadlineAt = Timestamp.fromMillis(now.toMillis() + DUEL_DURATION_MS);
+      const nowMs = now.toMillis();
+      let ownProfileWithActivity;
+      let candidateProfileWithActivity;
+      try {
+        ownProfileWithActivity = markPvpDeckActivity(
+          ownProfile,
+          ownQueue.deckPackIds,
+          nowMs,
+        );
+        candidateProfileWithActivity = markPvpDeckActivity(
+          candidateProfile,
+          candidateQueue.deckPackIds,
+          nowMs,
+        );
+      } catch (_) {
+        return null;
+      }
+      const deadlineAt = Timestamp.fromMillis(nowMs + DUEL_DURATION_MS);
       tx.create(duelRef, {
         duelId: duelRef.id,
         status: 'matched',
@@ -130,8 +148,16 @@ const findOrCreateDuelV2 = onCall(async (request) => {
       });
       tx.update(ownQueueRef, { status: MATCH_STATUS_MATCHED, duelId: duelRef.id, updatedAt: now });
       tx.update(candidateQueueRef, { status: MATCH_STATUS_MATCHED, duelId: duelRef.id, updatedAt: now });
-      tx.update(ownUserRef, { activeDuelV2: duelRef.id, updatedAt: now });
-      tx.update(candidateUserRef, { activeDuelV2: duelRef.id, updatedAt: now });
+      tx.update(ownUserRef, {
+        profileV2: ownProfileWithActivity,
+        activeDuelV2: duelRef.id,
+        updatedAt: now,
+      });
+      tx.update(candidateUserRef, {
+        profileV2: candidateProfileWithActivity,
+        activeDuelV2: duelRef.id,
+        updatedAt: now,
+      });
       return { status: MATCH_STATUS_MATCHED, duelId: duelRef.id };
     });
 
