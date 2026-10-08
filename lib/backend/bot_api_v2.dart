@@ -21,6 +21,7 @@ class BotRoundV2 {
     required this.roundId,
     required this.cardId,
     required this.questionId,
+    required this.rarity,
     required this.prompt,
     required this.choices,
     required this.timeoutMs,
@@ -29,6 +30,7 @@ class BotRoundV2 {
   final String roundId;
   final String cardId;
   final String questionId;
+  final String rarity;
   final String? prompt;
   final List<String> choices;
   final int timeoutMs;
@@ -40,6 +42,7 @@ class BotAnswerResultV2 {
     required this.correct,
     required this.awarded,
     required this.awardedCardId,
+    required this.awardedRarity,
     required this.botUnlocked,
     required this.profile,
   });
@@ -48,6 +51,7 @@ class BotAnswerResultV2 {
   final bool correct;
   final bool awarded;
   final String? awardedCardId;
+  final String? awardedRarity;
   final bool botUnlocked;
   final PlayerProfileV2 profile;
 }
@@ -78,6 +82,7 @@ class BotApiV2 {
       roundId: raw['roundId'] as String? ?? '',
       cardId: raw['cardId'] as String? ?? '',
       questionId: raw['questionId'] as String? ?? '',
+      rarity: raw['rarity'] as String? ?? 'epic',
       prompt: raw['prompt'] as String?,
       choices: List<String>.from(raw['choices'] as List? ?? const <dynamic>[]),
       timeoutMs: (raw['timeoutMs'] as num?)?.toInt() ?? 20000,
@@ -102,6 +107,7 @@ class BotApiV2 {
       correct: raw['correct'] == true,
       awarded: raw['awarded'] == true,
       awardedCardId: raw['awardedCardId'] as String?,
+      awardedRarity: raw['awardedRarity'] as String?,
       botUnlocked: raw['botUnlocked'] == true,
       profile: PlayerProfileV2.fromMap(Map<String, dynamic>.from(profileRaw)),
     );

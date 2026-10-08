@@ -16,7 +16,7 @@ const {
 } = require('./content_contract_v2');
 const {
   botUnlocked,
-  chooseRewardPack,
+  chooseRewardCard,
   resolveBotAnswer,
   awardPack,
 } = require('./bot_engine_v2');
@@ -34,11 +34,19 @@ function profileFromData(data) {
   return normalizeProfileV2(data && data.profileV2 && typeof data.profileV2 === 'object' ? data.profileV2 : {});
 }
 
-async function loadEnabledCardIds() {
+async function loadEnabledCards() {
   const snap = await db.collection('cardsV2').where('enabled', '==', true).limit(500).get();
   return snap.docs
-    .filter((doc) => Number(doc.data().questionCount || 0) > 0)
-    .map((doc) => doc.id);
+    .map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        rarity: String(data.rarity || 'epic').toLowerCase(),
+        availableCopies: Number(data.availableCopies || 0),
+        questionCount: Number(data.questionCount || 0),
+      };
+    })
+    .filter((card) => card.questionCount > 0 && Number.isInteger(card.availableCopies) && card.availableCopies > 0);
 }
 
 function chooseQuestionDoc(usableDocs, recentIds) {
@@ -96,6 +104,7 @@ function publicRound(round) {
   return {
     roundId: String(round.roundId),
     cardId: String(round.cardId),
+    rarity: String(round.rarity || 'epic'),
     questionId: String(round.questionId),
     prompt: round.prompt || null,
     choices: Array.isArray(round.choices) ? round.choices.map(String) : [],
@@ -108,8 +117,8 @@ const getBotStatusV2 = onCall(async (request) => {
   const userSnap = await db.collection('users').doc(uid).get();
   if (!userSnap.exists) throw new HttpsError('not-found', 'Profile not found.');
   const profile = profileFromData(userSnap.data());
-  const enabledCardIds = await loadEnabledCardIds();
-  const unowned = enabledCardIds.filter((id) => !profile.ownedPackIds.includes(id));
+  const enabledCards = await loadEnabledCards();
+  const unowned = enabledCards.filter((card) => !profile.ownedPackIds.includes(card.id));
   return {
     botUnlocked: botUnlocked(profile.ownedPackIds),
     ownedCount: profile.ownedPackIds.length,
@@ -138,32 +147,33 @@ const startBotRoundV2 = onCall(async (request) => {
     throw new HttpsError('failed-precondition', 'Bot onboarding is complete after 10 owned cards.');
   }
 
-  const enabledCardIds = await loadEnabledCardIds();
-  const remaining = enabledCardIds.filter((id) => !profile.ownedPackIds.includes(id));
+  const enabledCards = await loadEnabledCards();
+  const remaining = enabledCards.filter((card) => !profile.ownedPackIds.includes(card.id));
   if (!remaining.length) throw new HttpsError('failed-precondition', 'CONTENT_NOT_AVAILABLE');
 
   const answerChoiceCount = entitlement(profile.subscriptionActive).answerChoices;
   const attempted = new Set();
-  let cardId = null;
+  let rewardCard = null;
   let question = null;
   while (attempted.size < remaining.length) {
-    const candidates = remaining.filter((id) => !attempted.has(id));
-    const chosen = chooseRewardPack(candidates, profile.ownedPackIds);
+    const candidates = remaining.filter((card) => !attempted.has(card.id));
+    const chosen = chooseRewardCard(candidates, profile.ownedPackIds);
     if (!chosen) break;
-    attempted.add(chosen);
+    attempted.add(chosen.id);
     const q = await loadQuestionForCard(
-      chosen,
+      chosen.id,
       profile.recentQuestionIds,
       language,
       answerChoiceCount,
     );
     if (q) {
-      cardId = chosen;
+      rewardCard = chosen;
       question = q;
       break;
     }
   }
-  if (!cardId || !question) throw new HttpsError('failed-precondition', 'CONTENT_NOT_AVAILABLE');
+  if (!rewardCard || !question) throw new HttpsError('failed-precondition', 'CONTENT_NOT_AVAILABLE');
+  const cardId = rewardCard.id;
 
   const roundRef = db.collection('botRoundsV2').doc();
   const now = Timestamp.now();
@@ -172,6 +182,7 @@ const startBotRoundV2 = onCall(async (request) => {
     uid,
     status: 'active',
     cardId,
+    rarity: rewardCard.rarity,
     questionId: question.questionId,
     language,
     prompt: question.prompt,
@@ -238,6 +249,7 @@ const submitBotAnswerV2 = onCall(async (request) => {
         correct: round.correct === true,
         awarded: round.awarded === true,
         awardedCardId: round.awarded === true ? String(round.cardId) : null,
+        awardedRarity: round.awarded === true ? String(round.rarity || 'epic') : null,
         botUnlocked: botUnlocked(profile.ownedPackIds),
         profile,
       };
@@ -259,9 +271,26 @@ const submitBotAnswerV2 = onCall(async (request) => {
 
     let awarded = false;
     if (result.correct) {
-      const reward = awardPack(profile.ownedPackIds, round.cardId);
-      awarded = reward.awarded;
-      profile = { ...profile, ownedPackIds: reward.ownedPackIds };
+      const cardRef = db.collection('cardsV2').doc(String(round.cardId));
+      const cardSnap = await tx.get(cardRef);
+      const cardData = cardSnap.exists ? cardSnap.data() : null;
+      const availableCopies = Number(cardData && cardData.availableCopies || 0);
+      if (
+        cardSnap.exists &&
+        cardData.enabled === true &&
+        Number.isInteger(availableCopies) &&
+        availableCopies > 0
+      ) {
+        const reward = awardPack(profile.ownedPackIds, round.cardId);
+        awarded = reward.awarded;
+        if (awarded) {
+          profile = { ...profile, ownedPackIds: reward.ownedPackIds };
+          tx.update(cardRef, {
+            availableCopies: availableCopies - 1,
+            updatedAt: now,
+          });
+        }
+      }
     }
 
     tx.update(userRef, {
@@ -285,6 +314,7 @@ const submitBotAnswerV2 = onCall(async (request) => {
       correct: result.correct,
       awarded,
       awardedCardId: awarded ? String(round.cardId) : null,
+      awardedRarity: awarded ? String(round.rarity || 'epic') : null,
       botUnlocked: botUnlocked(profile.ownedPackIds),
       profile,
     };
