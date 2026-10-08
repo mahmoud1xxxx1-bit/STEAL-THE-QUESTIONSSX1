@@ -1154,6 +1154,28 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
 
   Future<void> _continueDuel(String duelId) async {
     final session = _session!;
+    final preparation = await session.duelPreparation(
+      duelId: duelId,
+      arabic: _arabic,
+    );
+    if (!mounted) return;
+
+    if (!preparation.prepared) {
+      if (!preparation.canSubmit) {
+        setState(() => _notice = _arabic
+            ? 'لا توجد 7 بطاقات بأسئلة جديدة كافية لهذه المواجهة حاليًا.'
+            : 'There are not enough fresh questions across 7 cards for this duel.');
+        return;
+      }
+      final selections = await _showDuelPreparation(preparation);
+      if (selections == null) return;
+      await session.submitDuelPreparation(
+        duelId: duelId,
+        arabic: _arabic,
+        selections: selections,
+      );
+    }
+
     var state = await session.prepareDuelQuestions(
       duelId: duelId,
       arabic: _arabic,
@@ -1162,8 +1184,8 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
 
     if (!state.questionPlanReady) {
       setState(() => _notice = _arabic
-          ? 'تم تجهيز أسئلتك وننتظر تجهيز الخصم.'
-          : 'Your questions are ready. Waiting for the opponent.');
+          ? 'اختياراتك مقفلة. ننتظر الخصم ليختار أسئلته.'
+          : 'Your choices are locked. Waiting for the opponent to choose.');
       return;
     }
 
@@ -1217,6 +1239,274 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
       await _showDuelResult('loss');
     }
     await _refreshRemote();
+  }
+
+  Future<List<Map<String, String>>?> _showDuelPreparation(
+    DuelPreparationV2 preparation,
+  ) async {
+    final selected = <String, String>{};
+    return showModalBottomSheet<List<Map<String, String>>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          final ready = selected.length == preparation.requiredSelections;
+          return SafeArea(
+            child: Container(
+              height: MediaQuery.sizeOf(context).height * .88,
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
+              decoration: const BoxDecoration(
+                color: _page,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: _muted.withValues(alpha: .22),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      const _StealLogoMark(size: 48, showGlow: true),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _arabic ? 'جهّز أسئلة المواجهة' : 'Prepare your challenge',
+                              style: const TextStyle(
+                                color: _ink,
+                                fontSize: 19,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              _arabic
+                                  ? 'اختر سؤالًا واحدًا من 7 بطاقات. الرمادي سؤال مكرر ولا يمكن استخدامه.'
+                                  : 'Choose one question from 7 cards. Grey questions were repeated and cannot be used.',
+                              style: const TextStyle(
+                                color: _muted,
+                                fontSize: 11,
+                                height: 1.35,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      _GameStatusBadge(
+                        text: '${selected.length}/${preparation.requiredSelections}',
+                        color: ready ? _mint : _purple,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Expanded(
+                    child: ListView.separated(
+                      itemCount: preparation.cards.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        final card = preparation.cards[index];
+                        final meta = _cardMeta[card.packId];
+                        final rarity = meta?.rarity ?? _demoRarityForIndex(index);
+                        final accent = _rarityAccent(rarity);
+                        final chosenQuestion = selected[card.packId];
+                        return Container(
+                          padding: const EdgeInsets.all(13),
+                          decoration: BoxDecoration(
+                            color: _cardSurface,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: chosenQuestion != null ? accent : _softPurple,
+                              width: chosenQuestion != null ? 1.8 : 1,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 40,
+                                    height: 50,
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [accent, _rarityDark(rarity)],
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Icon(
+                                      Icons.style_rounded,
+                                      color: Colors.white,
+                                      size: 21,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          _arabic
+                                              ? (meta?.titleAr ?? card.packId)
+                                              : (meta?.titleEn ?? card.packId),
+                                          style: const TextStyle(
+                                            color: _ink,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          rarity.nameEn.toUpperCase(),
+                                          style: TextStyle(
+                                            color: accent,
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (chosenQuestion != null)
+                                    Icon(Icons.check_circle_rounded, color: accent),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              ...card.questions.map((question) {
+                                final chosen = chosenQuestion == question.questionId;
+                                final blocked = question.blocked;
+                                final cardLocked = chosenQuestion == null &&
+                                    selected.length >= preparation.requiredSelections;
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 7),
+                                  child: InkWell(
+                                    onTap: blocked || cardLocked
+                                        ? null
+                                        : () {
+                                            setSheetState(() {
+                                              if (chosen) {
+                                                selected.remove(card.packId);
+                                              } else {
+                                                selected[card.packId] = question.questionId;
+                                              }
+                                            });
+                                          },
+                                    borderRadius: BorderRadius.circular(14),
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 160),
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 11,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: blocked
+                                            ? const Color(0xFFE8E6EC)
+                                            : chosen
+                                                ? accent.withValues(alpha: .12)
+                                                : _page,
+                                        borderRadius: BorderRadius.circular(14),
+                                        border: Border.all(
+                                          color: blocked
+                                              ? const Color(0xFFD2CFD8)
+                                              : chosen
+                                                  ? accent
+                                                  : _softPurple,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            blocked
+                                                ? Icons.block_rounded
+                                                : chosen
+                                                    ? Icons.check_circle_rounded
+                                                    : Icons.radio_button_unchecked_rounded,
+                                            size: 18,
+                                            color: blocked
+                                                ? _muted
+                                                : chosen
+                                                    ? accent
+                                                    : _purple,
+                                          ),
+                                          const SizedBox(width: 9),
+                                          Expanded(
+                                            child: Text(
+                                              question.prompt,
+                                              style: TextStyle(
+                                                color: blocked ? _muted : _ink,
+                                                fontSize: 11,
+                                                height: 1.35,
+                                                fontWeight: FontWeight.w800,
+                                              ),
+                                            ),
+                                          ),
+                                          if (blocked)
+                                            Text(
+                                              _arabic ? 'مكرر' : 'REPEATED',
+                                              style: const TextStyle(
+                                                color: _muted,
+                                                fontSize: 8,
+                                                fontWeight: FontWeight.w900,
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  FilledButton.icon(
+                    onPressed: ready
+                        ? () => Navigator.pop(
+                              sheetContext,
+                              selected.entries
+                                  .map(
+                                    (entry) => <String, String>{
+                                      'packId': entry.key,
+                                      'questionId': entry.value,
+                                    },
+                                  )
+                                  .toList(growable: false),
+                            )
+                        : null,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _purple,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size.fromHeight(52),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(17),
+                      ),
+                    ),
+                    icon: const Icon(Icons.lock_rounded),
+                    label: Text(
+                      _arabic ? 'قفل 7 أسئلة وابدأ' : 'Lock 7 questions',
+                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   Future<void> _showDuelResult(String result) async {
