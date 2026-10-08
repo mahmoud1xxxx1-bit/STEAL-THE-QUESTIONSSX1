@@ -151,6 +151,22 @@ void main() {
     expect(source, contains('cardMeta: _cardMeta'));
   });
 
+  test('PvP preparation uses 10 deck cards and blocks repeated questions', () {
+    final appSource = File('lib/v2_active_app.dart').readAsStringSync();
+    final apiSource =
+        File('lib/backend/firebase_game_api_v2.dart').readAsStringSync();
+    final sessionSource =
+        File('lib/game/online_player_session_v2.dart').readAsStringSync();
+
+    expect(appSource, contains('_showDuelPreparation'));
+    expect(appSource, contains('question.blocked'));
+    expect(appSource, contains('قفل 7 أسئلة وابدأ'));
+    expect(apiSource, contains('getDuelPreparationV2'));
+    expect(apiSource, contains('submitDuelPreparationV2'));
+    expect(sessionSource, contains('duelPreparation'));
+    expect(sessionSource, contains('submitDuelPreparation'));
+  });
+
   test('Android auth requires Google sign-in and has no anonymous fallback', () {
     final runtimeSource =
         File('lib/backend/online_runtime_v2.dart').readAsStringSync();
