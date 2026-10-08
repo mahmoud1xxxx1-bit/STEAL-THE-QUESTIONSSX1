@@ -194,6 +194,10 @@ void main() {
     expect(v2Functions, contains('if (userData.activeDuelV2) return current;'));
     expect(lifecycleFunction, contains('FieldValue.increment(copies)'));
     expect(lifecycleFunction, contains('PAGE_SIZE = 200'));
+    expect(
+      lifecycleFunction,
+      contains("where('rarity', 'in', ['gold', 'legendary'])"),
+    );
     expect(lifecycleFunction, contains('planLifecycleReclaim'));
     expect(functionsMain, contains("require('./card_lifecycle_functions_v2')"));
     expect(functionsMain, contains('...cardLifecycleV2'));
