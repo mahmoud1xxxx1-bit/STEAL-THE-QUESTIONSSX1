@@ -38,7 +38,7 @@ assert.strictEqual(enoughSelectableCards(options), true);
 
 const selections = deck.slice(0, 7).map((packId, i) => ({
   packId,
-  questionId: i === 0 ? 'q_0_2' : 'q_' + i + '_1',
+  questionId: i <= 1 ? 'q_' + i + '_2' : 'q_' + i + '_1',
 }));
 assert.strictEqual(
   validatePrepSelections({
