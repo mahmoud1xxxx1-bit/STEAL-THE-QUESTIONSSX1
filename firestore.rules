@@ -2,6 +2,18 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null &&
+        request.auth.token.email is string &&
+        exists(/databases/$(database)/documents/adminEmailsV2/$(request.auth.token.email)) &&
+        get(/databases/$(database)/documents/adminEmailsV2/$(request.auth.token.email)).data.enabled == true;
+    }
+
+    match /adminEmailsV2/{email} {
+      allow read: if request.auth != null &&
+        request.auth.token.email == email;
+      allow write: if false;
+    }
     match /users/{userId} {
       allow read: if request.auth != null && request.auth.uid == userId;
       allow create, update, delete: if false;
@@ -20,10 +32,10 @@ service cloud.firestore {
 
     match /cardsV2/{cardId} {
       allow read: if request.auth != null;
-      allow write: if false;
+      allow create, update, delete: if isAdmin();
 
       match /questions/{questionId} {
-        allow read, write: if false;
+        allow read, create, update, delete: if isAdmin();
       }
     }
 
