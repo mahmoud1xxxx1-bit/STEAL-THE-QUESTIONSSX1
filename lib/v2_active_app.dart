@@ -1165,6 +1165,22 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
 
   Future<void> _continueDuel(String duelId) async {
     final session = _session!;
+    final existingState = await session.duelState(duelId);
+    if (!mounted) return;
+
+    if (existingState.finished) {
+      if (existingState.result == 'draw') {
+        await _showDuelResult('draw');
+      } else if (existingState.winnerUid ==
+          FirebaseAuth.instance.currentUser?.uid) {
+        await _chooseSteal(duelId);
+      } else {
+        await _showDuelResult('loss');
+      }
+      await _refreshRemote();
+      return;
+    }
+
     final preparation = await session.duelPreparation(
       duelId: duelId,
       arabic: _arabic,
