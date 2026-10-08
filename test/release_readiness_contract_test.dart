@@ -37,6 +37,8 @@ void main() {
       '.github/workflows/flutter-web-preview.yml',
     ).readAsStringSync();
     final admin = File('lib/admin/admin_content_v2.dart').readAsStringSync();
+    final catalog =
+        File('lib/data/card_catalog_repository_v2.dart').readAsStringSync();
 
     expect(serverCore, contains('const DECK_SIZE = 10;'));
     expect(serverCore, contains('const DUEL_PACKS = 7;'));
@@ -87,6 +89,9 @@ void main() {
     expect(rules, contains('allow write: if false;'));
     expect(admin, contains('AdminAccessV2'));
     expect(admin, contains("collection('adminEmailsV2')"));
+    expect(catalog, contains("collection('cardsV2')"));
+    expect(catalog, isNot(contains('List<CardSummaryV2> demo')));
+    expect(catalog, isNot(contains('seedQuestions')));
 
     expect(googleAuth, contains('GoogleSignIn'));
     expect(googleAuth, contains('GoogleAuthProvider.credential'));
