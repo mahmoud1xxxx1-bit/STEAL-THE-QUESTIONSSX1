@@ -44,6 +44,59 @@ function markPvpDeckActivity(profile, deckPackIds, nowMs = Date.now()) {
   };
 }
 
+function baselineRareActivity(profile, rarityByPackId, nowMs = Date.now()) {
+  const owned = uniqueStrings(profile && profile.ownedPackIds);
+  const activity = normalizeActivityMap(
+    profile && profile.packLastPvpUsedAtMs,
+    owned,
+  );
+  let changed = false;
+  for (const packId of owned) {
+    const rarity = String((rarityByPackId && rarityByPackId[packId]) || '').toLowerCase();
+    if (rarity !== 'gold' && rarity !== 'legendary') continue;
+    const current = Number(activity[packId]);
+    if (!Number.isFinite(current) || current <= 0) {
+      activity[packId] = Math.max(1, Math.floor(Number(nowMs)));
+      changed = true;
+    }
+  }
+  return {
+    profile: {
+      ...profile,
+      packLastPvpUsedAtMs: activity,
+    },
+    changed,
+  };
+}
+
+function planLifecycleReclaim({
+  profile,
+  rarityByPackId,
+  nowMs = Date.now(),
+}) {
+  const baseline = baselineRareActivity(profile, rarityByPackId, nowMs);
+  const expired = expiredPackIds({
+    profile: baseline.profile,
+    rarityByPackId,
+    nowMs,
+  });
+  const counts = baseline.profile && baseline.profile.ownedPackCounts &&
+    typeof baseline.profile.ownedPackCounts === 'object'
+    ? baseline.profile.ownedPackCounts
+    : {};
+  return {
+    profile: baseline.profile,
+    baselineChanged: baseline.changed,
+    expiredPackIds: expired,
+    reclaimedCopies: Object.fromEntries(
+      expired.map((packId) => {
+        const count = Number(counts[packId]);
+        return [packId, Number.isInteger(count) && count > 0 ? count : 1];
+      }),
+    ),
+  };
+}
+
 function expiredPackIds({
   profile,
   rarityByPackId,
@@ -77,5 +130,7 @@ module.exports = {
   CARD_INACTIVITY_MS,
   normalizeActivityMap,
   markPvpDeckActivity,
+  baselineRareActivity,
+  planLifecycleReclaim,
   expiredPackIds,
 };
