@@ -37,7 +37,9 @@ async function syncLifecycleForUser(uid) {
   const ref = userRef(uid);
   const initialSnap = await ref.get();
   if (!initialSnap.exists) throw new HttpsError('not-found', 'Profile not found.');
-  const initialProfile = profileFromUserData(initialSnap.data());
+  const initialData = initialSnap.data();
+  const initialProfile = profileFromUserData(initialData);
+  if (initialData.activeDuelV2) return initialProfile;
   const candidateIds = [...initialProfile.ownedPackIds];
   if (!candidateIds.length) return initialProfile;
 
@@ -65,7 +67,9 @@ async function syncLifecycleForUser(uid) {
   return db.runTransaction(async (tx) => {
     const userSnap = await tx.get(ref);
     if (!userSnap.exists) throw new HttpsError('not-found', 'Profile not found.');
-    const current = profileFromUserData(userSnap.data());
+    const userData = userSnap.data();
+    const current = profileFromUserData(userData);
+    if (userData.activeDuelV2) return current;
     const now = Timestamp.now();
     const nowMs = now.toMillis();
     const activity = { ...current.packLastPvpUsedAtMs };
