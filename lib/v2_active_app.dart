@@ -1039,7 +1039,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
 
   Future<void> _chooseSparkTestSteal() async {
     final options = List<String>.generate(
-      3,
+      10,
       (index) => 'spark_opponent_card_${index + 1}',
     );
     final selected = await showDialog<String>(
@@ -1079,10 +1079,12 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
                   runSpacing: 10,
                   alignment: WrapAlignment.center,
                   children: options
+                      .asMap()
+                      .entries
                       .map(
-                        (id) => _StealOptionCard(
-                          id: id,
-                          onTap: () => Navigator.pop(context, id),
+                        (entry) => _StealOptionCard(
+                          position: entry.key + 1,
+                          onTap: () => Navigator.pop(context, entry.value),
                         ),
                       )
                       .toList(growable: false),
@@ -1099,8 +1101,17 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
     setState(() {
       _profile = profile;
       _syncSparkTestPanels(profile);
-      _notice = (_arabic ? 'تمت سرقة البطاقة التجريبية: ' : 'Test card stolen: ') +
-          selected;
+    });
+    final selectedIndex = options.indexOf(selected);
+    await _showStealReveal(
+      selected,
+      fallbackRarity: _demoRarityForIndex(selectedIndex < 0 ? 0 : selectedIndex),
+    );
+    if (!mounted) return;
+    setState(() {
+      _notice = _arabic
+          ? 'تم نقل البطاقة المسروقة إلى مجموعتك.'
+          : 'The stolen card was transferred to your collection.';
     });
   }
 
@@ -1588,10 +1599,13 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
                       runSpacing: 10,
                       alignment: WrapAlignment.center,
                       children: options.packIds
+                          .asMap()
+                          .entries
                           .map(
-                            (id) => _StealOptionCard(
-                              id: id,
-                              onTap: () => Navigator.pop(context, id),
+                            (entry) => _StealOptionCard(
+                              position: entry.key + 1,
+                              onTap: () =>
+                                  Navigator.pop(context, entry.value),
                             ),
                           )
                           .toList(growable: false),
@@ -1611,11 +1625,40 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
       packId: selected,
     );
     if (!mounted) return;
+    final stolenId = result.packId ?? selected;
+    setState(() => _profile = _session!.profile);
+    await _showStealReveal(stolenId);
+    if (!mounted) return;
     setState(() {
-      _profile = _session!.profile;
-      _notice = (_arabic ? 'تمت سرقة البطاقة: ' : 'Stolen card: ') +
-          (result.packId ?? selected);
+      _notice = _arabic
+          ? 'تم نقل البطاقة المسروقة إلى مجموعتك.'
+          : 'The stolen card was transferred to your collection.';
     });
+  }
+
+  Future<void> _showStealReveal(
+    String cardId, {
+    CardRarityV2? fallbackRarity,
+  }) async {
+    if (!mounted) return;
+    final meta = _cardMeta[cardId];
+    final rarity = meta?.rarity ?? fallbackRarity ?? CardRarityV2.epic;
+    final localizedTitle = _arabic ? meta?.titleAr : meta?.titleEn;
+    final title = localizedTitle != null && localizedTitle.trim().isNotEmpty
+        ? localizedTitle.trim()
+        : cardId;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: _ink.withValues(alpha: .82),
+      builder: (context) => _StealRevealDialog(
+        arabic: _arabic,
+        title: title,
+        cardId: cardId,
+        rarity: rarity,
+        close: () => Navigator.pop(context),
+      ),
+    );
   }
 
   Future<void> _equipPrestige() => _run(() async {
@@ -3260,8 +3303,12 @@ class _StealVictoryMark extends StatelessWidget {
 }
 
 class _StealOptionCard extends StatelessWidget {
-  const _StealOptionCard({required this.id, required this.onTap});
-  final String id;
+  const _StealOptionCard({
+    required this.position,
+    required this.onTap,
+  });
+
+  final int position;
   final VoidCallback onTap;
 
   @override
@@ -3271,50 +3318,245 @@ class _StealOptionCard extends StatelessWidget {
         child: Ink(
           width: 112,
           height: 148,
-          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [_purple, _violet],
+              colors: [Color(0xFF241B46), _purple, _violet],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: .34),
+              width: 1.5,
+            ),
             boxShadow: [
               BoxShadow(
-                color: _purple.withValues(alpha: .18),
-                blurRadius: 14,
+                color: _purple.withValues(alpha: .24),
+                blurRadius: 16,
                 offset: const Offset(0, 8),
               ),
             ],
           ),
-          child: Column(
+          child: Stack(
+            alignment: Alignment.center,
             children: [
-              const Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _CardCornerMark(color: Colors.white),
-                  Icon(Icons.auto_awesome_rounded,
-                      color: Colors.white70, size: 16),
-                ],
+              Positioned.fill(
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(13),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: .18),
+                      ),
+                    ),
+                  ),
+                ),
               ),
-              const Spacer(),
-              const _StealLogoMark(size: 46),
-              const Spacer(),
-              Text(
-                id,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w900,
+              const _StealLogoMark(size: 48, showGlow: true),
+              Positioned(
+                top: 10,
+                right: 12,
+                child: Text(
+                  position.toString().padLeft(2, '0'),
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: .48),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: 11,
+                child: Container(
+                  width: 30,
+                  height: 30,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: .12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.question_mark_rounded,
+                    color: Colors.white,
+                    size: 18,
+                  ),
                 ),
               ),
             ],
           ),
         ),
       );
+}
+
+class _StealRevealDialog extends StatelessWidget {
+  const _StealRevealDialog({
+    required this.arabic,
+    required this.title,
+    required this.cardId,
+    required this.rarity,
+    required this.close,
+  });
+
+  final bool arabic;
+  final String title;
+  final String cardId;
+  final CardRarityV2 rarity;
+  final VoidCallback close;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = _rarityAccent(rarity);
+    final legendary = rarity == CardRarityV2.legendary;
+    final gold = rarity == CardRarityV2.gold;
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Container(
+        padding: const EdgeInsets.all(22),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              _rarityDark(rarity),
+              Color.lerp(_rarityDark(rarity), accent, legendary ? .58 : .42)!,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(
+            color: accent,
+            width: legendary ? 3.2 : gold ? 2.6 : 2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: accent.withValues(alpha: legendary ? .46 : .30),
+              blurRadius: legendary ? 42 : 30,
+              spreadRadius: legendary ? 4 : 2,
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              legendary
+                  ? Icons.auto_awesome_rounded
+                  : gold
+                      ? Icons.workspace_premium_rounded
+                      : Icons.bolt_rounded,
+              color: accent,
+              size: legendary ? 48 : 42,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              arabic ? 'انكشفت البطاقة!' : 'CARD REVEALED!',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 5),
+            Text(
+              arabic ? rarity.nameAr : rarity.nameEn.toUpperCase(),
+              style: TextStyle(
+                color: accent,
+                fontSize: 16,
+                letterSpacing: arabic ? 0 : 1.4,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              width: 164,
+              height: 218,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: .08),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: accent, width: legendary ? 3 : 2),
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Positioned(
+                    top: 14,
+                    left: 14,
+                    child: _CardCornerMark(color: accent),
+                  ),
+                  _StealLogoMark(size: legendary ? 82 : 72, showGlow: true),
+                  Positioned(
+                    left: 12,
+                    right: 12,
+                    bottom: 18,
+                    child: Column(
+                      children: [
+                        Text(
+                          title,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        if (title != cardId) ...[
+                          const SizedBox(height: 3),
+                          Text(
+                            cardId,
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: .54),
+                              fontSize: 9,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 17),
+            Text(
+              arabic
+                  ? 'سرقتها من Deck خصمك وأصبحت الآن في مجموعتك.'
+                  : 'Stolen from your opponent\'s duel deck and added to your collection.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: .84),
+                height: 1.4,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: close,
+              icon: const Icon(Icons.lock_open_rounded),
+              style: FilledButton.styleFrom(
+                backgroundColor: accent,
+                foregroundColor: gold ? _ink : Colors.white,
+                minimumSize: const Size.fromHeight(50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              label: Text(
+                arabic ? 'أكمل' : 'Continue',
+                style: const TextStyle(fontWeight: FontWeight.w900),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _PlayHero extends StatelessWidget {
