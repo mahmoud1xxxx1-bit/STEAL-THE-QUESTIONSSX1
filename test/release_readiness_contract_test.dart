@@ -160,6 +160,10 @@ void main() {
 
     expect(lifecycleFunction, contains("schedule: '15 */6 * * *'"));
     expect(lifecycleFunction, contains('if (data.activeDuelV2)'));
+    final v2Functions =
+        File('firebase_functions/v2_functions.js').readAsStringSync();
+    expect(v2Functions, contains('if (initialData.activeDuelV2) return initialProfile;'));
+    expect(v2Functions, contains('if (userData.activeDuelV2) return current;'));
     expect(lifecycleFunction, contains('FieldValue.increment(copies)'));
     expect(lifecycleFunction, contains('PAGE_SIZE = 200'));
     expect(lifecycleFunction, contains('planLifecycleReclaim'));
