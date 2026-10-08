@@ -180,6 +180,17 @@ void main() {
     expect(source, isNot(contains("Text(\n                 id,")));
   });
 
+  test('PvP active duel is surfaced as a resumable state', () {
+    final source = File('lib/v2_active_app.dart').readAsStringSync();
+
+    expect(source, contains("final matched = matchmaking?.matched == true"));
+    expect(source, contains('استئناف المباراة'));
+    expect(source, contains('Resume duel'));
+    expect(source, contains('ACTIVE DUEL'));
+    expect(source, contains('مباراتك بانتظارك'));
+    expect(source, contains('onSecondary: searching && !matched'));
+  });
+
   test('Android auth requires Google sign-in and has no anonymous fallback', () {
     final runtimeSource =
         File('lib/backend/online_runtime_v2.dart').readAsStringSync();
