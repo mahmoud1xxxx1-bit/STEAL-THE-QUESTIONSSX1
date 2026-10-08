@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import 'admin/admin_content_v2.dart';
+import 'admin/admin_dashboard_v2.dart';
 import 'backend/bot_api_v2.dart';
 import 'backend/firebase_game_api_v2.dart';
 import 'backend/google_auth_v2.dart';
@@ -51,6 +53,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
       MonthlySubscriptionPurchaseServiceV2();
   String? _subscriptionPrice;
   bool _storeReady = false;
+  bool _isAdmin = false;
 
   bool get _demoMode =>
       !_backendAvailable && !_requiresGoogleSignIn && _profile != null;
@@ -103,6 +106,12 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
       if (!online) {
         profile = await session.ensureSparkTestProfile();
       }
+      var admin = false;
+      try {
+        admin = await AdminAccessV2().isCurrentUserAdmin();
+      } catch (_) {
+        admin = false;
+      }
       if (!mounted) return;
       setState(() {
         _session = session;
@@ -111,6 +120,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
         _requiresGoogleSignIn = false;
         _loadError = null;
         _notice = null;
+        _isAdmin = admin;
         if (!online) {
           _ranking = _sparkTestRanking(profile);
           _subscription = _sparkTestSubscription(profile);
@@ -156,6 +166,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
           _backendAvailable = false;
           _requiresGoogleSignIn = true;
           _notice = null;
+          _isAdmin = false;
           _tab = 0;
         });
       });
@@ -1535,6 +1546,12 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
         subscriptionPrice: _subscriptionPrice,
         equipPrestige: _equipPrestige,
         signOut: _signOutGoogle,
+        isAdmin: _isAdmin,
+        openAdmin: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => AdminDashboardV2(arabic: _arabic),
+          ),
+        ),
       ),
     ];
 
@@ -1970,6 +1987,8 @@ class _ProfileV2 extends StatelessWidget {
     required this.subscriptionPrice,
     required this.equipPrestige,
     required this.signOut,
+    required this.isAdmin,
+    required this.openAdmin,
   });
 
   final bool arabic;
@@ -1985,6 +2004,8 @@ class _ProfileV2 extends StatelessWidget {
   final String? subscriptionPrice;
   final VoidCallback equipPrestige;
   final VoidCallback signOut;
+  final bool isAdmin;
+  final VoidCallback openAdmin;
 
   @override
   Widget build(BuildContext context) {
@@ -2066,6 +2087,13 @@ class _ProfileV2 extends StatelessWidget {
           verify: refreshSubscription,
         ),
         const SizedBox(height: 14),
+        if (isAdmin) ...[
+          _AdminEntryCard(
+            arabic: arabic,
+            open: openAdmin,
+          ),
+          const SizedBox(height: 14),
+        ],
         _ProfileActionsCard(
           arabic: arabic,
           totalMatches: total,
@@ -2076,6 +2104,86 @@ class _ProfileV2 extends StatelessWidget {
       ],
     );
   }
+}
+
+class _AdminEntryCard extends StatelessWidget {
+  const _AdminEntryCard({
+    required this.arabic,
+    required this.open,
+  });
+
+  final bool arabic;
+  final VoidCallback open;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+        onTap: open,
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF22153F), Color(0xFF6739D8)],
+            ),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: _purple.withValues(alpha: .18),
+                blurRadius: 18,
+                offset: const Offset(0, 9),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: _gold.withValues(alpha: .16),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(
+                  Icons.admin_panel_settings_rounded,
+                  color: _gold,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      arabic ? 'إدارة المحتوى' : 'Content control',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      arabic
+                          ? 'البطاقات • الأسئلة • الندرة • المخزون'
+                          : 'Cards • questions • rarity • inventory',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: Colors.white70,
+                size: 16,
+              ),
+            ],
+          ),
+        ),
+      );
 }
 
 class _PlayerMissionCard extends StatelessWidget {
