@@ -176,4 +176,31 @@ void main() {
     expect(readme, isNot(contains('Ranking is based on cards owned')));
   });
 
+
+  test('inactive rare cards are reclaimed even when players stay offline', () {
+    final lifecycleFunction = File(
+      'firebase_functions/card_lifecycle_functions_v2.js',
+    ).readAsStringSync();
+    final functionsMain =
+        File('firebase_functions/main.js').readAsStringSync();
+
+    expect(lifecycleFunction, contains("schedule: '15 */6 * * *'"));
+    expect(lifecycleFunction, contains("timeZone: 'Etc/UTC'"));
+    expect(lifecycleFunction, contains('retryCount: 3'));
+    expect(lifecycleFunction, contains('if (data.activeDuelV2)'));
+    final v2Functions =
+        File('firebase_functions/v2_functions.js').readAsStringSync();
+    expect(v2Functions, contains('if (initialData.activeDuelV2) return initialProfile;'));
+    expect(v2Functions, contains('if (userData.activeDuelV2) return current;'));
+    expect(lifecycleFunction, contains('FieldValue.increment(copies)'));
+    expect(lifecycleFunction, contains('PAGE_SIZE = 200'));
+    expect(
+      lifecycleFunction,
+      contains("where('rarity', 'in', ['gold', 'legendary'])"),
+    );
+    expect(lifecycleFunction, contains('planLifecycleReclaim'));
+    expect(functionsMain, contains("require('./card_lifecycle_functions_v2')"));
+    expect(functionsMain, contains('...cardLifecycleV2'));
+  });
+
 }
