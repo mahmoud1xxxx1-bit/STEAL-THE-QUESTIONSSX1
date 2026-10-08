@@ -17,6 +17,12 @@ void main() {
     final weeklyRanking = File(
       'firebase_functions/weekly_ranking_functions_v2.js',
     ).readAsStringSync();
+    final v2Functions =
+        File('firebase_functions/v2_functions.js').readAsStringSync();
+    final onlineSession =
+        File('lib/game/online_player_session_v2.dart').readAsStringSync();
+    final activeApp =
+        File('lib/v2_active_app.dart').readAsStringSync();
     final weeklyPrestige = File(
       'firebase_functions/weekly_prestige_functions_v2.js',
     ).readAsStringSync();
@@ -51,10 +57,17 @@ void main() {
     );
     expect(profileFeatures, contains('purchaseEntitlementsV2'));
     expect(profileFeatures, contains('normalizeVerifiedEntitlement'));
+    expect(onlineSession, contains('verifySubscriptionPurchase'));
+    expect(onlineSession, contains('refreshSubscription() async'));
+    expect(activeApp, contains('final verified = await session.verifySubscriptionPurchase'));
+    expect(activeApp, contains('final status = await session.refreshSubscription'));
     expect(profileFeatures, contains('if (!verified.active && next.activeDeckIndex >= 2)'));
 
     expect(weeklyRanking, contains("onDocumentWritten('users/{uid}'"));
     expect(weeklyRanking, contains('weeklyPoints: profile.weeklyPoints'));
+    expect(v2Functions, contains('const getWeeklyRankingV2 = onCall'));
+    expect(v2Functions, contains("db.collection('users')"));
+    expect(v2Functions, contains("orderBy('profileV2.weeklyPoints', 'desc')"));
     expect(weeklyPrestige, contains("schedule: '10 0 * * 1'"));
     expect(weeklyPrestige, contains('rankingRewardsV2'));
     expect(weeklyPrestige, contains('applyPrestigeV2(current, entry.place)'));
