@@ -31,6 +31,11 @@ void main() {
         File('firebase_functions/main.js').readAsStringSync();
     final googleAuth =
         File('lib/backend/google_auth_v2.dart').readAsStringSync();
+    final firebaseBootstrap =
+        File('lib/backend/firebase_bootstrap.dart').readAsStringSync();
+    final androidCi = File(
+      '.github/workflows/flutter-web-preview.yml',
+    ).readAsStringSync();
     final admin = File('lib/admin/admin_content_v2.dart').readAsStringSync();
 
     expect(serverCore, contains('const DECK_SIZE = 10;'));
