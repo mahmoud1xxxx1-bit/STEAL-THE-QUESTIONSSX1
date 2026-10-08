@@ -18,6 +18,7 @@ assert.strictEqual(empty.schemaVersion, 2);
 assert.strictEqual(empty.ownedPackIds.length, 0);
 assert.strictEqual(empty.decks.length, 5);
 assert.strictEqual(empty.weeklyPoints, 0);
+assert.deepStrictEqual(empty.packLastPvpUsedAtMs, {});
 
 const owned = Array.from({ length: 10 }, (_, i) => `p${i}`);
 let profile = normalizeProfileV2({
@@ -31,6 +32,16 @@ assert.strictEqual(canSaveDeckV2(profile, 0, owned, now), true);
 assert.strictEqual(canSaveDeckV2(profile, 2, owned, now), false);
 profile = saveDeckV2(profile, 0, owned, now);
 assert.deepStrictEqual(profile.decks[0], owned);
+
+profile = normalizeProfileV2({
+  ...profile,
+  packLastPvpUsedAtMs: {
+    p0: 123456,
+    p1: 'bad',
+    outside: 999999,
+  },
+}, now);
+assert.deepStrictEqual(profile.packLastPvpUsedAtMs, { p0: 123456 });
 
 profile = applyDuelResultV2(profile, 'win', now);
 assert.strictEqual(profile.weeklyPoints, 30);
