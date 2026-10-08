@@ -174,7 +174,7 @@ void main() {
     expect(source, contains('Icons.question_mark_rounded'));
     expect(source, contains('class _StealRevealDialog'));
     expect(source, contains('انكشفت البطاقة!'));
-    expect(source, contains('Stolen from your opponent\\'s duel deck'));
+    expect(source, contains("Stolen from your opponent's duel deck"));
     expect(source, contains('final result = await _session!.confirmSteal'));
     expect(source, contains('await _showStealReveal(stolenId)'));
     expect(source, isNot(contains("Text(\n                 id,")));
