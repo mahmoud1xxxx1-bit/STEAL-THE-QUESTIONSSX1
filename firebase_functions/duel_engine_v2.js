@@ -40,29 +40,57 @@ function botRewardCandidates(allPackIds, ownedPackIds) {
   return uniqueStrings(allPackIds).filter((id) => !owned.has(id));
 }
 
-function stealablePackIds(opponentDeckPackIds, winnerOwnedPackIds) {
+function stealablePackIds(opponentDeckPackIds) {
   const deck = uniqueStrings(opponentDeckPackIds);
   if (deck.length !== DECK_SIZE) {
     throw new Error('Opponent deck must contain exactly 10 distinct packs.');
   }
-  const winnerOwned = new Set(uniqueStrings(winnerOwnedPackIds));
-  return deck.filter((id) => !winnerOwned.has(id));
+  return deck;
 }
 
-function applySteal({ packId, winnerOwnedPackIds, loserOwnedPackIds, opponentDeckPackIds }) {
+function normalizedCounts(ownedPackIds, counts) {
+  const raw = counts && typeof counts === 'object' ? counts : {};
+  return Object.fromEntries(uniqueStrings(ownedPackIds).map((id) => {
+    const count = Number(raw[id]);
+    return [id, Number.isInteger(count) && count > 0 ? count : 1];
+  }));
+}
+
+function applySteal({
+  packId,
+  winnerOwnedPackIds,
+  loserOwnedPackIds,
+  opponentDeckPackIds,
+  winnerOwnedPackCounts,
+  loserOwnedPackCounts,
+}) {
   const id = String(packId);
-  const eligible = new Set(stealablePackIds(opponentDeckPackIds, winnerOwnedPackIds));
+  const eligible = new Set(stealablePackIds(opponentDeckPackIds));
   if (!eligible.has(id)) throw new Error('Selected pack is not eligible to steal.');
 
   const winner = new Set(uniqueStrings(winnerOwnedPackIds));
   const loser = new Set(uniqueStrings(loserOwnedPackIds));
   if (!loser.has(id)) throw new Error('Opponent no longer owns the selected pack.');
 
+  const winnerCounts = normalizedCounts([...winner], winnerOwnedPackCounts);
+  const loserCounts = normalizedCounts([...loser], loserOwnedPackCounts);
+  const loserCount = Number(loserCounts[id] || 0);
+  if (loserCount <= 0) throw new Error('Opponent no longer owns the selected pack.');
+
   winner.add(id);
-  loser.delete(id);
+  winnerCounts[id] = Number(winnerCounts[id] || 0) + 1;
+  if (loserCount > 1) {
+    loserCounts[id] = loserCount - 1;
+  } else {
+    loser.delete(id);
+    delete loserCounts[id];
+  }
+
   return {
     winnerOwnedPackIds: [...winner],
     loserOwnedPackIds: [...loser],
+    winnerOwnedPackCounts: winnerCounts,
+    loserOwnedPackCounts: loserCounts,
     loserPvpUnlocked: loser.size >= DECK_SIZE,
   };
 }
