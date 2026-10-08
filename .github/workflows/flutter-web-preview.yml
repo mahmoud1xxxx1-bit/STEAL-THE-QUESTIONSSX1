@@ -21,6 +21,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Verify Firebase deploy target
+        run: python3 tool/verify_firebase_deploy_target.py
+
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
