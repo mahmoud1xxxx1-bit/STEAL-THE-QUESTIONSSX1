@@ -232,7 +232,7 @@ void main() {
     expect(functions, contains('FieldValue.increment(copies)'));
     expect(functions, contains('syncLifecycleForUser'));
     expect(profile, contains('ownedPackCounts'));
-    expect(app, contains("'×$count'"));
+    expect(app, contains("'×\$count'"));
   });
 
   test('Android auth requires Google sign-in and has no anonymous fallback', () {
