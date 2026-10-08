@@ -140,6 +140,17 @@ void main() {
     expect(appSource, contains('equipSparkTestPrestige'));
   });
 
+  test('rarity identity is visible across collection deck and bot rewards', () {
+    final source = File('lib/v2_active_app.dart').readAsStringSync();
+
+    expect(source, contains('_rarityAccent'));
+    expect(source, contains('_rarityDark'));
+    expect(source, contains('CardRarityV2.legendary'));
+    expect(source, contains('_BotRewardRevealDialog'));
+    expect(source, contains('awardedRarity'));
+    expect(source, contains('cardMeta: _cardMeta'));
+  });
+
   test('Android auth requires Google sign-in and has no anonymous fallback', () {
     final runtimeSource =
         File('lib/backend/online_runtime_v2.dart').readAsStringSync();
