@@ -159,6 +159,8 @@ void main() {
         File('firebase_functions/main.js').readAsStringSync();
 
     expect(lifecycleFunction, contains("schedule: '15 */6 * * *'"));
+    expect(lifecycleFunction, contains("timeZone: 'Etc/UTC'"));
+    expect(lifecycleFunction, contains('retryCount: 3'));
     expect(lifecycleFunction, contains('if (data.activeDuelV2)'));
     final v2Functions =
         File('firebase_functions/v2_functions.js').readAsStringSync();
