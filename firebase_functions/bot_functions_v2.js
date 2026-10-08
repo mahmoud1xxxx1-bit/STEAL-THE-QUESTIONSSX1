@@ -284,7 +284,18 @@ const submitBotAnswerV2 = onCall(async (request) => {
         const reward = awardPack(profile.ownedPackIds, round.cardId);
         awarded = reward.awarded;
         if (awarded) {
-          profile = { ...profile, ownedPackIds: reward.ownedPackIds };
+          profile = {
+            ...profile,
+            ownedPackIds: reward.ownedPackIds,
+            ownedPackCounts: {
+              ...profile.ownedPackCounts,
+              [String(round.cardId)]: 1,
+            },
+            packLastPvpUsedAtMs: {
+              ...profile.packLastPvpUsedAtMs,
+              [String(round.cardId)]: now.toMillis(),
+            },
+          };
           tx.update(cardRef, {
             availableCopies: availableCopies - 1,
             updatedAt: now,
