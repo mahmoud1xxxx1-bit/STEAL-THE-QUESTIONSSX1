@@ -189,6 +189,9 @@ void main() {
     expect(source, contains('ACTIVE DUEL'));
     expect(source, contains('مباراتك بانتظارك'));
     expect(source, contains('onSecondary: searching && !matched'));
+    expect(source, contains('final existingState = await session.duelState(duelId)'));
+    expect(source, contains('if (existingState.finished)'));
+    expect(source, contains('await _chooseSteal(duelId)'));
   });
 
   test('Android auth requires Google sign-in and has no anonymous fallback', () {
