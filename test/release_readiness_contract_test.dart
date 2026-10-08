@@ -94,4 +94,32 @@ void main() {
       contains("require('./purchase_verification_functions_v2')"),
     );
   });
+
+  test('release source contains no retired project identities', () {
+    const forbidden = <String>[
+      '3minutes',
+      'level_devil',
+      'Level Devil',
+      'LVL LOOL',
+    ];
+    final roots = <String>['lib', 'firebase_functions'];
+    for (final root in roots) {
+      final dir = Directory(root);
+      for (final entity in dir.listSync(recursive: true)) {
+        if (entity is! File) continue;
+        if (!entity.path.endsWith('.dart') && !entity.path.endsWith('.js')) {
+          continue;
+        }
+        final source = entity.readAsStringSync();
+        for (final term in forbidden) {
+          expect(
+            source,
+            isNot(contains(term)),
+            reason: 'Retired project identity "$term" found in ${entity.path}',
+          );
+        }
+      }
+    }
+  });
+
 }
