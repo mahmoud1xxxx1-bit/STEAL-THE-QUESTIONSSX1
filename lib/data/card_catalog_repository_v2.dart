@@ -10,6 +10,8 @@ class CardSummaryV2 {
     required this.titleEn,
     required this.questionCount,
     required this.enabled,
+    required this.rarity,
+    required this.availableCopies,
   });
 
   final String id;
@@ -18,6 +20,8 @@ class CardSummaryV2 {
   final String titleEn;
   final int questionCount;
   final bool enabled;
+  final CardRarityV2 rarity;
+  final int availableCopies;
 }
 
 class CardCatalogRepositoryV2 {
@@ -44,10 +48,19 @@ class CardCatalogRepositoryV2 {
         titleEn: data['titleEn'] as String? ?? '',
         questionCount: (data['questionCount'] as num?)?.toInt() ?? 0,
         enabled: data['enabled'] == true,
+        rarity: _rarityFromString(data['rarity'] as String?),
+        availableCopies: (data['availableCopies'] as num?)?.toInt() ?? 0,
       ));
     }
     cards.sort((a, b) => a.id.compareTo(b.id));
     return List<CardSummaryV2>.unmodifiable(cards);
+  }
+
+  CardRarityV2 _rarityFromString(String? value) {
+    for (final rarity in CardRarityV2.values) {
+      if (rarity.name == value) return rarity;
+    }
+    return CardRarityV2.epic;
   }
 
   GameCategoryId? _categoryFromString(String? value) {
