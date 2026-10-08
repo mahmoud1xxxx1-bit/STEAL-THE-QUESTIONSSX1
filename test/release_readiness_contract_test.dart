@@ -151,4 +151,29 @@ void main() {
     }
   });
 
+  test('Firebase deployment target and project documentation stay current', () {
+    final firebaserc = File('.firebaserc').readAsStringSync();
+    final deployGuard =
+        File('tool/verify_firebase_deploy_target.py').readAsStringSync();
+    final workflow =
+        File('.github/workflows/flutter-web-preview.yml').readAsStringSync();
+    final readme = File('README.md').readAsStringSync();
+
+    expect(firebaserc, contains('steal-the-questionssx1'));
+    expect(deployGuard, contains('EXPECTED_PROJECT = "steal-the-questionssx1"'));
+    expect(deployGuard, contains('Refusing Firebase deploy'));
+    expect(workflow, contains('Verify Firebase deploy target'));
+    expect(
+      workflow,
+      contains('python3 tool/verify_firebase_deploy_target.py'),
+    );
+    expect(readme, contains('Weekly ranking points: Win +30, Loss -15, Draw 0.'));
+    expect(readme, contains('Gold returns to system inventory after 12 days'));
+    expect(readme, contains('Legendary after 7 days'));
+    expect(readme, contains('monthly_subscription_v2'));
+    expect(readme, isNot(contains('222 total questions')));
+    expect(readme, isNot(contains('Weekly Pass')));
+    expect(readme, isNot(contains('Ranking is based on cards owned')));
+  });
+
 }
