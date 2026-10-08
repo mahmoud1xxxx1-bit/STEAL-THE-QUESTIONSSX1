@@ -10,6 +10,7 @@ import 'backend/firebase_game_api_v2.dart';
 import 'backend/google_auth_v2.dart';
 import 'backend/online_runtime_v2.dart';
 import 'backend/profile_features_api_v2.dart';
+import 'data/card_catalog_repository_v2.dart';
 import 'data/player_profile_store_v2.dart';
 import 'game/core_engine_v2.dart';
 import 'game/online_player_session_v2.dart';
@@ -54,6 +55,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
   String? _subscriptionPrice;
   bool _storeReady = false;
   bool _isAdmin = false;
+  Map<String, CardSummaryV2> _cardMeta = const {};
 
   bool get _demoMode =>
       !_backendAvailable && !_requiresGoogleSignIn && _profile != null;
@@ -112,6 +114,13 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
       } catch (_) {
         admin = false;
       }
+      Map<String, CardSummaryV2> cardMeta = const {};
+      try {
+        final cards = await CardCatalogRepositoryV2().loadAllCards();
+        cardMeta = {for (final card in cards) card.id: card};
+      } catch (_) {
+        cardMeta = const {};
+      }
       if (!mounted) return;
       setState(() {
         _session = session;
@@ -121,6 +130,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
         _loadError = null;
         _notice = null;
         _isAdmin = admin;
+        _cardMeta = cardMeta;
         if (!online) {
           _ranking = _sparkTestRanking(profile);
           _subscription = _sparkTestSubscription(profile);
@@ -167,6 +177,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
           _requiresGoogleSignIn = true;
           _notice = null;
           _isAdmin = false;
+          _cardMeta = const {};
           _tab = 0;
         });
       });
@@ -496,15 +507,22 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
                             itemBuilder: (context, itemIndex) {
                               final id = owned[itemIndex];
                               final checked = selected.contains(id);
+                              final meta = _cardMeta[id];
+                              final category = meta?.category ??
+                                  kCategoriesV2[
+                                          itemIndex % kCategoriesV2.length]
+                                      .id;
                               final color = Color(
-                                kCategoriesV2[
-                                        itemIndex % kCategoriesV2.length]
+                                kCategoriesV2
+                                    .firstWhere((item) => item.id == category)
                                     .colorHex,
                               );
                               return _DeckChoiceCard(
                                 id: id,
                                 selected: checked,
                                 color: color,
+                                rarity: meta?.rarity ??
+                                    _demoRarityForIndex(itemIndex),
                                 onTap: () {
                                   setSheetState(() {
                                     if (checked) {
@@ -654,8 +672,43 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
                   : (_arabic ? 'إجابة صحيحة.' : 'Correct.'))
               : (_arabic ? 'إجابة غير صحيحة.' : 'Incorrect.');
         });
+        if (result.awarded && result.awardedCardId != null) {
+          await _showBotRewardReveal(
+            cardId: result.awardedCardId!,
+            rarity: _rarityFromKey(result.awardedRarity),
+          );
+        }
         await _refreshRemote();
       });
+
+  CardRarityV2 _rarityFromKey(String? value) {
+    return CardRarityV2.values.firstWhere(
+      (item) => item.name == value,
+      orElse: () => CardRarityV2.epic,
+    );
+  }
+
+  CardRarityV2 _demoRarityForIndex(int index) {
+    if (index % 10 == 9) return CardRarityV2.legendary;
+    if (index % 5 == 4) return CardRarityV2.gold;
+    return CardRarityV2.epic;
+  }
+
+  Future<void> _showBotRewardReveal({
+    required String cardId,
+    required CardRarityV2 rarity,
+  }) =>
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        barrierColor: _ink.withValues(alpha: .82),
+        builder: (dialogContext) => _BotRewardRevealDialog(
+          arabic: _arabic,
+          cardId: cardId,
+          rarity: rarity,
+          close: () => Navigator.of(dialogContext).pop(),
+        ),
+      );
 
   Future<int?> _answerDialog({
     required String title,
@@ -1514,7 +1567,11 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
         openTab: (value) => setState(() => _tab = value),
         refresh: _refreshProfile,
       ),
-      _CardsV2(arabic: _arabic, profile: profile),
+      _CardsV2(
+        arabic: _arabic,
+        profile: profile,
+        cardMeta: _cardMeta,
+      ),
       _DecksV2(
         arabic: _arabic,
         profile: profile,
@@ -1735,10 +1792,15 @@ class _HomeV2 extends StatelessWidget {
 }
 
 class _CardsV2 extends StatelessWidget {
-  const _CardsV2({required this.arabic, required this.profile});
+  const _CardsV2({
+    required this.arabic,
+    required this.profile,
+    required this.cardMeta,
+  });
 
   final bool arabic;
   final PlayerProfileV2 profile;
+  final Map<String, CardSummaryV2> cardMeta;
 
   @override
   Widget build(BuildContext context) {
@@ -1789,14 +1851,27 @@ class _CardsV2 extends StatelessWidget {
                 spacing: 12,
                 runSpacing: 12,
                 children: List.generate(owned.length, (index) {
+                  final id = owned[index];
+                  final meta = cardMeta[id];
+                  final category = meta?.category ??
+                      kCategoriesV2[index % kCategoriesV2.length].id;
                   final color = Color(
-                    kCategoriesV2[index % kCategoriesV2.length].colorHex,
+                    kCategoriesV2
+                        .firstWhere((item) => item.id == category)
+                        .colorHex,
                   );
+                  final rarity = meta?.rarity ??
+                      (index % 10 == 9
+                          ? CardRarityV2.legendary
+                          : index % 5 == 4
+                              ? CardRarityV2.gold
+                              : CardRarityV2.epic);
                   return SizedBox(
                     width: width,
                     child: _OwnedCardTile(
-                      id: owned[index],
+                      id: id,
                       color: color,
+                      rarity: rarity,
                       arabic: arabic,
                     ),
                   );
@@ -2555,12 +2630,14 @@ class _DeckChoiceCard extends StatelessWidget {
     required this.id,
     required this.selected,
     required this.color,
+    required this.rarity,
     required this.onTap,
   });
 
   final String id;
   final bool selected;
   final Color color;
+  final CardRarityV2 rarity;
   final VoidCallback onTap;
 
   @override
@@ -2570,10 +2647,12 @@ class _DeckChoiceCard extends StatelessWidget {
         child: Ink(
           padding: const EdgeInsets.all(11),
           decoration: BoxDecoration(
-            color: selected ? color.withValues(alpha: .14) : _cardSurface,
+            color: selected
+                ? _rarityAccent(rarity).withValues(alpha: .12)
+                : _cardSurface,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: selected ? color : _softPurple,
+              color: selected ? _rarityAccent(rarity) : _softPurple,
               width: selected ? 1.7 : 1,
             ),
           ),
@@ -2583,8 +2662,16 @@ class _DeckChoiceCard extends StatelessWidget {
                 width: 38,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: color,
+                  gradient: LinearGradient(
+                    colors: [color, _rarityDark(rarity)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                   borderRadius: BorderRadius.circular(11),
+                  border: Border.all(
+                    color: _rarityAccent(rarity),
+                    width: 1.5,
+                  ),
                 ),
                 child: const Icon(
                   Icons.help_rounded,
@@ -2605,12 +2692,26 @@ class _DeckChoiceCard extends StatelessWidget {
                   ),
                 ),
               ),
-              Icon(
-                selected
-                    ? Icons.check_circle_rounded
-                    : Icons.add_circle_outline_rounded,
-                color: selected ? color : _muted,
-                size: 20,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    rarity.nameEn.toUpperCase(),
+                    style: TextStyle(
+                      color: _rarityAccent(rarity),
+                      fontSize: 8,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Icon(
+                    selected
+                        ? Icons.check_circle_rounded
+                        : Icons.add_circle_outline_rounded,
+                    color: selected ? _rarityAccent(rarity) : _muted,
+                    size: 20,
+                  ),
+                ],
               ),
             ],
           ),
@@ -4231,26 +4332,34 @@ class _OwnedCardTile extends StatelessWidget {
   const _OwnedCardTile({
     required this.id,
     required this.color,
+    required this.rarity,
     required this.arabic,
   });
 
   final String id;
   final Color color;
+  final CardRarityV2 rarity;
   final bool arabic;
 
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) {
+    final rarityAccent = _rarityAccent(rarity);
+    final rarityDark = _rarityDark(rarity);
+    return Container(
         height: 202,
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [color, Color.lerp(color, _ink, .30)!],
+            colors: [
+              Color.lerp(color, rarityAccent, .38)!,
+              rarityDark,
+            ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: Colors.white.withValues(alpha: .72),
-            width: 2,
+            color: rarityAccent.withValues(alpha: .95),
+            width: rarity == CardRarityV2.legendary ? 2.8 : 2,
           ),
           boxShadow: [
             BoxShadow(
@@ -4271,7 +4380,7 @@ class _OwnedCardTile extends StatelessWidget {
               top: 11,
               end: 11,
               child: _CardOwnedRibbon(
-                text: arabic ? 'مملوكة' : 'OWNED',
+                text: rarity.nameEn.toUpperCase(),
               ),
             ),
             PositionedDirectional(
@@ -4317,7 +4426,9 @@ class _OwnedCardTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    arabic ? 'بطاقة من مجموعتك' : 'YOUR COLLECTION',
+                    arabic
+                        ? '${rarity.nameAr} • ${rarity.difficultyAr}'
+                        : '${rarity.nameEn.toUpperCase()} • CARD',
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: .68),
                       fontSize: 9,
@@ -4331,6 +4442,153 @@ class _OwnedCardTile extends StatelessWidget {
           ],
         ),
       );
+  }
+}
+
+Color _rarityAccent(CardRarityV2 rarity) => switch (rarity) {
+      CardRarityV2.epic => const Color(0xFFB68CFF),
+      CardRarityV2.gold => const Color(0xFFFFD45B),
+      CardRarityV2.legendary => const Color(0xFFFF7348),
+    };
+
+Color _rarityDark(CardRarityV2 rarity) => switch (rarity) {
+      CardRarityV2.epic => const Color(0xFF3A1C76),
+      CardRarityV2.gold => const Color(0xFF6E4711),
+      CardRarityV2.legendary => const Color(0xFF160D2A),
+    };
+
+class _BotRewardRevealDialog extends StatelessWidget {
+  const _BotRewardRevealDialog({
+    required this.arabic,
+    required this.cardId,
+    required this.rarity,
+    required this.close,
+  });
+
+  final bool arabic;
+  final String cardId;
+  final CardRarityV2 rarity;
+  final VoidCallback close;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = _rarityAccent(rarity);
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 28),
+      child: Container(
+        padding: const EdgeInsets.all(22),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              _rarityDark(rarity),
+              Color.lerp(_rarityDark(rarity), accent, .42)!,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(
+            color: accent,
+            width: rarity == CardRarityV2.legendary ? 3 : 2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: accent.withValues(alpha: .32),
+              blurRadius: 32,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              rarity == CardRarityV2.legendary
+                  ? Icons.auto_awesome_rounded
+                  : rarity == CardRarityV2.gold
+                      ? Icons.workspace_premium_rounded
+                      : Icons.bolt_rounded,
+              color: accent,
+              size: 42,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              rarity.nameEn.toUpperCase(),
+              style: TextStyle(
+                color: accent,
+                fontSize: 18,
+                letterSpacing: 1.4,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Container(
+              width: 156,
+              height: 210,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: .08),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: accent, width: 2),
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Positioned(
+                    top: 14,
+                    left: 14,
+                    child: _CardCornerMark(color: accent),
+                  ),
+                  const _StealLogoMark(size: 72, showGlow: true),
+                  Positioned(
+                    left: 14,
+                    right: 14,
+                    bottom: 18,
+                    child: Text(
+                      cardId,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              arabic
+                  ? 'ربحت بطاقة \${rarity.nameAr}'
+                  : 'You won a \${rarity.nameEn} card',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 19,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: close,
+              style: FilledButton.styleFrom(
+                backgroundColor: accent,
+                foregroundColor: rarity == CardRarityV2.gold
+                    ? _ink
+                    : Colors.white,
+                minimumSize: const Size.fromHeight(50),
+              ),
+              child: Text(
+                arabic ? 'أضفها إلى مجموعتي' : 'Add to my collection',
+                style: const TextStyle(fontWeight: FontWeight.w900),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _CardCornerMark extends StatelessWidget {

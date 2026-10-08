@@ -35,9 +35,19 @@ class CardCatalogRepositoryV2 {
         .collection('cardsV2')
         .where('enabled', isEqualTo: true)
         .get();
+    return _decodeCards(snapshot.docs);
+  }
 
+  Future<List<CardSummaryV2>> loadAllCards() async {
+    final snapshot = await _firestore.collection('cardsV2').get();
+    return _decodeCards(snapshot.docs);
+  }
+
+  List<CardSummaryV2> _decodeCards(
+    Iterable<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+  ) {
     final cards = <CardSummaryV2>[];
-    for (final doc in snapshot.docs) {
+    for (final doc in docs) {
       final data = doc.data();
       final category = _categoryFromString(data['category'] as String?);
       if (category == null) continue;
