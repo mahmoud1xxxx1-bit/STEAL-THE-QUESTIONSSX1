@@ -1,26 +1,42 @@
 # STEAL THE QUESTIONS
 
-A competitive quiz card game built around owned question cards, short duels, and one-card stealing after victory.
+Competitive Arabic-first card quiz game for Android, backed by Firebase.
 
-## Scope lock
-- Platforms: Android + iPhone
-- Client: Flutter
-- Backend: Firebase (later)
-- No VPS
-- 222 total questions for the initial game
-- 5 decks per player: 2 free + 3 from Weekly Pass
-- Each deck contains exactly 10 cards
-- Each duel uses 7 questions selected from the chosen 10-card deck
-- Each question has 20 seconds
-- Duel questions take 2 minutes 20 seconds
-- Result + steal sequence targets 40 seconds
-- Full round target: 3 minutes
-- Winner steals exactly 1 card from the opponent
-- Ranking is based on cards owned
-- Weekly Pass is the only purchase in the initial version
+## Current product contract
 
-## Visual-first build
-The first build focuses only on the signature card experience:
-card entrance, flip, question, answers, timer, result feedback, duel flow, and steal presentation.
+- Categories: Football, Animals, Anime, Countries & Geography, Movies & Series, General Knowledge, Science & Technology.
+- New players start with zero cards and use Bot mode until they own at least 10 different card IDs.
+- A PvP deck contains exactly 10 different owned cards.
+- Matchmaking is random; there is no direct opponent selection.
+- Each player prepares 7 distinct card/question challenges before the duel.
+- Each duel contains 7 questions with 20 seconds per question.
+- Timeout counts as a wrong answer.
+- Winner is decided by correct answers first, then lowest total elapsed time. An exact tie is a draw.
+- Weekly ranking points: Win +30, Loss -15, Draw 0.
+- Winner steals exactly one card from the opponent's exact 10-card duel deck snapshot.
+- Duplicate ownership is allowed: a stolen duplicate increases the player's copy count, while decks still require 10 distinct card IDs.
+- Rarity lifecycle: Epic never expires; Gold returns to system inventory after 12 days without PvP use; Legendary after 7 days.
+- Free entitlement: 2 deck slots and 3 answer choices.
+- Subscriber entitlement: 5 deck slots and 4 answer choices.
+- Subscription product ID: `monthly_subscription_v2`.
+- Google Sign-In is the Android authentication path. Anonymous authentication is not used.
+- Card and question content is stored in Firestore and managed through the hidden admin interface; real production questions are not bundled in the APK.
+- Sensitive economy, duel, ranking, stealing, lifecycle, and subscription verification logic is server-authoritative.
 
-GitHub Pages is the rapid Flutter Web preview for the same Flutter UI that will become the Android and iPhone builds.
+## Firebase identity
+
+- Firebase project: `steal-the-questionssx1`
+- Android package: `com.STEALTHE.QUESTIONSSX1`
+- Functions source: `firebase_functions`
+- Firestore rules: `firestore.rules`
+- Firestore indexes: `firestore.indexes.json`
+
+Before any Firebase deployment, run:
+
+`python3 tool/verify_firebase_deploy_target.py`
+
+The guard refuses deployment when the repository is not targeting the approved Firebase project or expected Functions/rules/index files.
+
+## Release status
+
+The repository supports Spark/demo testing and signed Android CI builds. Production launch remains blocked until Blaze is intentionally enabled, Cloud Functions/rules/indexes are deployed and verified, purchase-verification credentials are configured, real card/question content is loaded, and a live two-account PvP end-to-end test passes.
