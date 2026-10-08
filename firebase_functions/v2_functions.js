@@ -38,9 +38,7 @@ async function syncLifecycleForUser(uid) {
   const initialSnap = await ref.get();
   if (!initialSnap.exists) throw new HttpsError('not-found', 'Profile not found.');
   const initialProfile = profileFromUserData(initialSnap.data());
-  const candidateIds = initialProfile.ownedPackIds.filter((packId) =>
-    Number(initialProfile.packLastPvpUsedAtMs && initialProfile.packLastPvpUsedAtMs[packId]) > 0
-  );
+  const candidateIds = [...initialProfile.ownedPackIds];
   if (!candidateIds.length) return initialProfile;
 
   const cardRefs = candidateIds.map((packId) => db.collection('cardsV2').doc(packId));
@@ -50,28 +48,48 @@ async function syncLifecycleForUser(uid) {
     if (!cardSnap.exists) continue;
     rarityByPackId[cardSnap.id] = String(cardSnap.data().rarity || 'epic').toLowerCase();
   }
+  const checkNowMs = Date.now();
   const initiallyExpired = expiredPackIds({
     profile: initialProfile,
     rarityByPackId,
-    nowMs: Date.now(),
+    nowMs: checkNowMs,
   });
-  if (!initiallyExpired.length) return initialProfile;
+  const needsBaseline = candidateIds.some((packId) => {
+    const rarity = rarityByPackId[packId];
+    const lastUsed = Number(initialProfile.packLastPvpUsedAtMs && initialProfile.packLastPvpUsedAtMs[packId]);
+    return (rarity === 'gold' || rarity === 'legendary') &&
+      (!Number.isFinite(lastUsed) || lastUsed <= 0);
+  });
+  if (!initiallyExpired.length && !needsBaseline) return initialProfile;
 
   return db.runTransaction(async (tx) => {
     const userSnap = await tx.get(ref);
     if (!userSnap.exists) throw new HttpsError('not-found', 'Profile not found.');
     const current = profileFromUserData(userSnap.data());
+    const now = Timestamp.now();
+    const nowMs = now.toMillis();
+    const activity = { ...current.packLastPvpUsedAtMs };
+    for (const packId of current.ownedPackIds) {
+      const rarity = rarityByPackId[packId];
+      const lastUsed = Number(activity[packId]);
+      if ((rarity === 'gold' || rarity === 'legendary') &&
+          (!Number.isFinite(lastUsed) || lastUsed <= 0)) {
+        activity[packId] = nowMs;
+      }
+    }
+
+    const currentWithBaselines = {
+      ...current,
+      packLastPvpUsedAtMs: activity,
+    };
     const expired = expiredPackIds({
-      profile: current,
+      profile: currentWithBaselines,
       rarityByPackId,
-      nowMs: Date.now(),
+      nowMs,
     });
-    if (!expired.length) return current;
 
     const ownedSet = new Set(current.ownedPackIds);
     const counts = { ...current.ownedPackCounts };
-    const activity = { ...current.packLastPvpUsedAtMs };
-    const now = Timestamp.now();
 
     for (const packId of expired) {
       const copies = Math.max(1, Number(counts[packId] || 1) | 0);
