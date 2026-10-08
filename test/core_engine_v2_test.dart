@@ -21,6 +21,16 @@ void main() {
     expect(kCategoriesV2.map((c) => c.colorHex).toSet().length, 7);
   });
 
+  test('card rarity drop chances are fixed to 85 / 12 / 3', () {
+    expect(CardRarityV2.epic.botChance, 85);
+    expect(CardRarityV2.gold.botChance, 12);
+    expect(CardRarityV2.legendary.botChance, 3);
+    expect(
+      CardRarityV2.values.fold<int>(0, (sum, item) => sum + item.botChance),
+      100,
+    );
+  });
+
   test('catalog accepts empty content until real questions are supplied', () {
     final catalog = ContentCatalogV2.empty();
     expect(catalog.packs, isEmpty);
@@ -36,12 +46,18 @@ void main() {
           titleAr: 'كأس العالم',
           titleEn: 'World Cup',
           questionIds: ['q1', 'q2', 'q3'],
+          rarity: CardRarityV2.legendary,
+          availableCopies: 10,
         ),
       ],
       questions: [q('q1', 'football_world_cup'), q('q2', 'football_world_cup'), q('q3', 'football_world_cup')],
     );
 
     expect(catalog.packs['football_world_cup']!.questionIds.length, 3);
+    expect(
+      catalog.packs['football_world_cup']!.rarity,
+      CardRarityV2.legendary,
+    );
   });
 
   test('selector avoids recently seen questions when fresh questions exist', () {

@@ -17,6 +17,40 @@ const int kWeeklyWinPointsV2 = 30;
 const int kWeeklyLossPointsV2 = -15;
 const int kWeeklyDrawPointsV2 = 0;
 
+const int kBotEpicChanceV2 = 85;
+const int kBotGoldChanceV2 = 12;
+const int kBotLegendaryChanceV2 = 3;
+
+enum CardRarityV2 { epic, gold, legendary }
+
+extension CardRarityV2X on CardRarityV2 {
+  String get key => name;
+
+  String get nameAr => switch (this) {
+        CardRarityV2.epic => 'إيبيك',
+        CardRarityV2.gold => 'جولد',
+        CardRarityV2.legendary => 'ليجندري',
+      };
+
+  String get nameEn => switch (this) {
+        CardRarityV2.epic => 'Epic',
+        CardRarityV2.gold => 'Gold',
+        CardRarityV2.legendary => 'Legendary',
+      };
+
+  String get difficultyAr => switch (this) {
+        CardRarityV2.epic => 'سهل',
+        CardRarityV2.gold => 'متوسط',
+        CardRarityV2.legendary => 'صعب جدًا',
+      };
+
+  int get botChance => switch (this) {
+        CardRarityV2.epic => kBotEpicChanceV2,
+        CardRarityV2.gold => kBotGoldChanceV2,
+        CardRarityV2.legendary => kBotLegendaryChanceV2,
+      };
+}
+
 enum GameCategoryId {
   football,
   anime,
@@ -81,6 +115,9 @@ class QuestionPackV2 {
     required this.titleAr,
     required this.titleEn,
     required this.questionIds,
+    this.rarity = CardRarityV2.epic,
+    this.enabled = true,
+    this.availableCopies = 0,
   });
 
   final String id;
@@ -88,6 +125,9 @@ class QuestionPackV2 {
   final String titleAr;
   final String titleEn;
   final List<String> questionIds;
+  final CardRarityV2 rarity;
+  final bool enabled;
+  final int availableCopies;
 }
 
 class ContentCatalogV2 {
