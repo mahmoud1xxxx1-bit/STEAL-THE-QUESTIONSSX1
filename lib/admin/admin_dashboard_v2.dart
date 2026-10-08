@@ -424,7 +424,7 @@ class _AdminCardEditorState extends State<_AdminCardEditor> {
                                     int.tryParse(_copies.text) ?? 0,
                                 enabled: _enabled,
                               );
-                              if (mounted) Navigator.pop(context, true);
+                              if (context.mounted) Navigator.pop(context, true);
                             } finally {
                               if (mounted) {
                                 setState(() => _saving = false);
@@ -659,7 +659,7 @@ class _QuestionEditorState extends State<_QuestionEditor> {
                                 wrongAnswersEn: _split(_wen),
                                 enabled: true,
                               );
-                              if (mounted) Navigator.pop(context, true);
+                              if (context.mounted) Navigator.pop(context, true);
                             } finally {
                               if (mounted) {
                                 setState(() => _saving = false);
