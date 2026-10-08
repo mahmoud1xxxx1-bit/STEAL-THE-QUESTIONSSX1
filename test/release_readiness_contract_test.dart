@@ -107,6 +107,14 @@ void main() {
       functionsMain,
       contains("require('./purchase_verification_functions_v2')"),
     );
+    expect(
+      firebaseBootstrap,
+      contains("defaultProjectId = 'steal-the-questionssx1'"),
+    );
+    expect(androidCi, contains('package com.STEALTHE.QUESTIONSSX1'));
+    expect(androidCi, contains('Build Android release APK'));
+    expect(androidCi, contains('Verify release signing certificate'));
+    expect(androidCi, contains('Upload Android APK'));
   });
 
   test('release source contains no retired project identities', () {
