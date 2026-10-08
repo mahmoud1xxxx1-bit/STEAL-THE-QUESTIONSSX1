@@ -6,6 +6,7 @@ import 'core_engine_v2.dart';
 class PlayerProfileV2 {
   PlayerProfileV2({
     required this.ownedPackIds,
+    required this.ownedPackCounts,
     required this.decks,
     required this.activeDeckIndex,
     required this.recentQuestionIds,
@@ -26,6 +27,7 @@ class PlayerProfileV2 {
 
   factory PlayerProfileV2.empty({DateTime? now}) => PlayerProfileV2(
         ownedPackIds: <String>{},
+        ownedPackCounts: <String, int>{},
         decks: List<List<String>>.generate(
           kSubscriberDeckSlotsV2,
           (_) => <String>[],
@@ -48,6 +50,7 @@ class PlayerProfileV2 {
       );
 
   final Set<String> ownedPackIds;
+  final Map<String, int> ownedPackCounts;
   final List<List<String>> decks;
   int activeDeckIndex;
   List<String> recentQuestionIds;
@@ -128,6 +131,7 @@ class PlayerProfileV2 {
 
   Map<String, dynamic> toMap() => <String, dynamic>{
         'ownedPackIds': ownedPackIds.toList(growable: false),
+        'ownedPackCounts': Map<String, int>.from(ownedPackCounts),
         'decks': decks.map((d) => List<String>.from(d)).toList(growable: false),
         'activeDeckIndex': activeDeckIndex,
         'recentQuestionIds': List<String>.from(recentQuestionIds),
@@ -163,8 +167,19 @@ class PlayerProfileV2 {
         ? Map<String, dynamic>.from(data['prestige'] as Map)
         : const <String, dynamic>{};
 
+    final ownedPackIds =
+        Set<String>.from(data['ownedPackIds'] as List? ?? const <dynamic>[]);
+    final rawCounts = data['ownedPackCounts'] is Map
+        ? Map<String, dynamic>.from(data['ownedPackCounts'] as Map)
+        : const <String, dynamic>{};
+    final ownedPackCounts = <String, int>{
+      for (final id in ownedPackIds)
+        id: ((rawCounts[id] as num?)?.toInt() ?? 1).clamp(1, 1 << 30).toInt(),
+    };
+
     final profile = PlayerProfileV2(
-      ownedPackIds: Set<String>.from(data['ownedPackIds'] as List? ?? const <dynamic>[]),
+      ownedPackIds: ownedPackIds,
+      ownedPackCounts: ownedPackCounts,
       decks: decks,
       activeDeckIndex: (data['activeDeckIndex'] as num?)?.toInt() ?? 0,
       recentQuestionIds: RecentQuestionHistoryV2(

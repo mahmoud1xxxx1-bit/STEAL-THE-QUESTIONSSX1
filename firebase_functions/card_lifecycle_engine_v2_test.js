@@ -5,6 +5,8 @@ const {
   normalizeActivityMap,
   markPvpDeckActivity,
   expiredPackIds,
+  CARD_INACTIVITY_MS,
+  DAY_MS,
 } = require('./card_lifecycle_engine_v2');
 
 const owned = Array.from({ length: 10 }, (_, index) => `pack_${index + 1}`);
@@ -29,6 +31,10 @@ assert.deepStrictEqual(
   [],
   'No card may expire until an explicit rarity policy is supplied.',
 );
+
+assert.strictEqual(CARD_INACTIVITY_MS.gold, 12 * DAY_MS);
+assert.strictEqual(CARD_INACTIVITY_MS.legendary, 7 * DAY_MS);
+assert.strictEqual(Object.prototype.hasOwnProperty.call(CARD_INACTIVITY_MS, 'epic'), false);
 
 const explicitPolicy = { epic: 5000 };
 assert.deepStrictEqual(
@@ -64,3 +70,33 @@ assert.throws(
 );
 
 console.log('card_lifecycle_engine_v2 tests passed');
+
+const rarityMap = {
+  pack_1: 'epic',
+  pack_2: 'gold',
+  pack_3: 'legendary',
+};
+const timed = {
+  ownedPackIds: ['pack_1', 'pack_2', 'pack_3'],
+  packLastPvpUsedAtMs: {
+    pack_1: 1000,
+    pack_2: 1000,
+    pack_3: 1000,
+  },
+};
+assert.deepStrictEqual(
+  expiredPackIds({
+    profile: timed,
+    rarityByPackId: rarityMap,
+    nowMs: 1000 + (7 * DAY_MS),
+  }),
+  ['pack_3'],
+);
+assert.deepStrictEqual(
+  expiredPackIds({
+    profile: timed,
+    rarityByPackId: rarityMap,
+    nowMs: 1000 + (12 * DAY_MS),
+  }).sort(),
+  ['pack_2', 'pack_3'],
+);

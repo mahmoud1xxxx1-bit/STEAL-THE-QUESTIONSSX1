@@ -36,8 +36,8 @@ assert.deepStrictEqual(
 
 const deck = Array.from({ length: 10 }, (_, i) => `p${i}`);
 const stealable = stealablePackIds(deck, ['p0', 'p1', 'p2']);
-assert.strictEqual(stealable.length, 7);
-assert.strictEqual(stealable.includes('p0'), false);
+assert.strictEqual(stealable.length, 10);
+assert.strictEqual(stealable.includes('p0'), true);
 
 // A winner can only steal from the exact 10-card deck snapshot used by the loser in this duel.
 assert.throws(() =>
@@ -56,13 +56,28 @@ assert.throws(() =>
 
 const transfer = applySteal({
   packId: 'p9',
-  winnerOwnedPackIds: ['x1', 'x2'],
+  winnerOwnedPackIds: ['x1', 'x2', 'p9'],
   loserOwnedPackIds: deck,
   opponentDeckPackIds: deck,
+  winnerOwnedPackCounts: { x1: 1, x2: 1, p9: 1 },
+  loserOwnedPackCounts: Object.fromEntries(deck.map((id) => [id, 1])),
 });
 assert.strictEqual(transfer.winnerOwnedPackIds.includes('p9'), true);
+assert.strictEqual(transfer.winnerOwnedPackCounts.p9, 2);
 assert.strictEqual(transfer.loserOwnedPackIds.includes('p9'), false);
 assert.strictEqual(transfer.loserOwnedPackIds.length, 9);
 assert.strictEqual(transfer.loserPvpUnlocked, false);
+
+const duplicateSourceTransfer = applySteal({
+  packId: 'p9',
+  winnerOwnedPackIds: ['p9'],
+  loserOwnedPackIds: deck,
+  opponentDeckPackIds: deck,
+  winnerOwnedPackCounts: { p9: 2 },
+  loserOwnedPackCounts: { ...Object.fromEntries(deck.map((id) => [id, 1])), p9: 2 },
+});
+assert.strictEqual(duplicateSourceTransfer.winnerOwnedPackCounts.p9, 3);
+assert.strictEqual(duplicateSourceTransfer.loserOwnedPackCounts.p9, 1);
+assert.strictEqual(duplicateSourceTransfer.loserOwnedPackIds.includes('p9'), true);
 
 console.log('duel_engine_v2_test: ok');

@@ -5,9 +5,10 @@ const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { emptyProfileV2, normalizeProfileV2, saveDeckV2 } = require('./player_profile_v2');
 const { DECK_SIZE, validateDeck, weekKey } = require('./core_engine_v2');
 const { applySteal, stealablePackIds } = require('./duel_engine_v2');
+const { expiredPackIds } = require('./card_lifecycle_engine_v2');
 
 const db = admin.firestore();
-const { Timestamp } = admin.firestore;
+const { Timestamp, FieldValue } = admin.firestore;
 
 function authUid(request) {
   const uid = request.auth && request.auth.uid;
@@ -30,6 +31,90 @@ function sanitizeDecksAfterOwnershipChange(profile) {
   const slots = next.subscriptionActive ? 5 : 2;
   if (next.activeDeckIndex < 0 || next.activeDeckIndex >= slots) next.activeDeckIndex = 0;
   return next;
+}
+
+async function syncLifecycleForUser(uid) {
+  const ref = userRef(uid);
+  const initialSnap = await ref.get();
+  if (!initialSnap.exists) throw new HttpsError('not-found', 'Profile not found.');
+  const initialProfile = profileFromUserData(initialSnap.data());
+  const candidateIds = [...initialProfile.ownedPackIds];
+  if (!candidateIds.length) return initialProfile;
+
+  const cardRefs = candidateIds.map((packId) => db.collection('cardsV2').doc(packId));
+  const cardSnaps = await db.getAll(...cardRefs);
+  const rarityByPackId = {};
+  for (const cardSnap of cardSnaps) {
+    if (!cardSnap.exists) continue;
+    rarityByPackId[cardSnap.id] = String(cardSnap.data().rarity || 'epic').toLowerCase();
+  }
+  const checkNowMs = Date.now();
+  const initiallyExpired = expiredPackIds({
+    profile: initialProfile,
+    rarityByPackId,
+    nowMs: checkNowMs,
+  });
+  const needsBaseline = candidateIds.some((packId) => {
+    const rarity = rarityByPackId[packId];
+    const lastUsed = Number(initialProfile.packLastPvpUsedAtMs && initialProfile.packLastPvpUsedAtMs[packId]);
+    return (rarity === 'gold' || rarity === 'legendary') &&
+      (!Number.isFinite(lastUsed) || lastUsed <= 0);
+  });
+  if (!initiallyExpired.length && !needsBaseline) return initialProfile;
+
+  return db.runTransaction(async (tx) => {
+    const userSnap = await tx.get(ref);
+    if (!userSnap.exists) throw new HttpsError('not-found', 'Profile not found.');
+    const current = profileFromUserData(userSnap.data());
+    const now = Timestamp.now();
+    const nowMs = now.toMillis();
+    const activity = { ...current.packLastPvpUsedAtMs };
+    for (const packId of current.ownedPackIds) {
+      const rarity = rarityByPackId[packId];
+      const lastUsed = Number(activity[packId]);
+      if ((rarity === 'gold' || rarity === 'legendary') &&
+          (!Number.isFinite(lastUsed) || lastUsed <= 0)) {
+        activity[packId] = nowMs;
+      }
+    }
+
+    const currentWithBaselines = {
+      ...current,
+      packLastPvpUsedAtMs: activity,
+    };
+    const expired = expiredPackIds({
+      profile: currentWithBaselines,
+      rarityByPackId,
+      nowMs,
+    });
+
+    const ownedSet = new Set(current.ownedPackIds);
+    const counts = { ...current.ownedPackCounts };
+
+    for (const packId of expired) {
+      const copies = Math.max(1, Number(counts[packId] || 1) | 0);
+      ownedSet.delete(packId);
+      delete counts[packId];
+      delete activity[packId];
+      tx.update(db.collection('cardsV2').doc(packId), {
+        availableCopies: FieldValue.increment(copies),
+        updatedAt: now,
+      });
+    }
+
+    const next = sanitizeDecksAfterOwnershipChange({
+      ...current,
+      ownedPackIds: [...ownedSet],
+      ownedPackCounts: counts,
+      packLastPvpUsedAtMs: activity,
+    });
+    tx.update(ref, {
+      profileV2: next,
+      schemaVersion: 2,
+      updatedAt: now,
+    });
+    return next;
+  });
 }
 
 const ensureProfileV2 = onCall(async (request) => {
@@ -55,9 +140,8 @@ const ensureProfileV2 = onCall(async (request) => {
 
 const getProfileV2 = onCall(async (request) => {
   const uid = authUid(request);
-  const snap = await userRef(uid).get();
-  if (!snap.exists) throw new HttpsError('not-found', 'Profile not found.');
-  return { profile: profileFromUserData(snap.data()) };
+  const profile = await syncLifecycleForUser(uid);
+  return { profile };
 });
 
 const saveDeckV2Callable = onCall(async (request) => {
@@ -152,7 +236,7 @@ const getStealOptionsV2 = onCall(async (request) => {
   const winnerProfile = profileFromUserData(winnerSnap.data());
   let packIds;
   try {
-    packIds = stealablePackIds(opponentDeckPackIds, winnerProfile.ownedPackIds);
+    packIds = stealablePackIds(opponentDeckPackIds);
   } catch (_) {
     throw new HttpsError('failed-precondition', 'Opponent duel deck is invalid.');
   }
@@ -191,13 +275,32 @@ const confirmStealV2 = onCall(async (request) => {
     const opponentDeckPackIds = Array.isArray(secret.loserDeckPackIds) ? secret.loserDeckPackIds.map(String) : [];
     let transfer;
     try {
-      transfer = applySteal({ packId, winnerOwnedPackIds: winner.ownedPackIds, loserOwnedPackIds: loser.ownedPackIds, opponentDeckPackIds });
+      transfer = applySteal({
+        packId,
+        winnerOwnedPackIds: winner.ownedPackIds,
+        loserOwnedPackIds: loser.ownedPackIds,
+        opponentDeckPackIds,
+        winnerOwnedPackCounts: winner.ownedPackCounts,
+        loserOwnedPackCounts: loser.ownedPackCounts,
+      });
     } catch (_) {
       throw new HttpsError('failed-precondition', 'Selected card is not eligible for transfer.');
     }
 
-    const nextWinner = sanitizeDecksAfterOwnershipChange({ ...winner, ownedPackIds: transfer.winnerOwnedPackIds });
-    const nextLoser = sanitizeDecksAfterOwnershipChange({ ...loser, ownedPackIds: transfer.loserOwnedPackIds });
+    const nextWinner = sanitizeDecksAfterOwnershipChange({
+      ...winner,
+      ownedPackIds: transfer.winnerOwnedPackIds,
+      ownedPackCounts: transfer.winnerOwnedPackCounts,
+      packLastPvpUsedAtMs: {
+        ...winner.packLastPvpUsedAtMs,
+        [packId]: Timestamp.now().toMillis(),
+      },
+    });
+    const nextLoser = sanitizeDecksAfterOwnershipChange({
+      ...loser,
+      ownedPackIds: transfer.loserOwnedPackIds,
+      ownedPackCounts: transfer.loserOwnedPackCounts,
+    });
     const now = Timestamp.now();
     tx.update(winnerRef, { profileV2: nextWinner, activeDuelV2: null, schemaVersion: 2, updatedAt: now });
     tx.update(loserRef, { profileV2: nextLoser, activeDuelV2: null, schemaVersion: 2, updatedAt: now });

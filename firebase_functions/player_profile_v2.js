@@ -14,6 +14,16 @@ function uniqueStrings(value) {
   return [...new Set((Array.isArray(value) ? value : []).map(String))];
 }
 
+function normalizePackCounts(value, ownedPackIds) {
+  const raw = value && typeof value === 'object' ? value : {};
+  const next = {};
+  for (const packId of uniqueStrings(ownedPackIds)) {
+    const count = Number(raw[packId]);
+    next[packId] = Number.isInteger(count) && count > 0 ? count : 1;
+  }
+  return next;
+}
+
 function normalizeDecks(value) {
   const raw = Array.isArray(value) ? value : [];
   return Array.from({ length: 5 }, (_, index) => uniqueStrings(raw[index]));
@@ -51,6 +61,7 @@ function emptyProfileV2(nowMs = Date.now()) {
   return {
     schemaVersion: 2,
     ownedPackIds: [],
+    ownedPackCounts: {},
     decks: Array.from({ length: 5 }, () => []),
     activeDeckIndex: 0,
     recentQuestionIds: [],
@@ -77,6 +88,7 @@ function normalizeProfileV2(input, nowMs = Date.now()) {
   const active = subscriptionActive(data, nowMs);
   const ent = entitlement(active);
   const ownedPackIds = uniqueStrings(data.ownedPackIds);
+  const ownedPackCounts = normalizePackCounts(data.ownedPackCounts, ownedPackIds);
   const decks = normalizeDecks(data.decks);
   let activeDeckIndex = Number.isInteger(data.activeDeckIndex) ? data.activeDeckIndex : 0;
   if (activeDeckIndex < 0 || activeDeckIndex >= ent.deckSlots) activeDeckIndex = 0;
@@ -85,6 +97,7 @@ function normalizeProfileV2(input, nowMs = Date.now()) {
     ...base,
     schemaVersion: 2,
     ownedPackIds,
+    ownedPackCounts,
     decks,
     activeDeckIndex,
     recentQuestionIds: uniqueStrings(data.recentQuestionIds).slice(-RECENT_QUESTION_LIMIT),
@@ -188,4 +201,5 @@ module.exports = {
   pvpUnlockedV2,
   subscriptionActive,
   normalizePackPvpActivity,
+  normalizePackCounts,
 };

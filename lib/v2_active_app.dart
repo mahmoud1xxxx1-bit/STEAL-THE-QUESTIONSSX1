@@ -2228,6 +2228,7 @@ class _CardsV2 extends StatelessWidget {
                       id: id,
                       color: color,
                       rarity: rarity,
+                      count: profile.ownedPackCounts[id] ?? 1,
                       arabic: arabic,
                     ),
                   );
@@ -4910,12 +4911,14 @@ class _OwnedCardTile extends StatelessWidget {
     required this.id,
     required this.color,
     required this.rarity,
+    required this.count,
     required this.arabic,
   });
 
   final String id;
   final Color color;
   final CardRarityV2 rarity;
+  final int count;
   final bool arabic;
 
   @override
@@ -4960,6 +4963,26 @@ class _OwnedCardTile extends StatelessWidget {
                 text: rarity.nameEn.toUpperCase(),
               ),
             ),
+            if (count > 1)
+              PositionedDirectional(
+                top: 48,
+                end: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: .94),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                  child: Text(
+                    '×$count',
+                    style: TextStyle(
+                      color: rarityDark,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ),
             PositionedDirectional(
               bottom: 14,
               end: 13,

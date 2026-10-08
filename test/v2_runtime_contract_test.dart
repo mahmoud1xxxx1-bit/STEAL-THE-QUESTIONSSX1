@@ -216,6 +216,25 @@ void main() {
     expect(rulesSource, contains('match /duelSecretsV2/{duelId}'));
   });
 
+  test('duplicate steals and rare-card lifecycle follow the approved policy', () {
+    final duelEngine = File('firebase_functions/duel_engine_v2.js').readAsStringSync();
+    final lifecycle = File('firebase_functions/card_lifecycle_engine_v2.js').readAsStringSync();
+    final functions = File('firebase_functions/v2_functions.js').readAsStringSync();
+    final profile = File('lib/game/player_profile_v2.dart').readAsStringSync();
+    final app = File('lib/v2_active_app.dart').readAsStringSync();
+
+    expect(duelEngine, contains('return deck;'));
+    expect(duelEngine, contains('winnerOwnedPackCounts'));
+    expect(duelEngine, contains('loserOwnedPackCounts'));
+    expect(lifecycle, contains('gold: 12 * DAY_MS'));
+    expect(lifecycle, contains('legendary: 7 * DAY_MS'));
+    expect(lifecycle, isNot(contains('epic:')));
+    expect(functions, contains('FieldValue.increment(copies)'));
+    expect(functions, contains('syncLifecycleForUser'));
+    expect(profile, contains('ownedPackCounts'));
+    expect(app, contains("'×\$count'"));
+  });
+
   test('Android auth requires Google sign-in and has no anonymous fallback', () {
     final runtimeSource =
         File('lib/backend/online_runtime_v2.dart').readAsStringSync();

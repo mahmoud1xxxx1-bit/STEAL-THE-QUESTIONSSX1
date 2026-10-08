@@ -6,6 +6,7 @@ void main() {
   test('empty profile starts with v2 limits and no content', () {
     final profile = PlayerProfileV2.empty(now: DateTime.utc(2026, 10, 5));
     expect(profile.ownedPackIds, isEmpty);
+    expect(profile.ownedPackCounts, isEmpty);
     expect(profile.decks.length, 5);
     expect(profile.entitlement.deckSlots, 2);
     expect(profile.entitlement.answerChoices, 3);
@@ -57,6 +58,7 @@ void main() {
   test('serialization preserves prestige and subscription state', () {
     final profile = PlayerProfileV2(
       ownedPackIds: {'a'},
+      ownedPackCounts: const {'a': 2},
       decks: List<List<String>>.generate(5, (_) => <String>[]),
       activeDeckIndex: 0,
       recentQuestionIds: const ['q1'],
@@ -80,6 +82,7 @@ void main() {
       now: DateTime.utc(2026, 10, 5),
     );
 
+    expect(restored.ownedPackCounts['a'], 2);
     expect(restored.prestige.first, 2);
     expect(restored.prestige.second, 1);
     expect(restored.prestige.third, 3);
