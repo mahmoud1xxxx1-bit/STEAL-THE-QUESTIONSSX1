@@ -167,6 +167,19 @@ void main() {
     expect(sessionSource, contains('submitDuelPreparation'));
   });
 
+  test('steal flow hides card identity until the server transfer reveal', () {
+    final source = File('lib/v2_active_app.dart').readAsStringSync();
+
+    expect(source, contains('class _StealOptionCard'));
+    expect(source, contains('Icons.question_mark_rounded'));
+    expect(source, contains('class _StealRevealDialog'));
+    expect(source, contains('انكشفت البطاقة!'));
+    expect(source, contains('Stolen from your opponent\\'s duel deck'));
+    expect(source, contains('final result = await _session!.confirmSteal'));
+    expect(source, contains('await _showStealReveal(stolenId)'));
+    expect(source, isNot(contains("Text(\n                 id,")));
+  });
+
   test('Android auth requires Google sign-in and has no anonymous fallback', () {
     final runtimeSource =
         File('lib/backend/online_runtime_v2.dart').readAsStringSync();
