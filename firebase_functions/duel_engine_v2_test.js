@@ -39,6 +39,21 @@ const stealable = stealablePackIds(deck, ['p0', 'p1', 'p2']);
 assert.strictEqual(stealable.length, 7);
 assert.strictEqual(stealable.includes('p0'), false);
 
+// A winner can only steal from the exact 10-card deck snapshot used by the loser in this duel.
+assert.throws(() =>
+  applySteal({
+    packId: 'outside_duel_deck',
+    winnerOwnedPackIds: ['x1', 'x2'],
+    loserOwnedPackIds: [...deck, 'outside_duel_deck'],
+    opponentDeckPackIds: deck,
+  })
+);
+
+// The saved duel deck itself must remain a valid set of 10 distinct cards.
+assert.throws(() =>
+  stealablePackIds([...deck.slice(0, 9), 'p8'], [])
+);
+
 const transfer = applySteal({
   packId: 'p9',
   winnerOwnedPackIds: ['x1', 'x2'],
