@@ -151,4 +151,20 @@ void main() {
     }
   });
 
+  test('inactive rare cards are reclaimed even when players stay offline', () {
+    final lifecycleFunction = File(
+      'firebase_functions/card_lifecycle_functions_v2.js',
+    ).readAsStringSync();
+    final functionsMain =
+        File('firebase_functions/main.js').readAsStringSync();
+
+    expect(lifecycleFunction, contains("schedule: '15 */6 * * *'"));
+    expect(lifecycleFunction, contains('if (data.activeDuelV2)'));
+    expect(lifecycleFunction, contains('FieldValue.increment(copies)'));
+    expect(lifecycleFunction, contains('PAGE_SIZE = 200'));
+    expect(lifecycleFunction, contains('planLifecycleReclaim'));
+    expect(functionsMain, contains("require('./card_lifecycle_functions_v2')"));
+    expect(functionsMain, contains('...cardLifecycleV2'));
+  });
+
 }
