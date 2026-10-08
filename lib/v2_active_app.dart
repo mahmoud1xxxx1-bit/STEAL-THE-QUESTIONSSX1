@@ -1558,10 +1558,17 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
   Future<void> _chooseSteal(String duelId) async {
     final options = await _session!.stealOptions(duelId);
     if (!mounted) return;
-    if (options.alreadyConfirmed || options.packIds.isEmpty) {
+    if (options.alreadyConfirmed) {
       setState(() => _notice = _arabic
           ? 'تم إنهاء نقل البطاقة.'
           : 'Card transfer is already settled.');
+      await _refreshRemote();
+      return;
+    }
+    if (options.packIds.isEmpty) {
+      setState(() => _notice = _arabic
+          ? 'لا توجد حاليًا بطاقة مؤهلة للسرقة من Deck الخصم.'
+          : 'There is currently no eligible card to steal from the opponent deck.');
       return;
     }
 

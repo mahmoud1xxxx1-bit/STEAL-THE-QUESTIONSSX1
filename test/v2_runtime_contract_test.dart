@@ -177,6 +177,10 @@ void main() {
     expect(source, contains('Stolen from your opponent'));
     expect(source, contains('final result = await _session!.confirmSteal'));
     expect(source, contains('await _showStealReveal(stolenId)'));
+    expect(source, contains('if (options.alreadyConfirmed)'));
+    expect(source, contains('await _refreshRemote()'));
+    expect(source, contains('if (options.packIds.isEmpty)'));
+    expect(source, contains('لا توجد حاليًا بطاقة مؤهلة للسرقة'));
     expect(source, isNot(contains("Text(\n                 id,")));
   });
 
