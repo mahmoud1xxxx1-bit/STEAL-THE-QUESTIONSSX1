@@ -19,6 +19,18 @@ function normalizeDecks(value) {
   return Array.from({ length: 5 }, (_, index) => uniqueStrings(raw[index]));
 }
 
+function normalizePackPvpActivity(value, ownedPackIds) {
+  const raw = value && typeof value === 'object' ? value : {};
+  const owned = new Set(uniqueStrings(ownedPackIds));
+  const next = {};
+  for (const [packId, timestamp] of Object.entries(raw)) {
+    if (!owned.has(String(packId))) continue;
+    const ms = Number(timestamp);
+    if (Number.isFinite(ms) && ms > 0) next[String(packId)] = Math.floor(ms);
+  }
+  return next;
+}
+
 function normalizePrestige(value) {
   const p = value && typeof value === 'object' ? value : {};
   return {
@@ -42,6 +54,7 @@ function emptyProfileV2(nowMs = Date.now()) {
     decks: Array.from({ length: 5 }, () => []),
     activeDeckIndex: 0,
     recentQuestionIds: [],
+    packLastPvpUsedAtMs: {},
     weekKey: weekKey(nowMs),
     weeklyPoints: 0,
     weeklyWins: 0,
@@ -75,6 +88,7 @@ function normalizeProfileV2(input, nowMs = Date.now()) {
     decks,
     activeDeckIndex,
     recentQuestionIds: uniqueStrings(data.recentQuestionIds).slice(-RECENT_QUESTION_LIMIT),
+    packLastPvpUsedAtMs: normalizePackPvpActivity(data.packLastPvpUsedAtMs, ownedPackIds),
     weekKey: typeof data.weekKey === 'string' ? data.weekKey : base.weekKey,
     weeklyPoints: Number(data.weeklyPoints || 0) | 0,
     weeklyWins: Math.max(0, Number(data.weeklyWins || 0) | 0),
@@ -173,4 +187,5 @@ module.exports = {
   applyPrestigeV2,
   pvpUnlockedV2,
   subscriptionActive,
+  normalizePackPvpActivity,
 };
