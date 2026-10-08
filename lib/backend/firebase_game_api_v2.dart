@@ -64,6 +64,50 @@ class MatchmakingStatusV2 {
   bool get matched => status == 'matched' && duelId != null;
 }
 
+class DuelPrepQuestionV2 {
+  const DuelPrepQuestionV2({
+    required this.questionId,
+    required this.prompt,
+    required this.blocked,
+  });
+
+  final String questionId;
+  final String prompt;
+  final bool blocked;
+}
+
+class DuelPrepCardV2 {
+  const DuelPrepCardV2({
+    required this.packId,
+    required this.questions,
+    required this.selectableCount,
+  });
+
+  final String packId;
+  final List<DuelPrepQuestionV2> questions;
+  final int selectableCount;
+}
+
+class DuelPreparationV2 {
+  const DuelPreparationV2({
+    required this.duelId,
+    required this.requiredSelections,
+    required this.cards,
+    required this.canSubmit,
+    required this.prepared,
+    required this.opponentPrepared,
+    required this.questionPlanReady,
+  });
+
+  final String duelId;
+  final int requiredSelections;
+  final List<DuelPrepCardV2> cards;
+  final bool canSubmit;
+  final bool prepared;
+  final bool opponentPrepared;
+  final bool questionPlanReady;
+}
+
 class DuelStateV2 {
   const DuelStateV2({required this.duelId, required this.status, required this.questionPlanReady, required this.answeredCount, required this.opponentAnsweredCount, required this.totalQuestions, required this.winnerUid, required this.loserUid, required this.result, required this.stealConfirmed, required this.stolenPackId});
   final String duelId;
@@ -155,6 +199,30 @@ class FirebaseGameApiV2 {
     await _functions.httpsCallable('cancelMatchmakingV2').call();
   }
 
+  Future<DuelPreparationV2> loadDuelPreparation({
+    required String duelId,
+    required bool arabic,
+  }) async {
+    final response = await _functions.httpsCallable('getDuelPreparationV2').call({
+      'duelId': duelId,
+      'language': arabic ? 'ar' : 'en',
+    });
+    return _duelPreparationFromResponse(response.data);
+  }
+
+  Future<DuelStateV2> submitDuelPreparation({
+    required String duelId,
+    required bool arabic,
+    required List<Map<String, String>> selections,
+  }) async {
+    final response = await _functions.httpsCallable('submitDuelPreparationV2').call({
+      'duelId': duelId,
+      'language': arabic ? 'ar' : 'en',
+      'selections': selections,
+    });
+    return _duelStateFromResponse(response.data);
+  }
+
   Future<DuelStateV2> loadDuelState(String duelId) async {
     final response = await _functions.httpsCallable('getDuelStateV2').call({'duelId': duelId});
     return _duelStateFromResponse(response.data);
@@ -235,6 +303,36 @@ class FirebaseGameApiV2 {
       language: data['language'] as String? ?? 'ar',
       choices: List<String>.from(data['choices'] as List? ?? const <dynamic>[]),
       maxChoices: (data['maxChoices'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  DuelPreparationV2 _duelPreparationFromResponse(dynamic raw) {
+    final data = _asMap(raw, 'Invalid duel preparation response.');
+    final cardsRaw = data['cards'] as List? ?? const <dynamic>[];
+    final cards = cardsRaw.whereType<Map>().map((cardRaw) {
+      final card = Map<String, dynamic>.from(cardRaw);
+      final questionsRaw = card['questions'] as List? ?? const <dynamic>[];
+      return DuelPrepCardV2(
+        packId: card['packId'] as String? ?? '',
+        selectableCount: (card['selectableCount'] as num?)?.toInt() ?? 0,
+        questions: questionsRaw.whereType<Map>().map((questionRaw) {
+          final question = Map<String, dynamic>.from(questionRaw);
+          return DuelPrepQuestionV2(
+            questionId: question['questionId'] as String? ?? '',
+            prompt: question['prompt'] as String? ?? '',
+            blocked: question['blocked'] == true,
+          );
+        }).toList(growable: false),
+      );
+    }).toList(growable: false);
+    return DuelPreparationV2(
+      duelId: data['duelId'] as String? ?? '',
+      requiredSelections: (data['requiredSelections'] as num?)?.toInt() ?? 7,
+      cards: cards,
+      canSubmit: data['canSubmit'] == true,
+      prepared: data['prepared'] == true,
+      opponentPrepared: data['opponentPrepared'] == true,
+      questionPlanReady: data['questionPlanReady'] == true,
     );
   }
 

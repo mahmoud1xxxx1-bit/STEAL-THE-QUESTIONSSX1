@@ -200,6 +200,23 @@ class OnlinePlayerSessionV2 {
   Future<DuelStateV2> duelState(String duelId) =>
       api.loadDuelState(duelId);
 
+  Future<DuelPreparationV2> duelPreparation({
+    required String duelId,
+    required bool arabic,
+  }) =>
+      api.loadDuelPreparation(duelId: duelId, arabic: arabic);
+
+  Future<DuelStateV2> submitDuelPreparation({
+    required String duelId,
+    required bool arabic,
+    required List<Map<String, String>> selections,
+  }) =>
+      api.submitDuelPreparation(
+        duelId: duelId,
+        arabic: arabic,
+        selections: selections,
+      );
+
   Future<DuelStateV2> prepareDuelQuestions({
     required String duelId,
     required bool arabic,
