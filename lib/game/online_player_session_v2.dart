@@ -103,7 +103,9 @@ class OnlinePlayerSessionV2 {
     final current = profile;
     if (current.ownedPackIds.length < 12) {
       for (var i = 1; i <= 14; i++) {
-        current.ownedPackIds.add('spark_test_card_${i.toString().padLeft(2, '0')}');
+        final id = 'spark_test_card_${i.toString().padLeft(2, '0')}';
+        current.ownedPackIds.add(id);
+        current.ownedPackCounts[id] = current.ownedPackCounts[id] ?? 1;
       }
     }
     if (!PlayerDeckV2(current.decks[0]).isValid(current.ownedPackIds)) {
@@ -127,6 +129,8 @@ class OnlinePlayerSessionV2 {
 
   Future<PlayerProfileV2> addSparkTestCard(String packId) async {
     profile.ownedPackIds.add(packId);
+    profile.ownedPackCounts[packId] =
+        (profile.ownedPackCounts[packId] ?? 0) + 1;
     await store.save(profile);
     return profile;
   }
