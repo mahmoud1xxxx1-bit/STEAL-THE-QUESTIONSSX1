@@ -5,9 +5,10 @@ const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { emptyProfileV2, normalizeProfileV2, saveDeckV2 } = require('./player_profile_v2');
 const { DECK_SIZE, validateDeck, weekKey } = require('./core_engine_v2');
 const { applySteal, stealablePackIds } = require('./duel_engine_v2');
+const { expiredPackIds } = require('./card_lifecycle_engine_v2');
 
 const db = admin.firestore();
-const { Timestamp } = admin.firestore;
+const { Timestamp, FieldValue } = admin.firestore;
 
 function authUid(request) {
   const uid = request.auth && request.auth.uid;
@@ -30,6 +31,72 @@ function sanitizeDecksAfterOwnershipChange(profile) {
   const slots = next.subscriptionActive ? 5 : 2;
   if (next.activeDeckIndex < 0 || next.activeDeckIndex >= slots) next.activeDeckIndex = 0;
   return next;
+}
+
+async function syncLifecycleForUser(uid) {
+  const ref = userRef(uid);
+  const initialSnap = await ref.get();
+  if (!initialSnap.exists) throw new HttpsError('not-found', 'Profile not found.');
+  const initialProfile = profileFromUserData(initialSnap.data());
+  const candidateIds = initialProfile.ownedPackIds.filter((packId) =>
+    Number(initialProfile.packLastPvpUsedAtMs && initialProfile.packLastPvpUsedAtMs[packId]) > 0
+  );
+  if (!candidateIds.length) return initialProfile;
+
+  const cardRefs = candidateIds.map((packId) => db.collection('cardsV2').doc(packId));
+  const cardSnaps = await db.getAll(...cardRefs);
+  const rarityByPackId = {};
+  for (const cardSnap of cardSnaps) {
+    if (!cardSnap.exists) continue;
+    rarityByPackId[cardSnap.id] = String(cardSnap.data().rarity || 'epic').toLowerCase();
+  }
+  const initiallyExpired = expiredPackIds({
+    profile: initialProfile,
+    rarityByPackId,
+    nowMs: Date.now(),
+  });
+  if (!initiallyExpired.length) return initialProfile;
+
+  return db.runTransaction(async (tx) => {
+    const userSnap = await tx.get(ref);
+    if (!userSnap.exists) throw new HttpsError('not-found', 'Profile not found.');
+    const current = profileFromUserData(userSnap.data());
+    const expired = expiredPackIds({
+      profile: current,
+      rarityByPackId,
+      nowMs: Date.now(),
+    });
+    if (!expired.length) return current;
+
+    const ownedSet = new Set(current.ownedPackIds);
+    const counts = { ...current.ownedPackCounts };
+    const activity = { ...current.packLastPvpUsedAtMs };
+    const now = Timestamp.now();
+
+    for (const packId of expired) {
+      const copies = Math.max(1, Number(counts[packId] || 1) | 0);
+      ownedSet.delete(packId);
+      delete counts[packId];
+      delete activity[packId];
+      tx.update(db.collection('cardsV2').doc(packId), {
+        availableCopies: FieldValue.increment(copies),
+        updatedAt: now,
+      });
+    }
+
+    const next = sanitizeDecksAfterOwnershipChange({
+      ...current,
+      ownedPackIds: [...ownedSet],
+      ownedPackCounts: counts,
+      packLastPvpUsedAtMs: activity,
+    });
+    tx.update(ref, {
+      profileV2: next,
+      schemaVersion: 2,
+      updatedAt: now,
+    });
+    return next;
+  });
 }
 
 const ensureProfileV2 = onCall(async (request) => {
@@ -55,9 +122,8 @@ const ensureProfileV2 = onCall(async (request) => {
 
 const getProfileV2 = onCall(async (request) => {
   const uid = authUid(request);
-  const snap = await userRef(uid).get();
-  if (!snap.exists) throw new HttpsError('not-found', 'Profile not found.');
-  return { profile: profileFromUserData(snap.data()) };
+  const profile = await syncLifecycleForUser(uid);
+  return { profile };
 });
 
 const saveDeckV2Callable = onCall(async (request) => {
