@@ -194,6 +194,24 @@ void main() {
     expect(source, contains('await _chooseSteal(duelId)'));
   });
 
+  test('post-steal lifecycle remains server authoritative and closes duel state', () {
+    final functionsSource =
+        File('firebase_functions/v2_functions.js').readAsStringSync();
+    final rulesSource = File('firestore.rules').readAsStringSync();
+
+    expect(functionsSource, contains('if (duel.stealConfirmed === true)'));
+    expect(functionsSource, contains('sanitizeDecksAfterOwnershipChange'));
+    expect(functionsSource, contains('activeDuelV2: null'));
+    expect(functionsSource, contains('stealConfirmed: true'));
+    expect(functionsSource, contains('stolenPackId: packId'));
+    expect(functionsSource, contains('loserPvpUnlocked'));
+    expect(rulesSource, contains('match /users/{userId}'));
+    expect(rulesSource, contains('allow create, update, delete: if false;'));
+    expect(rulesSource, contains('match /duelsV2/{duelId}'));
+    expect(rulesSource, contains('allow write: if false;'));
+    expect(rulesSource, contains('match /duelSecretsV2/{duelId}'));
+  });
+
   test('Android auth requires Google sign-in and has no anonymous fallback', () {
     final runtimeSource =
         File('lib/backend/online_runtime_v2.dart').readAsStringSync();
