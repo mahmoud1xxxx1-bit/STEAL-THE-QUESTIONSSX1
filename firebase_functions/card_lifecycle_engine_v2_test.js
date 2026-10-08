@@ -7,6 +7,7 @@ const {
   expiredPackIds,
   CARD_INACTIVITY_MS,
   DAY_MS,
+  planLifecycleReclaim,
 } = require('./card_lifecycle_engine_v2');
 
 const owned = Array.from({ length: 10 }, (_, index) => `pack_${index + 1}`);
@@ -100,3 +101,44 @@ assert.deepStrictEqual(
   }).sort(),
   ['pack_2', 'pack_3'],
 );
+
+
+const planned = planLifecycleReclaim({
+  profile: {
+    ownedPackIds: ['epic_one', 'gold_one', 'legend_one'],
+    ownedPackCounts: { epic_one: 2, gold_one: 3, legend_one: 1 },
+    packLastPvpUsedAtMs: {
+      epic_one: 1,
+      gold_one: 1,
+      legend_one: 1,
+    },
+  },
+  rarityByPackId: {
+    epic_one: 'epic',
+    gold_one: 'gold',
+    legend_one: 'legendary',
+  },
+  nowMs: 1 + (12 * DAY_MS),
+});
+assert.deepStrictEqual(planned.expiredPackIds.sort(), ['gold_one', 'legend_one']);
+assert.deepStrictEqual(planned.reclaimedCopies, {
+  gold_one: 3,
+  legend_one: 1,
+});
+
+const baselinePlan = planLifecycleReclaim({
+  profile: {
+    ownedPackIds: ['gold_new', 'legend_new'],
+    ownedPackCounts: { gold_new: 1, legend_new: 2 },
+    packLastPvpUsedAtMs: {},
+  },
+  rarityByPackId: {
+    gold_new: 'gold',
+    legend_new: 'legendary',
+  },
+  nowMs: 5000,
+});
+assert.strictEqual(baselinePlan.baselineChanged, true);
+assert.strictEqual(baselinePlan.profile.packLastPvpUsedAtMs.gold_new, 5000);
+assert.strictEqual(baselinePlan.profile.packLastPvpUsedAtMs.legend_new, 5000);
+assert.deepStrictEqual(baselinePlan.expiredPackIds, []);
