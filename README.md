@@ -40,3 +40,27 @@ The guard refuses deployment when the repository is not targeting the approved F
 ## Release status
 
 The repository supports Spark/demo testing and signed Android CI builds. Production launch remains blocked until Blaze is intentionally enabled, Cloud Functions/rules/indexes are deployed and verified, purchase-verification credentials are configured, real card/question content is loaded, and a live two-account PvP end-to-end test passes.
+
+
+## Production preflight gate
+
+Every Android CI run executes the structural preflight:
+
+`python3 tool/production_preflight.py`
+
+This verifies the approved Firebase project/package, Functions exports, Firestore safety, Google Play verification wiring, and the absence of anonymous authentication. A green structural preflight does **not** claim production readiness.
+
+Only before a real production launch, run:
+
+`python3 tool/production_preflight.py --production`
+
+Production mode additionally requires explicit verification of all external launch gates:
+
+- Blaze intentionally enabled.
+- Cloud Functions deployed to `steal-the-questionssx1`.
+- Firestore rules and indexes deployed and verified.
+- Google Play purchase-verification credentials configured.
+- Real production cards/questions loaded.
+- Live two-account PvP end-to-end test passed.
+
+If any one of these is not explicitly verified, production preflight exits blocked.

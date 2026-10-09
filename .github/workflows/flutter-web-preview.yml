@@ -24,6 +24,9 @@ jobs:
       - name: Verify Firebase deploy target
         run: python3 tool/verify_firebase_deploy_target.py
 
+      - name: Run structural production preflight
+        run: python3 tool/production_preflight.py
+
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
