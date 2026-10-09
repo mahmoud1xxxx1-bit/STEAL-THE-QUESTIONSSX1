@@ -99,6 +99,14 @@ class OnlinePlayerSessionV2 {
     }
   }
 
+  Future<PlayerProfileV2> resetSparkOnboarding() async {
+    final fresh = PlayerProfileV2.empty(now: DateTime.now());
+    _profile = fresh;
+    _remoteConnected = false;
+    await store.save(fresh);
+    return fresh;
+  }
+
   Future<PlayerProfileV2> ensureSparkTestProfile() async {
     final current = profile;
     if (current.ownedPackIds.length < 12) {
