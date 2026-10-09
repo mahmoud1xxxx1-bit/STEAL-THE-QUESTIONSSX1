@@ -135,9 +135,9 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
           _ranking = _sparkTestRanking(profile);
           _subscription = _sparkTestSubscription(profile);
           _botStatus = BotStatusV2(
-            botUnlocked: true,
+            botUnlocked: profile.ownedCount < kDeckSizeV2,
             ownedCount: profile.ownedCount,
-            targetCount: 10,
+            targetCount: kDeckSizeV2,
             contentAvailable: true,
           );
           _matchmaking =
@@ -239,12 +239,42 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
     _ranking = _sparkTestRanking(profile);
     _subscription = _sparkTestSubscription(profile);
     _botStatus = BotStatusV2(
-      botUnlocked: true,
+      botUnlocked: profile.ownedCount < kDeckSizeV2,
       ownedCount: profile.ownedCount,
-      targetCount: 10,
+      targetCount: kDeckSizeV2,
       contentAvailable: true,
     );
   }
+
+  Future<void> _resetSparkOnboarding() => _run(() async {
+        if (!_demoMode) return;
+        final profile = await _session!.resetSparkOnboarding();
+        if (!mounted) return;
+        setState(() {
+          _profile = profile;
+          _matchmaking =
+              const MatchmakingStatusV2(status: 'idle', duelId: null);
+          _syncSparkTestPanels(profile);
+          _notice = _arabic
+              ? 'تمت إعادة اختبار Spark إلى البداية: 0 بطاقات. اجمع 10 بطاقات عبر البوت ثم أنشئ Deck.'
+              : 'Spark onboarding reset to 0 cards. Earn 10 via Bot, then build a deck.';
+        });
+      });
+
+  Future<void> _prepareSparkPvp() => _run(() async {
+        if (!_demoMode) return;
+        final profile = await _session!.ensureSparkTestProfile();
+        if (!mounted) return;
+        setState(() {
+          _profile = profile;
+          _matchmaking =
+              const MatchmakingStatusV2(status: 'idle', duelId: null);
+          _syncSparkTestPanels(profile);
+          _notice = _arabic
+              ? 'تم تجهيز حساب Spark ببطاقات وDeck صالح لاختبار PvP فورًا.'
+              : 'Spark account prepared with cards and a valid deck for immediate PvP testing.';
+        });
+      });
 
   Future<void> _configurePurchases() async {
     final session = _session;
@@ -599,6 +629,12 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
 
   Future<void> _startBotRound() => _run(() async {
         if (_demoMode) {
+          if (_profile!.ownedCount >= kDeckSizeV2) {
+            setState(() => _notice = _arabic
+                ? 'وصلت إلى 10 بطاقات. مسار البوت مغلق الآن، أنشئ Deck وابدأ PvP.'
+                : 'You reached 10 cards. Bot is now locked; build a deck and start PvP.');
+            return;
+          }
           final answer = await _answerDialog(
             title: _arabic ? 'سؤال اختبار Spark' : 'Spark test question',
             prompt: _arabic
@@ -1116,15 +1152,16 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
   }
 
   Future<void> _startOrCheckMatchmaking() => _run(() async {
-        if (_demoMode) {
-          await _runSparkTestDuel();
-          return;
-        }
         final profile = _profile!;
         if (!profile.pvpUnlocked || !profile.activeDeckReady) {
           setState(() => _notice = _arabic
               ? 'تحتاج 10 بطاقات وDeck نشطة صالحة قبل PvP.'
               : 'You need 10 cards and a valid active deck before PvP.');
+          return;
+        }
+
+        if (_demoMode) {
+          await _runSparkTestDuel();
           return;
         }
 
@@ -1985,7 +2022,11 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
               if (_demoMode)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(14, 2, 14, 2),
-                  child: _DemoModeBanner(arabic: _arabic),
+                  child: _DemoModeBanner(
+                    arabic: _arabic,
+                    onResetOnboarding: _resetSparkOnboarding,
+                    onPreparePvp: _prepareSparkPvp,
+                  ),
                 ),
               if (_notice != null)
                 Padding(
@@ -5882,8 +5923,15 @@ class _HeaderCounter extends StatelessWidget {
 }
 
 class _DemoModeBanner extends StatelessWidget {
-  const _DemoModeBanner({required this.arabic});
+  const _DemoModeBanner({
+    required this.arabic,
+    required this.onResetOnboarding,
+    required this.onPreparePvp,
+  });
+
   final bool arabic;
+  final VoidCallback onResetOnboarding;
+  final VoidCallback onPreparePvp;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -5894,22 +5942,44 @@ class _DemoModeBanner extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: _blue.withValues(alpha: .18)),
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Icon(Icons.science_rounded, color: _blue, size: 17),
-            const SizedBox(width: 7),
-            Expanded(
-              child: Text(
-                arabic
-                    ? 'وضع اختبار Spark — الجولات والفوز والتعادل والسرقة والاشتراك تعمل محليًا الآن. قبل الإطلاق يجب تفعيل Blaze.'
-                    : 'Spark test mode — duels, results, stealing and subscription work locally now. Enable Blaze before launch.',
-                style: const TextStyle(
-                  color: _ink,
-                  fontSize: 10,
-                  height: 1.3,
-                  fontWeight: FontWeight.w800,
+            Row(
+              children: [
+                const Icon(Icons.science_rounded, color: _blue, size: 17),
+                const SizedBox(width: 7),
+                Expanded(
+                  child: Text(
+                    arabic
+                        ? 'وضع اختبار Spark — اختبر البداية من صفر أو جهّز PvP سريعًا. قبل الإطلاق يجب تفعيل Blaze.'
+                        : 'Spark test mode — test onboarding from zero or prepare PvP instantly. Enable Blaze before launch.',
+                    style: const TextStyle(
+                      color: _ink,
+                      fontSize: 10,
+                      height: 1.3,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                 ),
-              ),
+              ],
+            ),
+            const SizedBox(height: 7),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: onResetOnboarding,
+                  icon: const Icon(Icons.restart_alt_rounded, size: 16),
+                  label: Text(arabic ? 'ابدأ من صفر' : 'Start from zero'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: onPreparePvp,
+                  icon: const Icon(Icons.bolt_rounded, size: 16),
+                  label: Text(arabic ? 'جهّز PvP' : 'Prepare PvP'),
+                ),
+              ],
             ),
           ],
         ),
