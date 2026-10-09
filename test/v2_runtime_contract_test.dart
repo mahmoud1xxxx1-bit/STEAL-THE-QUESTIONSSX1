@@ -133,7 +133,17 @@ void main() {
     expect(sessionSource, contains('INVALID_LOCAL_DECK'));
     expect(sessionSource, contains('_remoteConnected = false'));
     expect(sessionSource, contains('ensureSparkTestProfile'));
+    expect(sessionSource, contains('resetSparkOnboarding'));
     expect(sessionSource, contains('applySparkTestResult'));
+    expect(appSource, contains('_resetSparkOnboarding'));
+    expect(appSource, contains('_prepareSparkPvp'));
+    expect(appSource, contains('ابدأ من صفر'));
+    expect(appSource, contains('جهّز PvP'));
+    expect(appSource, contains('_profile!.ownedCount >= kDeckSizeV2'));
+    expect(
+      appSource,
+      contains('if (!profile.pvpUnlocked || !profile.activeDeckReady)'),
+    );
     expect(appSource, contains('_runSparkTestDuel'));
     expect(appSource, contains('_chooseSparkTestSteal'));
     expect(appSource, contains('setSparkTestSubscription'));
