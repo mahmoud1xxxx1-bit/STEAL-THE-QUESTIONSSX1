@@ -39,4 +39,30 @@ void main() {
     expect(rules, contains("request.auth.token.email == 'love.dotk@gmail.com'"));
   });
 
+  test('Super Admin uses server-authoritative audited operations', () {
+    final server =
+        File('firebase_functions/admin_functions_v2.js').readAsStringSync();
+    final main = File('firebase_functions/main.js').readAsStringSync();
+    final rules = File('firestore.rules').readAsStringSync();
+    final dashboard =
+        File('lib/admin/admin_dashboard_v2.dart').readAsStringSync();
+
+    expect(server, contains("PRIMARY_ADMIN_EMAIL = 'love.dotk@gmail.com'"));
+    expect(server, contains("db.collection('adminAuditV2').add"));
+    expect(server, contains("action: 'update_player_stats'"));
+    expect(server, contains("action: 'cancel_duel'"));
+    expect(server, contains('getAdminOverviewV2'));
+    expect(server, contains('listAdminPlayersV2'));
+    expect(server, contains('listAdminDuelsV2'));
+    expect(server, contains('listAdminSubscriptionsV2'));
+    expect(main, contains('...adminV2'));
+    expect(rules, contains('match /adminAuditV2/{entryId}'));
+    expect(rules, contains('allow read, write: if false'));
+    expect(dashboard, contains('لوحة الإدارة الكاملة'));
+    expect(dashboard, contains('AdminPlayersPageV2'));
+    expect(dashboard, contains('AdminDuelsPageV2'));
+    expect(dashboard, contains('AdminSubscriptionsPageV2'));
+    expect(dashboard, contains('AdminAuditPageV2'));
+  });
+
 }
