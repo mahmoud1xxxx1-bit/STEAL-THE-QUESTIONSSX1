@@ -14,6 +14,7 @@ const weeklyRankingV2 = require('./weekly_ranking_functions_v2');
 const weeklyPrestigeV2 = require('./weekly_prestige_functions_v2');
 const purchaseVerificationV2 = require('./purchase_verification_functions_v2');
 const cardLifecycleV2 = require('./card_lifecycle_functions_v2');
+const adminV2 = require('./admin_functions_v2');
 
 module.exports = {
   ...v2,
@@ -26,4 +27,5 @@ module.exports = {
   ...weeklyPrestigeV2,
   ...purchaseVerificationV2,
   ...cardLifecycleV2,
+  ...adminV2,
 };

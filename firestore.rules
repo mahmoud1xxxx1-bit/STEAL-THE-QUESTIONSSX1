@@ -74,5 +74,9 @@ service cloud.firestore {
     match /purchaseReceiptClaimsV2/{claimId} {
       allow read, write: if false;
     }
+
+    match /adminAuditV2/{entryId} {
+      allow read, write: if false;
+    }
   }
 }
