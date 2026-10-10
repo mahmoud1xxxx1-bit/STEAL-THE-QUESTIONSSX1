@@ -264,6 +264,27 @@ void main() {
     expect(app, contains("'دائمة • لا تنتهي'"));
   });
 
+  test('Hall of Legends exposes legendary inventory and holder display names only', () {
+    final server = File('firebase_functions/profile_features_functions_v2.js')
+        .readAsStringSync();
+    final api =
+        File('lib/backend/profile_features_api_v2.dart').readAsStringSync();
+    final app = File('lib/v2_active_app.dart').readAsStringSync();
+
+    expect(server, contains("where('rarity', '==', 'legendary')"));
+    expect(server, contains("where('profileV2.ownedPackIds', 'array-contains'"));
+    expect(server, contains('availableCopies'));
+    expect(server, contains('ownedCopies'));
+    expect(server, contains('totalCopies'));
+    expect(server, contains("displayName: holderData.displayName || 'PLAYER'"));
+    expect(server, isNot(contains('email: holderData.email')));
+    expect(api, contains('class HallOfLegendsV2'));
+    expect(api, contains("httpsCallable('getHallOfLegendsV2')"));
+    expect(app, contains('خزنة الأساطير'));
+    expect(app, contains('المخزون/البوت'));
+    expect(app, contains('الحاملون الآن'));
+  });
+
   test('Android auth requires Google sign-in and has no anonymous fallback', () {
     final runtimeSource =
         File('lib/backend/online_runtime_v2.dart').readAsStringSync();
