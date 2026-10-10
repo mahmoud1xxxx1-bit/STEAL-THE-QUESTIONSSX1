@@ -3,6 +3,7 @@
 const admin = require('firebase-admin');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { normalizeProfileV2 } = require('./player_profile_v2');
+const { weekKey } = require('./core_engine_v2');
 
 const db = admin.firestore();
 const { Timestamp } = admin.firestore;
@@ -208,6 +209,34 @@ const cancelAdminDuelV2 = onCall(async (request) => {
   return { ok: true };
 });
 
+
+const listAdminRankingV2 = onCall(async (request) => {
+  await requireAdmin(request);
+  const currentWeek = weekKey(Date.now());
+  const snap = await db.collection('weeklyRankingV2')
+    .doc(currentWeek)
+    .collection('players')
+    .orderBy('weeklyPoints', 'desc')
+    .limit(100)
+    .get();
+  return {
+    weekKey: currentWeek,
+    players: snap.docs.map((doc, index) => {
+      const data = doc.data();
+      return {
+        rank: index + 1,
+        uid: doc.id,
+        displayName: data.displayName || 'PLAYER',
+        weeklyPoints: Number(data.weeklyPoints || 0) | 0,
+        weeklySteals: Math.max(0, Number(data.weeklySteals || 0) | 0),
+        weeklyWins: Math.max(0, Number(data.weeklyWins || 0) | 0),
+        weeklyLosses: Math.max(0, Number(data.weeklyLosses || 0) | 0),
+        weeklyDraws: Math.max(0, Number(data.weeklyDraws || 0) | 0),
+      };
+    }),
+  };
+});
+
 const listAdminSubscriptionsV2 = onCall(async (request) => {
   await requireAdmin(request);
   const snap = await db.collection('purchaseEntitlementsV2').limit(200).get();
@@ -257,6 +286,7 @@ module.exports = {
   updateAdminPlayerStatsV2,
   listAdminDuelsV2,
   cancelAdminDuelV2,
+  listAdminRankingV2,
   listAdminSubscriptionsV2,
   listAdminAuditV2,
 };
