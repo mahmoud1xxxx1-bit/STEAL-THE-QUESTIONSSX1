@@ -12,7 +12,7 @@ class CustomWrongChoicesV2 {
 }
 
 class WeeklyRankingPlayerV2 {
-  const WeeklyRankingPlayerV2({required this.rank, required this.uid, required this.displayName, required this.weeklyPoints, required this.weeklyWins, required this.weeklyLosses, required this.weeklyDraws, required this.currentTitleKey, required this.currentFrameKey});
+  const WeeklyRankingPlayerV2({required this.rank, required this.uid, required this.displayName, required this.weeklyPoints, required this.weeklyWins, required this.weeklyLosses, required this.weeklyDraws, required this.weeklySteals, required this.totalSteals, required this.currentTitleKey, required this.currentFrameKey});
   final int rank;
   final String uid;
   final String displayName;
@@ -20,6 +20,8 @@ class WeeklyRankingPlayerV2 {
   final int weeklyWins;
   final int weeklyLosses;
   final int weeklyDraws;
+  final int weeklySteals;
+  final int totalSteals;
   final String? currentTitleKey;
   final String? currentFrameKey;
   factory WeeklyRankingPlayerV2.fromMap(Map<String, dynamic> data) => WeeklyRankingPlayerV2(
@@ -30,6 +32,8 @@ class WeeklyRankingPlayerV2 {
         weeklyWins: (data['weeklyWins'] as num?)?.toInt() ?? 0,
         weeklyLosses: (data['weeklyLosses'] as num?)?.toInt() ?? 0,
         weeklyDraws: (data['weeklyDraws'] as num?)?.toInt() ?? 0,
+        weeklySteals: (data['weeklySteals'] as num?)?.toInt() ?? 0,
+        totalSteals: (data['totalSteals'] as num?)?.toInt() ?? 0,
         currentTitleKey: data['currentTitleKey'] as String?,
         currentFrameKey: data['currentFrameKey'] as String?,
       );

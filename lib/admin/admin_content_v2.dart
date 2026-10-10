@@ -49,6 +49,8 @@ class AdminQuestionV2 {
   final bool enabled;
 }
 
+const String kPrimaryAdminEmailV2 = 'love.dotk@gmail.com';
+
 class AdminAccessV2 {
   AdminAccessV2({FirebaseAuth? auth, FirebaseFirestore? firestore})
       : _auth = auth ?? FirebaseAuth.instance,
@@ -60,6 +62,7 @@ class AdminAccessV2 {
   Future<bool> isCurrentUserAdmin() async {
     final email = _auth.currentUser?.email?.trim().toLowerCase();
     if (email == null || email.isEmpty) return false;
+    if (email == kPrimaryAdminEmailV2) return true;
     final doc = await _firestore.collection('adminEmailsV2').doc(email).get();
     return doc.exists && doc.data()?['enabled'] == true;
   }

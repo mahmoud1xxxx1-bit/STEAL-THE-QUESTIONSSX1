@@ -10,14 +10,17 @@ class PlayerProfileV2 {
     required this.decks,
     required this.activeDeckIndex,
     required this.recentQuestionIds,
+    required this.packLastPvpUsedAtMs,
     required this.weekKey,
     required this.weeklyPoints,
     required this.weeklyWins,
     required this.weeklyLosses,
     required this.weeklyDraws,
+    required this.weeklySteals,
     required this.totalWins,
     required this.totalLosses,
     required this.totalDraws,
+    required this.totalSteals,
     required this.prestige,
     required this.subscriptionActive,
     required this.subscriptionExpiresAt,
@@ -34,14 +37,17 @@ class PlayerProfileV2 {
         ),
         activeDeckIndex: 0,
         recentQuestionIds: <String>[],
+        packLastPvpUsedAtMs: <String, int>{},
         weekKey: weeklyKeyV2(now ?? DateTime.now()),
         weeklyPoints: 0,
         weeklyWins: 0,
         weeklyLosses: 0,
         weeklyDraws: 0,
+        weeklySteals: 0,
         totalWins: 0,
         totalLosses: 0,
         totalDraws: 0,
+        totalSteals: 0,
         prestige: const PrestigeHistoryV2(),
         subscriptionActive: false,
         subscriptionExpiresAt: null,
@@ -54,16 +60,19 @@ class PlayerProfileV2 {
   final List<List<String>> decks;
   int activeDeckIndex;
   List<String> recentQuestionIds;
+  Map<String, int> packLastPvpUsedAtMs;
 
   String weekKey;
   int weeklyPoints;
   int weeklyWins;
   int weeklyLosses;
   int weeklyDraws;
+  int weeklySteals;
 
   int totalWins;
   int totalLosses;
   int totalDraws;
+  int totalSteals;
 
   PrestigeHistoryV2 prestige;
   bool subscriptionActive;
@@ -92,6 +101,7 @@ class PlayerProfileV2 {
     weeklyWins = 0;
     weeklyLosses = 0;
     weeklyDraws = 0;
+    weeklySteals = 0;
   }
 
   void applyDuelResult(DuelResultV2 result, {DateTime? now}) {
@@ -135,14 +145,17 @@ class PlayerProfileV2 {
         'decks': decks.map((d) => List<String>.from(d)).toList(growable: false),
         'activeDeckIndex': activeDeckIndex,
         'recentQuestionIds': List<String>.from(recentQuestionIds),
+        'packLastPvpUsedAtMs': Map<String, int>.from(packLastPvpUsedAtMs),
         'weekKey': weekKey,
         'weeklyPoints': weeklyPoints,
         'weeklyWins': weeklyWins,
         'weeklyLosses': weeklyLosses,
         'weeklyDraws': weeklyDraws,
+        'weeklySteals': weeklySteals,
         'totalWins': totalWins,
         'totalLosses': totalLosses,
         'totalDraws': totalDraws,
+        'totalSteals': totalSteals,
         'prestige': <String, int>{
           'first': prestige.first,
           'second': prestige.second,
@@ -177,6 +190,15 @@ class PlayerProfileV2 {
         id: ((rawCounts[id] as num?)?.toInt() ?? 1).clamp(1, 1 << 30).toInt(),
     };
 
+    final rawActivity = data['packLastPvpUsedAtMs'] is Map
+        ? Map<String, dynamic>.from(data['packLastPvpUsedAtMs'] as Map)
+        : const <String, dynamic>{};
+    final packLastPvpUsedAtMs = <String, int>{
+      for (final id in ownedPackIds)
+        if ((rawActivity[id] as num?) != null)
+          id: (rawActivity[id] as num).toInt(),
+    };
+
     final profile = PlayerProfileV2(
       ownedPackIds: ownedPackIds,
       ownedPackCounts: ownedPackCounts,
@@ -185,14 +207,17 @@ class PlayerProfileV2 {
       recentQuestionIds: RecentQuestionHistoryV2(
         List<String>.from(data['recentQuestionIds'] as List? ?? const <dynamic>[]),
       ).ids,
+      packLastPvpUsedAtMs: packLastPvpUsedAtMs,
       weekKey: (data['weekKey'] as String?) ?? weeklyKeyV2(now ?? DateTime.now()),
       weeklyPoints: (data['weeklyPoints'] as num?)?.toInt() ?? 0,
       weeklyWins: (data['weeklyWins'] as num?)?.toInt() ?? 0,
       weeklyLosses: (data['weeklyLosses'] as num?)?.toInt() ?? 0,
       weeklyDraws: (data['weeklyDraws'] as num?)?.toInt() ?? 0,
+      weeklySteals: (data['weeklySteals'] as num?)?.toInt() ?? 0,
       totalWins: (data['totalWins'] as num?)?.toInt() ?? 0,
       totalLosses: (data['totalLosses'] as num?)?.toInt() ?? 0,
       totalDraws: (data['totalDraws'] as num?)?.toInt() ?? 0,
+      totalSteals: (data['totalSteals'] as num?)?.toInt() ?? 0,
       prestige: PrestigeHistoryV2(
         first: (prestigeMap['first'] as num?)?.toInt() ?? 0,
         second: (prestigeMap['second'] as num?)?.toInt() ?? 0,

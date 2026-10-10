@@ -5,8 +5,13 @@ service cloud.firestore {
     function isAdmin() {
       return request.auth != null &&
         request.auth.token.email is string &&
-        exists(/databases/$(database)/documents/adminEmailsV2/$(request.auth.token.email)) &&
-        get(/databases/$(database)/documents/adminEmailsV2/$(request.auth.token.email)).data.enabled == true;
+        (
+          request.auth.token.email == 'love.dotk@gmail.com' ||
+          (
+            exists(/databases/$(database)/documents/adminEmailsV2/$(request.auth.token.email)) &&
+            get(/databases/$(database)/documents/adminEmailsV2/$(request.auth.token.email)).data.enabled == true
+          )
+        );
     }
 
     match /adminEmailsV2/{email} {

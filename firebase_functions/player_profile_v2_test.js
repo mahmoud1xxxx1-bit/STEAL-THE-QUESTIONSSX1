@@ -4,6 +4,7 @@ const assert = require('assert');
 const {
   emptyProfileV2,
   normalizeProfileV2,
+  ensureCurrentWeekV2,
   applyDuelResultV2,
   canSaveDeckV2,
   saveDeckV2,
@@ -16,6 +17,8 @@ const now = Date.UTC(2026, 9, 5, 12, 0, 0);
 const empty = emptyProfileV2(now);
 assert.strictEqual(empty.schemaVersion, 2);
 assert.strictEqual(empty.ownedPackIds.length, 0);
+assert.strictEqual(empty.weeklySteals, 0);
+assert.strictEqual(empty.totalSteals, 0);
 assert.deepStrictEqual(empty.ownedPackCounts, {});
 assert.strictEqual(empty.decks.length, 5);
 assert.strictEqual(empty.weeklyPoints, 0);
@@ -81,3 +84,18 @@ const duplicateCounts = normalizeProfileV2({
 assert.strictEqual(duplicateCounts.ownedPackCounts.p0, 3);
 assert.strictEqual(duplicateCounts.ownedPackCounts.p1, 2);
 assert.strictEqual(duplicateCounts.ownedPackCounts.p2, 1);
+
+const stealStats = normalizeProfileV2({
+  ...profile,
+  weeklySteals: 4,
+  totalSteals: 17,
+}, later);
+assert.strictEqual(stealStats.weeklySteals, 4);
+assert.strictEqual(stealStats.totalSteals, 17);
+
+const nextWeekSteals = ensureCurrentWeekV2(
+  stealStats,
+  later + (8 * 24 * 60 * 60 * 1000),
+);
+assert.strictEqual(nextWeekSteals.weeklySteals, 0);
+assert.strictEqual(nextWeekSteals.totalSteals, 17);
