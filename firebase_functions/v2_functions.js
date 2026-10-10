@@ -214,6 +214,8 @@ const getWeeklyRankingV2 = onCall(async (request) => {
         weeklyWins: profile.weeklyWins,
         weeklyLosses: profile.weeklyLosses,
         weeklyDraws: profile.weeklyDraws,
+        weeklySteals: profile.weeklySteals,
+        totalSteals: profile.totalSteals,
         currentTitleKey: profile.currentTitleKey,
         currentFrameKey: profile.currentFrameKey,
       };
