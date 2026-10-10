@@ -306,6 +306,19 @@ void main() {
     expect(app, contains("_StatRow(label: 'Legendary'"));
   });
 
+  test('suspended accounts cannot enter Bot PvP or steal flows', () {
+    final matchmaking =
+        File('firebase_functions/matchmaking_functions_v2.js').readAsStringSync();
+    final bot = File('firebase_functions/bot_functions_v2.js').readAsStringSync();
+    final duel = File('firebase_functions/duel_functions_v2.js').readAsStringSync();
+    final steal = File('firebase_functions/v2_functions.js').readAsStringSync();
+
+    expect(matchmaking, contains('ACCOUNT_SUSPENDED'));
+    expect(bot, contains('ACCOUNT_SUSPENDED'));
+    expect(duel, contains('ACCOUNT_SUSPENDED'));
+    expect(steal, contains('ACCOUNT_SUSPENDED'));
+  });
+
   test('Android auth requires Google sign-in and has no anonymous fallback', () {
     final runtimeSource =
         File('lib/backend/online_runtime_v2.dart').readAsStringSync();

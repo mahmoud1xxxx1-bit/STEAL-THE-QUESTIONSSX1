@@ -25,6 +25,14 @@ function authUid(request) {
   return uid;
 }
 
+async function ensureNotSuspended(uid) {
+  const snap = await db.collection('users').doc(uid).get();
+  if (!snap.exists) throw new HttpsError('not-found', 'Profile not found.');
+  if (snap.data().suspendedV2 === true) {
+    throw new HttpsError('permission-denied', 'ACCOUNT_SUSPENDED');
+  }
+}
+
 function profileFromUserData(data) {
   return normalizeProfileV2(data && data.profileV2 && typeof data.profileV2 === 'object' ? data.profileV2 : {});
 }
@@ -142,6 +150,7 @@ async function buildPlanFromSelections({
 
 const getDuelPreparationV2 = onCall(async (request) => {
   const uid = authUid(request);
+  await ensureNotSuspended(uid);
   const duelId = duelIdFromRequest(request);
   const language = languageFromRequest(request);
   const duelRef = db.collection('duelsV2').doc(duelId);
@@ -184,6 +193,7 @@ const getDuelPreparationV2 = onCall(async (request) => {
 
 const submitDuelPreparationV2 = onCall(async (request) => {
   const uid = authUid(request);
+  await ensureNotSuspended(uid);
   const duelId = duelIdFromRequest(request);
   const language = languageFromRequest(request);
   const rawSelections = Array.isArray(request.data && request.data.selections)
@@ -276,6 +286,7 @@ const submitDuelPreparationV2 = onCall(async (request) => {
 
 const getDuelStateV2 = onCall(async (request) => {
   const uid = authUid(request);
+  await ensureNotSuspended(uid);
   const duelId = duelIdFromRequest(request);
   const snap = await db.collection('duelsV2').doc(duelId).get();
   if (!snap.exists) throw new HttpsError('not-found', 'Duel not found.');
@@ -286,6 +297,7 @@ const getDuelStateV2 = onCall(async (request) => {
 
 const prepareDuelQuestionsV2 = onCall(async (request) => {
   const uid = authUid(request);
+  await ensureNotSuspended(uid);
   const duelId = duelIdFromRequest(request);
   const language = languageFromRequest(request);
   const duelRef = db.collection('duelsV2').doc(duelId);
@@ -366,6 +378,7 @@ const prepareDuelQuestionsV2 = onCall(async (request) => {
 });
 const startNextQuestionV2 = onCall(async (request) => {
   const uid = authUid(request);
+  await ensureNotSuspended(uid);
   const duelId = duelIdFromRequest(request);
   const duelRef = db.collection('duelsV2').doc(duelId);
   const secretRef = db.collection('duelSecretsV2').doc(duelId);
@@ -410,6 +423,7 @@ const startNextQuestionV2 = onCall(async (request) => {
 
 const submitDuelAnswerV2 = onCall(async (request) => {
   const uid = authUid(request);
+  await ensureNotSuspended(uid);
   const duelId = duelIdFromRequest(request);
   const questionIndex = Number(request.data && request.data.questionIndex);
   const selectedIndex = Number(request.data && request.data.selectedIndex);
@@ -450,6 +464,7 @@ const submitDuelAnswerV2 = onCall(async (request) => {
 
 const finalizeDuelV2 = onCall(async (request) => {
   const uid = authUid(request);
+  await ensureNotSuspended(uid);
   const duelId = duelIdFromRequest(request);
   const duelRef = db.collection('duelsV2').doc(duelId);
 

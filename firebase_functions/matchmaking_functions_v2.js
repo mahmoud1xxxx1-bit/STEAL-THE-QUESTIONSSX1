@@ -34,6 +34,9 @@ async function ensureSearchingEntry(uid) {
     const queueSnap = await tx.get(queueRef);
     if (!userSnap.exists) throw new HttpsError('not-found', 'Profile not found.');
     const userData = userSnap.data();
+    if (userData.suspendedV2 === true) {
+      throw new HttpsError('permission-denied', 'ACCOUNT_SUSPENDED');
+    }
     if (userData.activeDuelV2) {
       return { status: MATCH_STATUS_MATCHED, duelId: String(userData.activeDuelV2) };
     }
@@ -98,6 +101,7 @@ const findOrCreateDuelV2 = onCall(async (request) => {
       if (!canPairQueueEntries(ownQueue, candidateQueue)) return null;
       const ownUser = ownUserSnap.data();
       const candidateUser = candidateUserSnap.data();
+      if (ownUser.suspendedV2 === true || candidateUser.suspendedV2 === true) return null;
       if (ownUser.activeDuelV2 || candidateUser.activeDuelV2) return null;
       const ownProfile = profileFromUserData(ownUser);
       const candidateProfile = profileFromUserData(candidateUser);

@@ -16,6 +16,14 @@ function authUid(request) {
   return uid;
 }
 
+async function ensureNotSuspended(uid) {
+  const snap = await db.collection('users').doc(uid).get();
+  if (!snap.exists) throw new HttpsError('not-found', 'Profile not found.');
+  if (snap.data().suspendedV2 === true) {
+    throw new HttpsError('permission-denied', 'ACCOUNT_SUSPENDED');
+  }
+}
+
 function userRef(uid) {
   return db.collection('users').doc(uid);
 }
@@ -264,6 +272,7 @@ const getWeeklyStealRankingV2 = onCall(async (request) => {
 
 const getStealOptionsV2 = onCall(async (request) => {
   const uid = authUid(request);
+  await ensureNotSuspended(uid);
   const duelId = String(request.data && request.data.duelId || '').trim();
   if (!duelId) throw new HttpsError('invalid-argument', 'duelId is required.');
   const duelRef = db.collection('duelsV2').doc(duelId);
@@ -290,6 +299,7 @@ const getStealOptionsV2 = onCall(async (request) => {
 
 const confirmStealV2 = onCall(async (request) => {
   const uid = authUid(request);
+  await ensureNotSuspended(uid);
   const duelId = String(request.data && request.data.duelId || '').trim();
   const packId = String(request.data && request.data.packId || '').trim();
   if (!duelId || !packId) throw new HttpsError('invalid-argument', 'duelId and packId are required.');

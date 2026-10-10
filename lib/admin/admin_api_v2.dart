@@ -35,6 +35,7 @@ class AdminPlayerRowV2 {
     required this.displayName,
     required this.email,
     required this.ownedCount,
+    required this.ownedPackCounts,
     required this.weeklyPoints,
     required this.weeklySteals,
     required this.totalSteals,
@@ -43,12 +44,15 @@ class AdminPlayerRowV2 {
     required this.totalDraws,
     required this.subscriptionActive,
     required this.activeDuelV2,
+    required this.suspended,
+    required this.suspensionReason,
   });
 
   final String uid;
   final String displayName;
   final String? email;
   final int ownedCount;
+  final Map<String, int> ownedPackCounts;
   final int weeklyPoints;
   final int weeklySteals;
   final int totalSteals;
@@ -57,12 +61,24 @@ class AdminPlayerRowV2 {
   final int totalDraws;
   final bool subscriptionActive;
   final String? activeDuelV2;
+  final bool suspended;
+  final String? suspensionReason;
 
   factory AdminPlayerRowV2.fromMap(Map<String, dynamic> data) => AdminPlayerRowV2(
         uid: data['uid'] as String? ?? '',
         displayName: data['displayName'] as String? ?? 'PLAYER',
         email: data['email'] as String?,
         ownedCount: (data['ownedCount'] as num?)?.toInt() ?? 0,
+        ownedPackCounts: data['ownedPackCounts'] is Map
+            ? Map<String, int>.from(
+                (data['ownedPackCounts'] as Map).map(
+                  (key, value) => MapEntry(
+                    key.toString(),
+                    (value as num?)?.toInt() ?? 0,
+                  ),
+                ),
+              )
+            : const <String, int>{},
         weeklyPoints: (data['weeklyPoints'] as num?)?.toInt() ?? 0,
         weeklySteals: (data['weeklySteals'] as num?)?.toInt() ?? 0,
         totalSteals: (data['totalSteals'] as num?)?.toInt() ?? 0,
@@ -71,6 +87,8 @@ class AdminPlayerRowV2 {
         totalDraws: (data['totalDraws'] as num?)?.toInt() ?? 0,
         subscriptionActive: data['subscriptionActive'] == true,
         activeDuelV2: data['activeDuelV2'] as String?,
+        suspended: data['suspended'] == true,
+        suspensionReason: data['suspensionReason'] as String?,
       );
 }
 
@@ -240,6 +258,18 @@ class AdminApiV2 {
       if (weeklyPoints != null) 'weeklyPoints': weeklyPoints,
       if (weeklySteals != null) 'weeklySteals': weeklySteals,
       if (totalSteals != null) 'totalSteals': totalSteals,
+    });
+  }
+
+  Future<void> setPlayerSuspension({
+    required String uid,
+    required bool suspended,
+    String? reason,
+  }) async {
+    await _functions.httpsCallable('setAdminPlayerSuspensionV2').call({
+      'uid': uid,
+      'suspended': suspended,
+      if (reason != null && reason.trim().isNotEmpty) 'reason': reason.trim(),
     });
   }
 

@@ -45,6 +45,7 @@ function publicPlayerRow(doc) {
     displayName: data.displayName || 'PLAYER',
     email: data.email || null,
     ownedCount: profile.ownedPackIds.length,
+    ownedPackCounts: profile.ownedPackCounts,
     weeklyPoints: profile.weeklyPoints,
     weeklySteals: profile.weeklySteals,
     totalSteals: profile.totalSteals,
@@ -53,6 +54,8 @@ function publicPlayerRow(doc) {
     totalDraws: profile.totalDraws,
     subscriptionActive: profile.subscriptionActive === true,
     activeDuelV2: data.activeDuelV2 || null,
+    suspended: data.suspendedV2 === true,
+    suspensionReason: data.suspensionReasonV2 || null,
     currentTitleKey: profile.currentTitleKey,
     currentFrameKey: profile.currentFrameKey,
   };
@@ -149,6 +152,90 @@ const updateAdminPlayerStatsV2 = onCall(async (request) => {
 
   await audit(actor, 'update_player_stats', uid, patch);
   return { ok: true, profile: next };
+});
+
+
+const setAdminPlayerSuspensionV2 = onCall(async (request) => {
+  const actor = await requireAdmin(request);
+  const uid = String(request.data && request.data.uid || '').trim();
+  const suspended = request.data && request.data.suspended === true;
+  const reason = String(request.data && request.data.reason || '').trim().slice(0, 200);
+  if (!uid || uid.includes('/')) throw new HttpsError('invalid-argument', 'Invalid player uid.');
+  if (uid === actor.uid && suspended) {
+    throw new HttpsError('failed-precondition', 'Admin cannot suspend the current admin account.');
+  }
+
+  const userRef = db.collection('users').doc(uid);
+  const result = await db.runTransaction(async (tx) => {
+    const userSnap = await tx.get(userRef);
+    if (!userSnap.exists) throw new HttpsError('not-found', 'Player not found.');
+    const userData = userSnap.data();
+    if (suspended && cleanEmail(userData.email) === PRIMARY_ADMIN_EMAIL) {
+      throw new HttpsError('failed-precondition', 'Primary admin account cannot be suspended.');
+    }
+    const activeDuelId = userData.activeDuelV2 ? String(userData.activeDuelV2) : null;
+    const activeBotRoundId = userData.activeBotRoundV2
+      ? String(userData.activeBotRoundV2)
+      : null;
+
+    let duel = null;
+    let duelRef = null;
+    if (suspended && activeDuelId) {
+      duelRef = db.collection('duelsV2').doc(activeDuelId);
+      const duelSnap = await tx.get(duelRef);
+      if (duelSnap.exists) duel = duelSnap.data();
+    }
+
+    const now = Timestamp.now();
+    tx.set(userRef, {
+      suspendedV2: suspended,
+      suspensionReasonV2: suspended ? (reason || 'ADMIN_SUSPENSION') : null,
+      suspendedAtV2: suspended ? now : null,
+      suspendedByV2: suspended ? actor.email : null,
+      activeBotRoundV2: suspended ? null : (userData.activeBotRoundV2 || null),
+      activeDuelV2: suspended ? null : (userData.activeDuelV2 || null),
+      updatedAt: now,
+    }, { merge: true });
+
+    if (suspended) {
+      tx.delete(db.collection('matchQueueV2').doc(uid));
+      if (activeBotRoundId) {
+        tx.delete(db.collection('botRoundsV2').doc(activeBotRoundId));
+      }
+    }
+
+    const released = [];
+    if (suspended && duel && duelRef &&
+        duel.status !== 'finished' && duel.status !== 'cancelled_by_admin') {
+      const participants = [duel.p1Uid, duel.p2Uid].filter(Boolean).map(String);
+      for (const participantUid of participants) {
+        tx.set(db.collection('users').doc(participantUid), {
+          activeDuelV2: null,
+          updatedAt: now,
+        }, { merge: true });
+        tx.delete(db.collection('matchQueueV2').doc(participantUid));
+        released.push(participantUid);
+      }
+      tx.set(duelRef, {
+        status: 'cancelled_by_admin',
+        cancelledByAdmin: true,
+        cancellationReason: 'player_suspended',
+        cancelledAt: now,
+        updatedAt: now,
+      }, { merge: true });
+      tx.delete(db.collection('duelSecretsV2').doc(activeDuelId));
+    }
+
+    return { activeDuelId, activeBotRoundId, released };
+  });
+
+  await audit(
+    actor,
+    suspended ? 'suspend_player' : 'unsuspend_player',
+    uid,
+    { reason: suspended ? (reason || 'ADMIN_SUSPENSION') : null, ...result },
+  );
+  return { ok: true, suspended };
 });
 
 const listAdminDuelsV2 = onCall(async (request) => {
@@ -284,6 +371,7 @@ module.exports = {
   getAdminOverviewV2,
   listAdminPlayersV2,
   updateAdminPlayerStatsV2,
+  setAdminPlayerSuspensionV2,
   listAdminDuelsV2,
   cancelAdminDuelV2,
   listAdminRankingV2,

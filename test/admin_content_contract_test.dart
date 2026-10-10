@@ -65,4 +65,39 @@ void main() {
     expect(dashboard, contains('AdminAuditPageV2'));
   });
 
+  test('Super Admin can suspend abusive players and server blocks play paths', () {
+    final adminServer =
+        File('firebase_functions/admin_functions_v2.js').readAsStringSync();
+    final matchmaking =
+        File('firebase_functions/matchmaking_functions_v2.js').readAsStringSync();
+    final bot =
+        File('firebase_functions/bot_functions_v2.js').readAsStringSync();
+    final duel =
+        File('firebase_functions/duel_functions_v2.js').readAsStringSync();
+    final steal =
+        File('firebase_functions/v2_functions.js').readAsStringSync();
+    final adminApi = File('lib/admin/admin_api_v2.dart').readAsStringSync();
+    final adminUi =
+        File('lib/admin/admin_super_pages_v2.dart').readAsStringSync();
+
+    expect(adminServer, contains('setAdminPlayerSuspensionV2'));
+    expect(adminServer, contains("'suspend_player'"));
+    expect(adminServer, contains("'unsuspend_player'"));
+    expect(adminServer, contains('Primary admin account cannot be suspended.'));
+    expect(adminServer, contains("collection('botRoundsV2').doc(activeBotRoundId)"));
+    expect(matchmaking, contains('ACCOUNT_SUSPENDED'));
+    expect(matchmaking, contains('candidateUser.suspendedV2 === true'));
+    expect(bot, contains('ensureNotSuspended(firstData)'));
+    expect(bot, contains('ensureNotSuspended(userSnap.data())'));
+    expect(duel, contains('await ensureNotSuspended(uid)'));
+    expect(steal, contains('await ensureNotSuspended(uid)'));
+    expect(adminApi, contains('setPlayerSuspension'));
+    expect(adminApi, contains('ownedPackCounts'));
+    expect(adminUi, contains('_toggleSuspension'));
+    expect(adminUi, contains('_showInventory'));
+    expect(adminUi, contains('عرض البطاقات'));
+    expect(adminUi, contains('تعليق اللاعب'));
+    expect(adminUi, contains('إعادة تفعيل اللاعب'));
+  });
+
 }

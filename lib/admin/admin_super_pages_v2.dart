@@ -99,6 +99,128 @@ class _AdminPlayersPageV2State extends State<AdminPlayersPageV2> {
     await _load();
   }
 
+
+
+  Future<void> _showInventory(AdminPlayerRowV2 player) async {
+    final entries = player.ownedPackCounts.entries.toList()
+      ..sort((a, b) {
+        final byCopies = b.value.compareTo(a.value);
+        if (byCopies != 0) return byCopies;
+        return a.key.compareTo(b.key);
+      });
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          widget.arabic
+              ? 'بطاقات ${player.displayName}'
+              : '${player.displayName} cards',
+        ),
+        content: SizedBox(
+          width: 420,
+          child: entries.isEmpty
+              ? Text(widget.arabic ? 'لا يملك بطاقات.' : 'No owned cards.')
+              : ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: entries.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (_, index) {
+                    final item = entries[index];
+                    return ListTile(
+                      dense: true,
+                      leading: const Icon(Icons.style_rounded),
+                      title: Text(item.key),
+                      trailing: Text(
+                        '×${item.value}',
+                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                    );
+                  },
+                ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(widget.arabic ? 'إغلاق' : 'Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _toggleSuspension(AdminPlayerRowV2 player) async {
+    if (player.suspended) {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(widget.arabic ? 'إعادة تفعيل اللاعب؟' : 'Reactivate player?'),
+          content: Text(
+            widget.arabic
+                ? 'سيتم السماح للاعب بالدخول إلى Bot وPvP من جديد.'
+                : 'The player will be allowed to use Bot and PvP again.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(widget.arabic ? 'إلغاء' : 'Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(widget.arabic ? 'إعادة التفعيل' : 'Reactivate'),
+            ),
+          ],
+        ),
+      );
+      if (ok != true) return;
+      await _api.setPlayerSuspension(uid: player.uid, suspended: false);
+      await _load();
+      return;
+    }
+
+    final reason = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(widget.arabic ? 'تعليق اللاعب؟' : 'Suspend player?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              widget.arabic
+                  ? 'سيتم منعه من Bot وPvP والسرقة، وأي مواجهة نشطة سيتم تحريرها لحماية الخصم.'
+                  : 'Bot, PvP and stealing will be blocked, and any active duel will be released to protect the opponent.',
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: reason,
+              maxLength: 200,
+              decoration: InputDecoration(
+                labelText: widget.arabic ? 'سبب التعليق' : 'Suspension reason',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(widget.arabic ? 'إلغاء' : 'Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(widget.arabic ? 'تعليق الحساب' : 'Suspend account'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await _api.setPlayerSuspension(
+      uid: player.uid,
+      suspended: true,
+      reason: reason.text,
+    );
+    await _load();
+  }
+
   @override
   Widget build(BuildContext context) => Directionality(
         textDirection: widget.arabic ? TextDirection.rtl : TextDirection.ltr,
@@ -137,11 +259,54 @@ class _AdminPlayersPageV2State extends State<AdminPlayersPageV2> {
                                 '${p.ownedCount} cards',
                                 if (p.subscriptionActive) 'SUB',
                                 if (p.activeDuelV2 != null) 'DUEL',
+                                if (p.suspended)
+                                  widget.arabic ? 'معلّق' : 'SUSPENDED',
+                                if (p.suspended &&
+                                    p.suspensionReason != null &&
+                                    p.suspensionReason!.isNotEmpty)
+                                  p.suspensionReason!,
                               ].join(' • '),
                             ),
-                            trailing: IconButton(
-                              onPressed: () => _edit(p),
-                              icon: const Icon(Icons.manage_accounts_rounded),
+                            trailing: PopupMenuButton<String>(
+                              onSelected: (value) {
+                                if (value == 'edit') {
+                                  _edit(p);
+                                } else if (value == 'inventory') {
+                                  _showInventory(p);
+                                } else if (value == 'suspend') {
+                                  _toggleSuspension(p);
+                                }
+                              },
+                              itemBuilder: (_) => [
+                                PopupMenuItem(
+                                  value: 'edit',
+                                  child: Text(
+                                    widget.arabic
+                                        ? 'تعديل الإحصائيات'
+                                        : 'Edit stats',
+                                  ),
+                                ),
+                                PopupMenuItem(
+                                  value: 'inventory',
+                                  child: Text(
+                                    widget.arabic
+                                        ? 'عرض البطاقات'
+                                        : 'View cards',
+                                  ),
+                                ),
+                                PopupMenuItem(
+                                  value: 'suspend',
+                                  child: Text(
+                                    p.suspended
+                                        ? (widget.arabic
+                                            ? 'إعادة تفعيل اللاعب'
+                                            : 'Reactivate player')
+                                        : (widget.arabic
+                                            ? 'تعليق اللاعب'
+                                            : 'Suspend player'),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         );
