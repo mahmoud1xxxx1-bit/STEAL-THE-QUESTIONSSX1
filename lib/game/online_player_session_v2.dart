@@ -143,6 +143,17 @@ class OnlinePlayerSessionV2 {
     return profile;
   }
 
+  Future<PlayerProfileV2> applySparkTestSteal(String packId) async {
+    profile.ensureCurrentWeek(DateTime.now());
+    profile.ownedPackIds.add(packId);
+    profile.ownedPackCounts[packId] =
+        (profile.ownedPackCounts[packId] ?? 0) + 1;
+    profile.weeklySteals += 1;
+    profile.totalSteals += 1;
+    await store.save(profile);
+    return profile;
+  }
+
   Future<PlayerProfileV2> setSparkTestSubscription(bool active) async {
     profile.subscriptionActive = active;
     profile.subscriptionExpiresAt =
