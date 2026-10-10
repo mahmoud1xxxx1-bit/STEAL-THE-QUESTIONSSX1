@@ -49,8 +49,8 @@ void main() {
 
     expect(server, contains("PRIMARY_ADMIN_EMAIL = 'love.dotk@gmail.com'"));
     expect(server, contains("db.collection('adminAuditV2').add"));
-    expect(server, contains("action: 'update_player_stats'"));
-    expect(server, contains("action: 'cancel_duel'"));
+    expect(server, contains("audit(actor, 'update_player_stats'"));
+    expect(server, contains("audit(actor, 'cancel_duel'"));
     expect(server, contains('getAdminOverviewV2'));
     expect(server, contains('listAdminPlayersV2'));
     expect(server, contains('listAdminDuelsV2'));
