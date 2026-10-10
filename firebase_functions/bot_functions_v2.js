@@ -141,6 +141,7 @@ const startBotRoundV2 = onCall(async (request) => {
   const firstUserSnap = await userRef.get();
   if (!firstUserSnap.exists) throw new HttpsError('not-found', 'Profile not found.');
   const firstData = firstUserSnap.data();
+  ensureNotSuspended(firstData);
 
   if (firstData.activeBotRoundV2) {
     const existingSnap = await db.collection('botRoundsV2').doc(String(firstData.activeBotRoundV2)).get();
@@ -244,6 +245,7 @@ const submitBotAnswerV2 = onCall(async (request) => {
     if (!roundSnap.exists || !userSnap.exists) throw new HttpsError('not-found', 'Bot round or profile not found.');
     const round = roundSnap.data();
     if (round.uid !== uid) throw new HttpsError('permission-denied', 'This bot round belongs to another player.');
+    ensureNotSuspended(userSnap.data());
     let profile = profileFromData(userSnap.data());
 
     if (round.status === 'resolved') {
