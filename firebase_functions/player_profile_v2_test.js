@@ -89,10 +89,13 @@ const stealStats = normalizeProfileV2({
   ...profile,
   weeklySteals: 4,
   totalSteals: 17,
-}, now);
+}, later);
 assert.strictEqual(stealStats.weeklySteals, 4);
 assert.strictEqual(stealStats.totalSteals, 17);
 
-const nextWeekSteals = ensureCurrentWeekV2(stealStats, now + (8 * 24 * 60 * 60 * 1000));
+const nextWeekSteals = ensureCurrentWeekV2(
+  stealStats,
+  later + (8 * 24 * 60 * 60 * 1000),
+);
 assert.strictEqual(nextWeekSteals.weeklySteals, 0);
 assert.strictEqual(nextWeekSteals.totalSteals, 17);
