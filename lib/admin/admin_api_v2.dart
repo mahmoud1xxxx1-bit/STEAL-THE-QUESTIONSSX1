@@ -107,6 +107,40 @@ class AdminDuelRowV2 {
       );
 }
 
+class AdminRankingRowV2 {
+  const AdminRankingRowV2({
+    required this.rank,
+    required this.uid,
+    required this.displayName,
+    required this.weeklyPoints,
+    required this.weeklySteals,
+    required this.weeklyWins,
+    required this.weeklyLosses,
+    required this.weeklyDraws,
+  });
+
+  final int rank;
+  final String uid;
+  final String displayName;
+  final int weeklyPoints;
+  final int weeklySteals;
+  final int weeklyWins;
+  final int weeklyLosses;
+  final int weeklyDraws;
+
+  factory AdminRankingRowV2.fromMap(Map<String, dynamic> data) =>
+      AdminRankingRowV2(
+        rank: (data['rank'] as num?)?.toInt() ?? 0,
+        uid: data['uid'] as String? ?? '',
+        displayName: data['displayName'] as String? ?? 'PLAYER',
+        weeklyPoints: (data['weeklyPoints'] as num?)?.toInt() ?? 0,
+        weeklySteals: (data['weeklySteals'] as num?)?.toInt() ?? 0,
+        weeklyWins: (data['weeklyWins'] as num?)?.toInt() ?? 0,
+        weeklyLosses: (data['weeklyLosses'] as num?)?.toInt() ?? 0,
+        weeklyDraws: (data['weeklyDraws'] as num?)?.toInt() ?? 0,
+      );
+}
+
 class AdminSubscriptionRowV2 {
   const AdminSubscriptionRowV2({
     required this.uid,
@@ -229,6 +263,19 @@ class AdminApiV2 {
     await _functions.httpsCallable('cancelAdminDuelV2').call({
       'duelId': duelId,
     });
+  }
+
+  Future<List<AdminRankingRowV2>> loadRanking() async {
+    final raw = _map(
+      (await _functions.httpsCallable('listAdminRankingV2').call()).data,
+      'Invalid admin ranking response.',
+    );
+    return (raw['players'] as List? ?? const <dynamic>[])
+        .whereType<Map>()
+        .map((item) => AdminRankingRowV2.fromMap(
+              Map<String, dynamic>.from(item),
+            ))
+        .toList(growable: false);
   }
 
   Future<List<AdminSubscriptionRowV2>> loadSubscriptions() async {
