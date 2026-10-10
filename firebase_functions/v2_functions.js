@@ -223,6 +223,45 @@ const getWeeklyRankingV2 = onCall(async (request) => {
   };
 });
 
+
+const getWeeklyStealRankingV2 = onCall(async (request) => {
+  authUid(request);
+  const key = weekKey();
+  const snap = await db.collection('weeklyRankingV2')
+    .doc(key)
+    .collection('players')
+    .orderBy('weeklySteals', 'desc')
+    .limit(100)
+    .get();
+
+  const rows = snap.docs.map((doc) => {
+    const data = doc.data();
+    return {
+      uid: doc.id,
+      displayName: data.displayName || 'PLAYER',
+      weeklyPoints: Number(data.weeklyPoints || 0) | 0,
+      weeklyWins: Math.max(0, Number(data.weeklyWins || 0) | 0),
+      weeklyLosses: Math.max(0, Number(data.weeklyLosses || 0) | 0),
+      weeklyDraws: Math.max(0, Number(data.weeklyDraws || 0) | 0),
+      weeklySteals: Math.max(0, Number(data.weeklySteals || 0) | 0),
+      totalSteals: Math.max(0, Number(data.totalSteals || 0) | 0),
+      currentTitleKey: data.currentTitleKey || null,
+      currentFrameKey: data.currentFrameKey || null,
+    };
+  });
+
+  rows.sort((a, b) =>
+    b.weeklySteals - a.weeklySteals ||
+    b.weeklyPoints - a.weeklyPoints ||
+    b.weeklyWins - a.weeklyWins ||
+    String(a.uid).localeCompare(String(b.uid)));
+
+  return {
+    weekKey: key,
+    players: rows.map((row, index) => ({ ...row, rank: index + 1 })),
+  };
+});
+
 const getStealOptionsV2 = onCall(async (request) => {
   const uid = authUid(request);
   const duelId = String(request.data && request.data.duelId || '').trim();
@@ -334,6 +373,7 @@ module.exports = {
   saveDeckV2: saveDeckV2Callable,
   setActiveDeckV2,
   getWeeklyRankingV2,
+  getWeeklyStealRankingV2,
   getStealOptionsV2,
   confirmStealV2,
 };

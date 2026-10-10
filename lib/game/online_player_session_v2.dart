@@ -295,6 +295,9 @@ class OnlinePlayerSessionV2 {
   Future<WeeklyRankingV2> weeklyRanking() =>
       api.loadWeeklyRanking();
 
+  Future<WeeklyRankingV2> weeklyStealRanking() =>
+      api.loadWeeklyStealRanking();
+
   Future<PublicPlayerProfileV2> publicProfile({String? uid}) =>
       profileApi.loadPublicProfile(uid: uid);
 

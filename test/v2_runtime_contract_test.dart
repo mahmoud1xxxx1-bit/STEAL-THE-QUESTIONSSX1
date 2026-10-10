@@ -285,6 +285,27 @@ void main() {
     expect(app, contains('الحاملون الآن'));
   });
 
+  test('public profiles and theft leaderboard expose social reputation safely', () {
+    final server = File('firebase_functions/v2_functions.js').readAsStringSync();
+    final profileServer =
+        File('firebase_functions/profile_features_functions_v2.js')
+            .readAsStringSync();
+    final api =
+        File('lib/backend/firebase_game_api_v2.dart').readAsStringSync();
+    final app = File('lib/v2_active_app.dart').readAsStringSync();
+
+    expect(server, contains('getWeeklyStealRankingV2'));
+    expect(server, contains("orderBy('weeklySteals', 'desc')"));
+    expect(server, contains('weeklySteals: Math.max'));
+    expect(api, contains("httpsCallable('getWeeklyStealRankingV2')"));
+    expect(profileServer, contains('legendaryCount'));
+    expect(profileServer, contains('totalSteals'));
+    expect(app, contains('ملوك السرقة'));
+    expect(app, contains('_PublicPlayerProfileDialog'));
+    expect(app, contains('إجمالي السرقات'));
+    expect(app, contains("_StatRow(label: 'Legendary'"));
+  });
+
   test('Android auth requires Google sign-in and has no anonymous fallback', () {
     final runtimeSource =
         File('lib/backend/online_runtime_v2.dart').readAsStringSync();
