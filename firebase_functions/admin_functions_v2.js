@@ -169,7 +169,13 @@ const setAdminPlayerSuspensionV2 = onCall(async (request) => {
     const userSnap = await tx.get(userRef);
     if (!userSnap.exists) throw new HttpsError('not-found', 'Player not found.');
     const userData = userSnap.data();
+    if (suspended && cleanEmail(userData.email) === PRIMARY_ADMIN_EMAIL) {
+      throw new HttpsError('failed-precondition', 'Primary admin account cannot be suspended.');
+    }
     const activeDuelId = userData.activeDuelV2 ? String(userData.activeDuelV2) : null;
+    const activeBotRoundId = userData.activeBotRoundV2
+      ? String(userData.activeBotRoundV2)
+      : null;
 
     let duel = null;
     let duelRef = null;
@@ -192,6 +198,9 @@ const setAdminPlayerSuspensionV2 = onCall(async (request) => {
 
     if (suspended) {
       tx.delete(db.collection('matchQueueV2').doc(uid));
+      if (activeBotRoundId) {
+        tx.delete(db.collection('botRoundsV2').doc(activeBotRoundId));
+      }
     }
 
     const released = [];
@@ -216,7 +225,7 @@ const setAdminPlayerSuspensionV2 = onCall(async (request) => {
       tx.delete(db.collection('duelSecretsV2').doc(activeDuelId));
     }
 
-    return { activeDuelId, released };
+    return { activeDuelId, activeBotRoundId, released };
   });
 
   await audit(
