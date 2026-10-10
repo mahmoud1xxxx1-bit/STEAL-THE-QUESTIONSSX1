@@ -43,6 +43,8 @@ class AdminPlayerRowV2 {
     required this.totalDraws,
     required this.subscriptionActive,
     required this.activeDuelV2,
+    required this.suspended,
+    required this.suspensionReason,
   });
 
   final String uid;
@@ -57,6 +59,8 @@ class AdminPlayerRowV2 {
   final int totalDraws;
   final bool subscriptionActive;
   final String? activeDuelV2;
+  final bool suspended;
+  final String? suspensionReason;
 
   factory AdminPlayerRowV2.fromMap(Map<String, dynamic> data) => AdminPlayerRowV2(
         uid: data['uid'] as String? ?? '',
@@ -71,6 +75,8 @@ class AdminPlayerRowV2 {
         totalDraws: (data['totalDraws'] as num?)?.toInt() ?? 0,
         subscriptionActive: data['subscriptionActive'] == true,
         activeDuelV2: data['activeDuelV2'] as String?,
+        suspended: data['suspended'] == true,
+        suspensionReason: data['suspensionReason'] as String?,
       );
 }
 
@@ -240,6 +246,18 @@ class AdminApiV2 {
       if (weeklyPoints != null) 'weeklyPoints': weeklyPoints,
       if (weeklySteals != null) 'weeklySteals': weeklySteals,
       if (totalSteals != null) 'totalSteals': totalSteals,
+    });
+  }
+
+  Future<void> setPlayerSuspension({
+    required String uid,
+    required bool suspended,
+    String? reason,
+  }) async {
+    await _functions.httpsCallable('setAdminPlayerSuspensionV2').call({
+      'uid': uid,
+      'suspended': suspended,
+      if (reason != null && reason.trim().isNotEmpty) 'reason': reason.trim(),
     });
   }
 
