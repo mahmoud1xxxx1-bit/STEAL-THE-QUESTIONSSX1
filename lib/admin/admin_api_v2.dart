@@ -35,6 +35,7 @@ class AdminPlayerRowV2 {
     required this.displayName,
     required this.email,
     required this.ownedCount,
+    required this.ownedPackCounts,
     required this.weeklyPoints,
     required this.weeklySteals,
     required this.totalSteals,
@@ -51,6 +52,7 @@ class AdminPlayerRowV2 {
   final String displayName;
   final String? email;
   final int ownedCount;
+  final Map<String, int> ownedPackCounts;
   final int weeklyPoints;
   final int weeklySteals;
   final int totalSteals;
@@ -67,6 +69,16 @@ class AdminPlayerRowV2 {
         displayName: data['displayName'] as String? ?? 'PLAYER',
         email: data['email'] as String?,
         ownedCount: (data['ownedCount'] as num?)?.toInt() ?? 0,
+        ownedPackCounts: data['ownedPackCounts'] is Map
+            ? Map<String, int>.from(
+                (data['ownedPackCounts'] as Map).map(
+                  (key, value) => MapEntry(
+                    key.toString(),
+                    (value as num?)?.toInt() ?? 0,
+                  ),
+                ),
+              )
+            : const <String, int>{},
         weeklyPoints: (data['weeklyPoints'] as num?)?.toInt() ?? 0,
         weeklySteals: (data['weeklySteals'] as num?)?.toInt() ?? 0,
         totalSteals: (data['totalSteals'] as num?)?.toInt() ?? 0,
