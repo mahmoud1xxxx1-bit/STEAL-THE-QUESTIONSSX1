@@ -44,6 +44,7 @@ void main() {
 
     expect(profile.weeklyPoints, 0);
     expect(profile.weeklyWins, 0);
+    expect(profile.weeklySteals, 0);
     expect(profile.totalWins, 1);
   });
 
@@ -62,14 +63,17 @@ void main() {
       decks: List<List<String>>.generate(5, (_) => <String>[]),
       activeDeckIndex: 0,
       recentQuestionIds: const ['q1'],
+      packLastPvpUsedAtMs: const {'a': 123456},
       weekKey: '2026-10-05',
       weeklyPoints: 30,
       weeklyWins: 1,
       weeklyLosses: 0,
       weeklyDraws: 0,
+      weeklySteals: 3,
       totalWins: 5,
       totalLosses: 2,
       totalDraws: 1,
+      totalSteals: 11,
       prestige: const PrestigeHistoryV2(first: 2, second: 1, third: 3),
       subscriptionActive: true,
       subscriptionExpiresAt: DateTime.utc(2026, 11, 5),
@@ -83,6 +87,9 @@ void main() {
     );
 
     expect(restored.ownedPackCounts['a'], 2);
+    expect(restored.packLastPvpUsedAtMs['a'], 123456);
+    expect(restored.weeklySteals, 3);
+    expect(restored.totalSteals, 11);
     expect(restored.prestige.first, 2);
     expect(restored.prestige.second, 1);
     expect(restored.prestige.third, 3);
