@@ -245,6 +245,25 @@ void main() {
     expect(app, contains("'×\$count'"));
   });
 
+  test('social reputation surfaces steals rarity counts and rare-card timers', () {
+    final app = File('lib/v2_active_app.dart').readAsStringSync();
+    final profile = File('lib/game/player_profile_v2.dart').readAsStringSync();
+    final functions = File('firebase_functions/v2_functions.js').readAsStringSync();
+    final ranking =
+        File('firebase_functions/weekly_ranking_functions_v2.js').readAsStringSync();
+
+    expect(profile, contains('weeklySteals'));
+    expect(profile, contains('totalSteals'));
+    expect(profile, contains('packLastPvpUsedAtMs'));
+    expect(functions, contains('weeklySteals: winner.weeklySteals + 1'));
+    expect(functions, contains('totalSteals: winner.totalSteals + 1'));
+    expect(ranking, contains('weeklySteals: profile.weeklySteals'));
+    expect(app, contains('سمعتك ومجموعتك'));
+    expect(app, contains('إجمالي البطاقات المسروقة'));
+    expect(app, contains('متبقي $days يوم و$hours ساعة'));
+    expect(app, contains("'دائمة • لا تنتهي'"));
+  });
+
   test('Android auth requires Google sign-in and has no anonymous fallback', () {
     final runtimeSource =
         File('lib/backend/online_runtime_v2.dart').readAsStringSync();
