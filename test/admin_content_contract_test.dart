@@ -30,4 +30,13 @@ void main() {
     expect(dashboard, contains('CardRarityV2.legendary'));
     expect(dashboard, contains('إضافة سؤال'));
   });
+  test('primary owner email retains admin access contract', () {
+    final adminSource =
+        File('lib/admin/admin_content_v2.dart').readAsStringSync();
+    final rules = File('firestore.rules').readAsStringSync();
+
+    expect(adminSource, contains("kPrimaryAdminEmailV2 = 'love.dotk@gmail.com'"));
+    expect(rules, contains("request.auth.token.email == 'love.dotk@gmail.com'"));
+  });
+
 }
