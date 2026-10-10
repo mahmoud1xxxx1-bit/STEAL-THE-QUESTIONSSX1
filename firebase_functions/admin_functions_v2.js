@@ -45,6 +45,7 @@ function publicPlayerRow(doc) {
     displayName: data.displayName || 'PLAYER',
     email: data.email || null,
     ownedCount: profile.ownedPackIds.length,
+    ownedPackCounts: profile.ownedPackCounts,
     weeklyPoints: profile.weeklyPoints,
     weeklySteals: profile.weeklySteals,
     totalSteals: profile.totalSteals,
