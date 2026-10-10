@@ -260,7 +260,7 @@ void main() {
     expect(ranking, contains('weeklySteals: profile.weeklySteals'));
     expect(app, contains('سمعتك ومجموعتك'));
     expect(app, contains('إجمالي البطاقات المسروقة'));
-    expect(app, contains('متبقي $days يوم و$hours ساعة'));
+    expect(app, contains('متبقي \$days يوم و\$hours ساعة'));
     expect(app, contains("'دائمة • لا تنتهي'"));
   });
 
