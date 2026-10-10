@@ -124,6 +124,24 @@ void main() {
     expect(firestoreIndexes, contains('createdAt'));
   });
 
+  test('two-phone test build stays explicit and does not claim live PvP', () {
+    final workflow =
+        File('.github/workflows/flutter-web-preview.yml').readAsStringSync();
+    final preflight =
+        File('tool/two_phone_test_preflight.py').readAsStringSync();
+    final checklist = File('TWO_PHONE_TEST_CHECKLIST.md').readAsStringSync();
+
+    expect(workflow, contains('Run two-phone structural preflight'));
+    expect(workflow, contains('python3 tool/two_phone_test_preflight.py'));
+    expect(workflow, contains('TWO_PHONE_TEST_BUILD_INFO.txt'));
+    expect(preflight, contains('TWO-PHONE STRUCTURAL PRECHECK: PASS'));
+    expect(preflight, contains('LIVE PvP is not claimed'));
+    expect(checklist, contains('DO NOT add real questions'));
+    expect(checklist, contains('Phase A'));
+    expect(checklist, contains('Phase B'));
+    expect(checklist, contains('STQ_TWO_ACCOUNT_PVP_PASSED'));
+  });
+
   test('release source contains no retired project identities', () {
     const forbidden = <String>[
       '3minutes',

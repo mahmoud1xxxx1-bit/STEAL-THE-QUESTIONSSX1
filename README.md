@@ -42,6 +42,17 @@ The guard refuses deployment when the repository is not targeting the approved F
 The repository supports Spark/demo testing and signed Android CI builds. Production launch remains blocked until Blaze is intentionally enabled, Cloud Functions/rules/indexes are deployed and verified, purchase-verification credentials are configured, real card/question content is loaded, and a live two-account PvP end-to-end test passes.
 
 
+
+## Two-phone physical-device test
+
+Before testing on two Android phones, run:
+
+`python3 tool/two_phone_test_preflight.py`
+
+The full device procedure is documented in `TWO_PHONE_TEST_CHECKLIST.md`. This phase does not add or modify real question content.
+
+A green two-phone structural preflight means the signed APK, approved Firebase identity, Google Sign-In path, required server exports, and server-authoritative write protections are intact. It does **not** claim live cross-device PvP until Cloud Functions plus Firestore Rules/Indexes are actually deployed.
+
 ## Production preflight gate
 
 Every Android CI run executes the structural preflight:
