@@ -3253,21 +3253,44 @@ class _LegendaryVaultCard extends StatelessWidget {
               runSpacing: 6,
               children: card.holders
                   .map(
-                    (holder) => Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 9,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: .1),
-                        borderRadius: BorderRadius.circular(99),
-                      ),
-                      child: Text(
-                        '${holder.displayName} ×${holder.copies}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
+                    (holder) => InkWell(
+                      onTap: holder.uid.isEmpty
+                          ? null
+                          : () => _showPublicPlayerProfile(
+                                context,
+                                arabic: arabic,
+                                uid: holder.uid,
+                              ),
+                      borderRadius: BorderRadius.circular(99),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: .1),
+                          borderRadius: BorderRadius.circular(99),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '${holder.displayName} ×${holder.copies}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            if (holder.uid.isNotEmpty) ...[
+                              const SizedBox(width: 4),
+                              const Icon(
+                                Icons.person_search_rounded,
+                                color: Colors.white70,
+                                size: 13,
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                     ),
