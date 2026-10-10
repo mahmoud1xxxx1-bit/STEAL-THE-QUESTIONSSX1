@@ -40,6 +40,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
   OnlinePlayerSessionV2? _session;
   PlayerProfileV2? _profile;
   WeeklyRankingV2? _ranking;
+  WeeklyRankingV2? _stealRanking;
   SubscriptionStatusV2? _subscription;
   BotStatusV2? _botStatus;
   MatchmakingStatusV2? _matchmaking;
@@ -170,6 +171,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
           _session = null;
           _profile = null;
           _ranking = null;
+          _stealRanking = null;
           _subscription = null;
           _botStatus = null;
           _matchmaking = null;
@@ -228,6 +230,35 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
     return WeeklyRankingV2(weekKey: profile.weekKey, players: rows);
   }
 
+  WeeklyRankingV2 _sparkTestStealRanking(PlayerProfileV2 profile) {
+    final base = _sparkTestRanking(profile);
+    final sorted = base.players.toList(growable: false)
+      ..sort((a, b) {
+        final steals = b.weeklySteals.compareTo(a.weeklySteals);
+        if (steals != 0) return steals;
+        final points = b.weeklyPoints.compareTo(a.weeklyPoints);
+        if (points != 0) return points;
+        return a.uid.compareTo(b.uid);
+      });
+    final players = <WeeklyRankingPlayerV2>[
+      for (var index = 0; index < sorted.length; index++)
+        WeeklyRankingPlayerV2(
+          rank: index + 1,
+          uid: sorted[index].uid,
+          displayName: sorted[index].displayName,
+          weeklyPoints: sorted[index].weeklyPoints,
+          weeklyWins: sorted[index].weeklyWins,
+          weeklyLosses: sorted[index].weeklyLosses,
+          weeklyDraws: sorted[index].weeklyDraws,
+          weeklySteals: sorted[index].weeklySteals,
+          totalSteals: sorted[index].totalSteals,
+          currentTitleKey: sorted[index].currentTitleKey,
+          currentFrameKey: sorted[index].currentFrameKey,
+        ),
+    ];
+    return WeeklyRankingV2(weekKey: base.weekKey, players: players);
+  }
+
   SubscriptionStatusV2 _sparkTestSubscription(PlayerProfileV2 profile) =>
       SubscriptionStatusV2(
         active: profile.subscriptionActive,
@@ -243,6 +274,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
   void _syncSparkTestPanels(PlayerProfileV2 profile) {
     if (!_demoMode) return;
     _ranking = _sparkTestRanking(profile);
+    _stealRanking = _sparkTestStealRanking(profile);
     _subscription = _sparkTestSubscription(profile);
     _botStatus = BotStatusV2(
       botUnlocked: profile.ownedCount < kDeckSizeV2,
@@ -372,6 +404,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
     try {
       final values = await Future.wait<dynamic>([
         session.weeklyRanking(),
+        session.weeklyStealRanking(),
         session.subscriptionStatus(),
         session.botStatus(),
         session.matchStatus(),
@@ -379,9 +412,10 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
       if (!mounted) return;
       setState(() {
         _ranking = values[0] as WeeklyRankingV2;
-        _subscription = values[1] as SubscriptionStatusV2;
-        _botStatus = values[2] as BotStatusV2;
-        _matchmaking = values[3] as MatchmakingStatusV2;
+        _stealRanking = values[1] as WeeklyRankingV2;
+        _subscription = values[2] as SubscriptionStatusV2;
+        _botStatus = values[3] as BotStatusV2;
+        _matchmaking = values[4] as MatchmakingStatusV2;
       });
     } catch (_) {
       // The cached profile remains usable while a secondary panel refresh fails.
@@ -1993,6 +2027,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
         profile: profile,
         cardMeta: _cardMeta,
         ranking: _ranking,
+        stealRanking: _stealRanking,
         subscription: _subscription,
         busy: _busy,
         refresh: _refreshProfile,
@@ -2471,6 +2506,7 @@ class _ProfileV2 extends StatelessWidget {
     required this.profile,
     required this.cardMeta,
     required this.ranking,
+    required this.stealRanking,
     required this.subscription,
     required this.busy,
     required this.refresh,
@@ -2489,6 +2525,7 @@ class _ProfileV2 extends StatelessWidget {
   final PlayerProfileV2 profile;
   final Map<String, CardSummaryV2> cardMeta;
   final WeeklyRankingV2? ranking;
+  final WeeklyRankingV2? stealRanking;
   final SubscriptionStatusV2? subscription;
   final bool busy;
   final VoidCallback refresh;
@@ -2518,6 +2555,9 @@ class _ProfileV2 extends StatelessWidget {
     final legendaryCopies = rarityCopies(CardRarityV2.legendary);
     final top = ranking?.players.take(10).toList(growable: false) ??
         const <WeeklyRankingPlayerV2>[];
+    final stealTop =
+        stealRanking?.players.take(10).toList(growable: false) ??
+            const <WeeklyRankingPlayerV2>[];
 
     return _Scroll(
       children: [
@@ -2588,7 +2628,31 @@ class _ProfileV2 extends StatelessWidget {
         const SizedBox(height: 10),
         _WeeklyPodium(arabic: arabic, players: top),
         const SizedBox(height: 10),
-        _RankingCard(arabic: arabic, players: top),
+        _RankingCard(
+          arabic: arabic,
+          players: top,
+          openProfile: (uid) => _showPublicPlayerProfile(
+            context,
+            arabic: arabic,
+            uid: uid,
+          ),
+        ),
+        const SizedBox(height: 18),
+        _SectionRow(
+          title: arabic ? 'ملوك السرقة' : 'Theft kings',
+          action: stealRanking?.weekKey,
+        ),
+        const SizedBox(height: 10),
+        _RankingCard(
+          arabic: arabic,
+          players: stealTop,
+          stealFirst: true,
+          openProfile: (uid) => _showPublicPlayerProfile(
+            context,
+            arabic: arabic,
+            uid: uid,
+          ),
+        ),
         const SizedBox(height: 18),
         _SubscriptionCard(
           arabic: arabic,
