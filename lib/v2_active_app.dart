@@ -1138,7 +1138,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
       ),
     );
     if (selected == null) return;
-    final profile = await _session!.addSparkTestCard(selected);
+    final profile = await _session!.applySparkTestSteal(selected);
     if (!mounted) return;
     setState(() {
       _profile = profile;
