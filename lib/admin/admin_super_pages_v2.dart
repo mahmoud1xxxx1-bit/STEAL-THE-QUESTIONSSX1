@@ -269,6 +269,94 @@ class _AdminDuelsPageV2State extends State<AdminDuelsPageV2> {
       );
 }
 
+class AdminRankingPageV2 extends StatefulWidget {
+  const AdminRankingPageV2({super.key, required this.arabic});
+  final bool arabic;
+
+  @override
+  State<AdminRankingPageV2> createState() => _AdminRankingPageV2State();
+}
+
+class _AdminRankingPageV2State extends State<AdminRankingPageV2> {
+  final _api = AdminApiV2();
+  bool _loading = true;
+  String? _error;
+  List<AdminRankingRowV2> _rows = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final rows = await _api.loadRanking();
+      if (!mounted) return;
+      setState(() => _rows = rows);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Directionality(
+        textDirection: widget.arabic ? TextDirection.rtl : TextDirection.ltr,
+        child: Scaffold(
+          appBar: AppBar(
+            title: Text(widget.arabic ? 'الترتيب والسمعة' : 'Ranking & reputation'),
+            actions: [
+              IconButton(onPressed: _load, icon: const Icon(Icons.refresh_rounded)),
+            ],
+          ),
+          body: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : _error != null
+                  ? Center(child: Text(_error!))
+                  : ListView.separated(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _rows.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      itemBuilder: (_, index) {
+                        final row = _rows[index];
+                        return Card(
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              child: Text('#${row.rank}'),
+                            ),
+                            title: Text(row.displayName),
+                            subtitle: Text(
+                              [
+                                '${row.weeklyPoints} pts',
+                                '${row.weeklySteals} steals',
+                                '${row.weeklyWins}W',
+                                '${row.weeklyLosses}L',
+                                '${row.weeklyDraws}D',
+                              ].join(' • '),
+                            ),
+                            trailing: Text(
+                              row.uid,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 9,
+                                color: Colors.black45,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+        ),
+      );
+}
+
 class AdminSubscriptionsPageV2 extends StatefulWidget {
   const AdminSubscriptionsPageV2({super.key, required this.arabic});
   final bool arabic;
