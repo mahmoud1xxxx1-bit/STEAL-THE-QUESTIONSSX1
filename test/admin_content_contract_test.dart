@@ -92,7 +92,10 @@ void main() {
     expect(duel, contains('await ensureNotSuspended(uid)'));
     expect(steal, contains('await ensureNotSuspended(uid)'));
     expect(adminApi, contains('setPlayerSuspension'));
+    expect(adminApi, contains('ownedPackCounts'));
     expect(adminUi, contains('_toggleSuspension'));
+    expect(adminUi, contains('_showInventory'));
+    expect(adminUi, contains('عرض البطاقات'));
     expect(adminUi, contains('تعليق اللاعب'));
     expect(adminUi, contains('إعادة تفعيل اللاعب'));
   });
