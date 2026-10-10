@@ -65,6 +65,7 @@ def structural_checks() -> None:
         "weeklyPrestigeV2",
         "purchaseVerificationV2",
         "cardLifecycleV2",
+        "adminV2",
     ]
     for export_name in required_exports:
         if f"...{export_name}" not in main_js:
