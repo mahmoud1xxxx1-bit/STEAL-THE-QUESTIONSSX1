@@ -280,6 +280,22 @@ class FirebaseGameApiV2 {
     );
   }
 
+  Future<WeeklyRankingV2> loadWeeklyStealRanking() async {
+    final response =
+        await _functions.httpsCallable('getWeeklyStealRankingV2').call();
+    final raw = _asMap(response.data, 'Invalid weekly steal ranking response.');
+    final playersRaw = raw['players'] as List? ?? const <dynamic>[];
+    return WeeklyRankingV2(
+      weekKey: raw['weekKey'] as String? ?? '',
+      players: playersRaw
+          .whereType<Map>()
+          .map((p) => WeeklyRankingPlayerV2.fromMap(
+                Map<String, dynamic>.from(p),
+              ))
+          .toList(growable: false),
+    );
+  }
+
   Future<StealOptionsV2> loadStealOptions(String duelId) async {
     final response = await _functions.httpsCallable('getStealOptionsV2').call({'duelId': duelId});
     final raw = _asMap(response.data, 'Invalid steal options response.');
