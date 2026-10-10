@@ -34,6 +34,12 @@ function profileFromData(data) {
   return normalizeProfileV2(data && data.profileV2 && typeof data.profileV2 === 'object' ? data.profileV2 : {});
 }
 
+function ensureNotSuspended(data) {
+  if (data && data.suspendedV2 === true) {
+    throw new HttpsError('permission-denied', 'ACCOUNT_SUSPENDED');
+  }
+}
+
 async function loadEnabledCards() {
   const snap = await db.collection('cardsV2').where('enabled', '==', true).limit(500).get();
   return snap.docs
@@ -116,6 +122,7 @@ const getBotStatusV2 = onCall(async (request) => {
   const uid = authUid(request);
   const userSnap = await db.collection('users').doc(uid).get();
   if (!userSnap.exists) throw new HttpsError('not-found', 'Profile not found.');
+  ensureNotSuspended(userSnap.data());
   const profile = profileFromData(userSnap.data());
   const enabledCards = await loadEnabledCards();
   const unowned = enabledCards.filter((card) => !profile.ownedPackIds.includes(card.id));
