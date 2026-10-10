@@ -29,7 +29,7 @@ function cleanUid(value, fallback) {
   return uid;
 }
 
-function publicProfile(uid, data) {
+function publicProfile(uid, data, rarityCounts = {}) {
   const profile = profileFromData(data);
   const unlocked = unlockedPrestige(profile);
   return {
@@ -39,6 +39,11 @@ function publicProfile(uid, data) {
     totalWins: profile.totalWins,
     totalLosses: profile.totalLosses,
     totalDraws: profile.totalDraws,
+    weeklySteals: profile.weeklySteals,
+    totalSteals: profile.totalSteals,
+    epicCount: Number(rarityCounts.epic || 0),
+    goldCount: Number(rarityCounts.gold || 0),
+    legendaryCount: Number(rarityCounts.legendary || 0),
     prestige: profile.prestige,
     currentTitleKey: profile.currentTitleKey,
     currentFrameKey: profile.currentFrameKey,
@@ -52,7 +57,21 @@ const getPublicProfileV2 = onCall(async (request) => {
   const targetUid = cleanUid(request.data && request.data.uid, requesterUid);
   const snap = await db.collection('users').doc(targetUid).get();
   if (!snap.exists) throw new HttpsError('not-found', 'Profile not found.');
-  return { profile: publicProfile(targetUid, snap.data()) };
+  const profile = profileFromData(snap.data());
+  const refs = profile.ownedPackIds.map((id) => db.collection('cardsV2').doc(id));
+  const rarityCounts = { epic: 0, gold: 0, legendary: 0 };
+  if (refs.length) {
+    const cards = await db.getAll(...refs);
+    for (const card of cards) {
+      if (!card.exists) continue;
+      const rarity = String(card.data().rarity || 'epic').toLowerCase();
+      const copies = Math.max(1, Number(profile.ownedPackCounts[card.id] || 1) | 0);
+      if (Object.prototype.hasOwnProperty.call(rarityCounts, rarity)) {
+        rarityCounts[rarity] += copies;
+      }
+    }
+  }
+  return { profile: publicProfile(targetUid, snap.data(), rarityCounts) };
 });
 
 const equipPrestigeV2 = onCall(async (request) => {
