@@ -4991,6 +4991,7 @@ class _PublicPlayerProfileDialogState
           ),
         ),
       );
+}
 
 class _RankingCard extends StatelessWidget {
   const _RankingCard({
