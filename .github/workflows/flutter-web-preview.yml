@@ -27,6 +27,9 @@ jobs:
       - name: Run structural production preflight
         run: python3 tool/production_preflight.py
 
+      - name: Run two-phone structural preflight
+        run: python3 tool/two_phone_test_preflight.py
+
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
@@ -107,11 +110,28 @@ jobs:
           echo "$NORMALIZED" | grep -q "c4161ee38919ce66296ca24bc7c15023253ccf63"
           echo "$NORMALIZED" | grep -q "dc176bcf9eff53f0a1b9d9effbf6c125c56345751960f9e8135fa49b63486dd8"
 
+      - name: Write two-phone build info
+        run: |
+          cat > build/TWO_PHONE_TEST_BUILD_INFO.txt <<EOF
+          STEAL THE QUESTIONS — TWO-PHONE TEST BUILD
+          Commit: ${GITHUB_SHA}
+          Firebase project: steal-the-questionssx1
+          Android package: com.STEALTHE.QUESTIONSSX1
+          APK: app-release.apk
+
+          This artifact is ready for two-device install, Google Sign-In, UI, admin, and Spark/demo validation.
+          Live cross-device PvP is NOT claimed until Cloud Functions + Firestore Rules/Indexes are deployed.
+          No production question content was added by this test-readiness phase.
+          See TWO_PHONE_TEST_CHECKLIST.md in the repository.
+          EOF
+
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
           name: steal-the-questions-android-release
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/TWO_PHONE_TEST_BUILD_INFO.txt
           if-no-files-found: error
           retention-days: 14
 
