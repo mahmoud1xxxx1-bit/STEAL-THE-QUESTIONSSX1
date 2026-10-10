@@ -4,6 +4,7 @@ const assert = require('assert');
 const {
   emptyProfileV2,
   normalizeProfileV2,
+  ensureCurrentWeekV2,
   applyDuelResultV2,
   canSaveDeckV2,
   saveDeckV2,
