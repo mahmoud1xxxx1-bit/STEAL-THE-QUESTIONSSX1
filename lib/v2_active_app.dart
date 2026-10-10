@@ -4833,10 +4833,177 @@ class _SocialPrestigeStatsCard extends StatelessWidget {
       );
 }
 
+Future<void> _showPublicPlayerProfile(
+  BuildContext context, {
+  required bool arabic,
+  required String uid,
+}) =>
+    showDialog<void>(
+      context: context,
+      builder: (_) => _PublicPlayerProfileDialog(
+        arabic: arabic,
+        uid: uid,
+      ),
+    );
+
+class _PublicPlayerProfileDialog extends StatefulWidget {
+  const _PublicPlayerProfileDialog({
+    required this.arabic,
+    required this.uid,
+  });
+
+  final bool arabic;
+  final String uid;
+
+  @override
+  State<_PublicPlayerProfileDialog> createState() =>
+      _PublicPlayerProfileDialogState();
+}
+
+class _PublicPlayerProfileDialogState
+    extends State<_PublicPlayerProfileDialog> {
+  late Future<PublicPlayerProfileV2> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = ProfileFeaturesApiV2().loadPublicProfile(uid: widget.uid);
+  }
+
+  @override
+  Widget build(BuildContext context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 430),
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: _cardSurface,
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: FutureBuilder<PublicPlayerProfileV2>(
+            future: _future,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const SizedBox(
+                  height: 180,
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+              if (snapshot.hasError || snapshot.data == null) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.error_outline_rounded, color: _coral),
+                    const SizedBox(height: 10),
+                    Text(
+                      widget.arabic
+                          ? 'تعذر تحميل بروفايل اللاعب.'
+                          : 'Could not load player profile.',
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 12),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text(widget.arabic ? 'إغلاق' : 'Close'),
+                    ),
+                  ],
+                );
+              }
+
+              final p = snapshot.data!;
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      const CircleAvatar(
+                        radius: 26,
+                        backgroundColor: _softPurple,
+                        child: Icon(Icons.person_rounded, color: _purple),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              p.displayName,
+                              style: const TextStyle(
+                                color: _ink,
+                                fontSize: 19,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            if (p.currentTitleKey != null)
+                              Text(
+                                p.currentTitleKey!,
+                                style: const TextStyle(
+                                  color: _purple,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  _StatRow(
+                    label: widget.arabic ? 'إجمالي السرقات' : 'Total steals',
+                    value: '${p.totalSteals}',
+                  ),
+                  _StatRow(
+                    label: widget.arabic ? 'سرقات الأسبوع' : 'Weekly steals',
+                    value: '${p.weeklySteals}',
+                  ),
+                  _StatRow(
+                    label: widget.arabic ? 'فوز / خسارة / تعادل' : 'W / L / D',
+                    value:
+                        '${p.totalWins} / ${p.totalLosses} / ${p.totalDraws}',
+                  ),
+                  const Divider(height: 20),
+                  _StatRow(label: 'Legendary', value: '${p.legendaryCount}'),
+                  _StatRow(label: 'Gold', value: '${p.goldCount}'),
+                  _StatRow(label: 'Epic', value: '${p.epicCount}'),
+                  const Divider(height: 20),
+                  _StatRow(
+                    label: widget.arabic ? 'ميداليات المركز الأول' : '1st medals',
+                    value: '${p.firstPlaces}',
+                  ),
+                  _StatRow(
+                    label: widget.arabic ? 'ميداليات المركز الثاني' : '2nd medals',
+                    value: '${p.secondPlaces}',
+                  ),
+                  _StatRow(
+                    label: widget.arabic ? 'ميداليات المركز الثالث' : '3rd medals',
+                    value: '${p.thirdPlaces}',
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(widget.arabic ? 'إغلاق' : 'Close'),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      );
+
 class _RankingCard extends StatelessWidget {
-  const _RankingCard({required this.arabic, required this.players});
+  const _RankingCard({
+    required this.arabic,
+    required this.players,
+    this.stealFirst = false,
+    this.openProfile,
+  });
+
   final bool arabic;
   final List<WeeklyRankingPlayerV2> players;
+  final bool stealFirst;
+  final ValueChanged<String>? openProfile;
 
   @override
   Widget build(BuildContext context) {
@@ -4875,16 +5042,19 @@ class _RankingCard extends StatelessWidget {
                   : p.rank == 3
                       ? '🥉'
                       : '#${p.rank}';
-          return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-            margin: const EdgeInsets.only(bottom: 5),
-            decoration: BoxDecoration(
-              color: p.rank <= 3
-                  ? _gold.withValues(alpha: .08)
-                  : _page,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Row(
+          return InkWell(
+            onTap: openProfile == null ? null : () => openProfile!(p.uid),
+            borderRadius: BorderRadius.circular(14),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+              margin: const EdgeInsets.only(bottom: 5),
+              decoration: BoxDecoration(
+                color: p.rank <= 3
+                    ? _gold.withValues(alpha: .08)
+                    : _page,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Row(
               children: [
                 SizedBox(
                   width: 36,
@@ -4908,17 +5078,21 @@ class _RankingCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      '${p.weeklyPoints} ${arabic ? 'نقطة' : 'pts'}',
-                      style: const TextStyle(
-                        color: _purple,
+                      stealFirst
+                          ? '${p.weeklySteals} ${arabic ? 'سرقة' : 'steals'}'
+                          : '${p.weeklyPoints} ${arabic ? 'نقطة' : 'pts'}',
+                      style: TextStyle(
+                        color: stealFirst ? _coral : _purple,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${p.weeklySteals} ${arabic ? 'سرقة' : 'steals'}',
-                      style: const TextStyle(
-                        color: _coral,
+                      stealFirst
+                          ? '${p.weeklyPoints} ${arabic ? 'نقطة' : 'pts'}'
+                          : '${p.weeklySteals} ${arabic ? 'سرقة' : 'steals'}',
+                      style: TextStyle(
+                        color: stealFirst ? _purple : _coral,
                         fontSize: 10,
                         fontWeight: FontWeight.w900,
                       ),
@@ -4927,7 +5101,8 @@ class _RankingCard extends StatelessWidget {
                 ),
               ],
             ),
-          );
+          ),
+        );
         }).toList(growable: false),
       ),
     );
