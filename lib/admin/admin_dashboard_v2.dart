@@ -111,6 +111,11 @@ class _AdminDashboardV2State extends State<AdminDashboardV2> {
                             builder: (_) => AdminDuelsPageV2(arabic: arabic),
                           ),
                         ),
+                        openRanking: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => AdminRankingPageV2(arabic: arabic),
+                          ),
+                        ),
                         openSubscriptions: () => Navigator.of(context).push(
                           MaterialPageRoute<void>(
                             builder: (_) =>
@@ -239,6 +244,7 @@ class _SuperAdminNavigation extends StatelessWidget {
     required this.arabic,
     required this.openPlayers,
     required this.openDuels,
+    required this.openRanking,
     required this.openSubscriptions,
     required this.openAudit,
   });
@@ -246,6 +252,7 @@ class _SuperAdminNavigation extends StatelessWidget {
   final bool arabic;
   final VoidCallback openPlayers;
   final VoidCallback openDuels;
+  final VoidCallback openRanking;
   final VoidCallback openSubscriptions;
   final VoidCallback openAudit;
 
@@ -269,6 +276,12 @@ class _SuperAdminNavigation extends StatelessWidget {
             title: arabic ? 'المواجهات' : 'Duels',
             subtitle: arabic ? 'مراقبة وحل العالق' : 'Monitor & recover',
             onTap: openDuels,
+          ),
+          _AdminNavTile(
+            icon: Icons.leaderboard_rounded,
+            title: arabic ? 'الترتيب' : 'Ranking',
+            subtitle: arabic ? 'النقاط والسمعة' : 'Points & reputation',
+            onTap: openRanking,
           ),
           _AdminNavTile(
             icon: Icons.workspace_premium_rounded,
