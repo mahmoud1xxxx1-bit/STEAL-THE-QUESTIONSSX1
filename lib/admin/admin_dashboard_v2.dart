@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../game/core_engine_v2.dart';
+import 'admin_api_v2.dart';
 import 'admin_content_v2.dart';
+import 'admin_super_pages_v2.dart';
 
 class AdminDashboardV2 extends StatefulWidget {
   const AdminDashboardV2({super.key, required this.arabic});
@@ -14,9 +16,11 @@ class AdminDashboardV2 extends StatefulWidget {
 
 class _AdminDashboardV2State extends State<AdminDashboardV2> {
   final _repo = AdminContentRepositoryV2();
+  final _adminApi = AdminApiV2();
   bool _loading = true;
   String? _error;
   List<AdminCardV2> _cards = const [];
+  AdminOverviewV2? _overview;
 
   @override
   void initState() {
@@ -30,9 +34,15 @@ class _AdminDashboardV2State extends State<AdminDashboardV2> {
       _error = null;
     });
     try {
-      final cards = await _repo.loadCards();
+      final results = await Future.wait<dynamic>([
+        _repo.loadCards(),
+        _adminApi.loadOverview(),
+      ]);
       if (!mounted) return;
-      setState(() => _cards = cards);
+      setState(() {
+        _cards = results[0] as List<AdminCardV2>;
+        _overview = results[1] as AdminOverviewV2;
+      });
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = e.toString());
@@ -63,7 +73,7 @@ class _AdminDashboardV2State extends State<AdminDashboardV2> {
       child: Scaffold(
         backgroundColor: const Color(0xFFF7F4FF),
         appBar: AppBar(
-          title: Text(arabic ? 'إدارة المحتوى' : 'Content admin'),
+          title: Text(arabic ? 'لوحة الإدارة الكاملة' : 'Super Admin'),
           actions: [
             IconButton(
               onPressed: _load,
@@ -83,8 +93,45 @@ class _AdminDashboardV2State extends State<AdminDashboardV2> {
                 : ListView(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
                     children: [
-                      _AdminHero(arabic: arabic, cards: _cards),
+                      _AdminHero(
+                        arabic: arabic,
+                        cards: _cards,
+                        overview: _overview,
+                      ),
                       const SizedBox(height: 16),
+                      _SuperAdminNavigation(
+                        arabic: arabic,
+                        openPlayers: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => AdminPlayersPageV2(arabic: arabic),
+                          ),
+                        ),
+                        openDuels: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => AdminDuelsPageV2(arabic: arabic),
+                          ),
+                        ),
+                        openSubscriptions: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) =>
+                                AdminSubscriptionsPageV2(arabic: arabic),
+                          ),
+                        ),
+                        openAudit: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => AdminAuditPageV2(arabic: arabic),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      Text(
+                        arabic ? 'المحتوى والمخزون' : 'Content & inventory',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
                       ..._cards.map(
                         (card) => Padding(
                           padding: const EdgeInsets.only(bottom: 12),
@@ -111,10 +158,15 @@ class _AdminDashboardV2State extends State<AdminDashboardV2> {
 }
 
 class _AdminHero extends StatelessWidget {
-  const _AdminHero({required this.arabic, required this.cards});
+  const _AdminHero({
+    required this.arabic,
+    required this.cards,
+    required this.overview,
+  });
 
   final bool arabic;
   final List<AdminCardV2> cards;
+  final AdminOverviewV2? overview;
 
   @override
   Widget build(BuildContext context) {
@@ -133,7 +185,7 @@ class _AdminHero extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            arabic ? 'لوحة إدارة البطاقات' : 'Card control center',
+            arabic ? 'مركز التحكم' : 'Control center',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 21,
@@ -143,8 +195,8 @@ class _AdminHero extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             arabic
-                ? 'زد البطاقات والأسئلة مستقبلًا بدون تحديث التطبيق.'
-                : 'Grow cards and questions later without an app update.',
+                ? 'إدارة المحتوى واللاعبين والمواجهات والاشتراكات من مكان واحد.'
+                : 'Manage content, players, duels, and subscriptions in one place.',
             style: const TextStyle(
               color: Colors.white70,
               fontWeight: FontWeight.w700,
@@ -155,11 +207,24 @@ class _AdminHero extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
+              _CountChip(
+                label: arabic ? 'Players' : 'Players',
+                value: overview?.users ?? 0,
+              ),
+              _CountChip(
+                label: arabic ? 'Duels' : 'Duels',
+                value: overview?.activeDuels ?? 0,
+              ),
+              _CountChip(
+                label: arabic ? 'Subs' : 'Subs',
+                value: overview?.activeSubscriptions ?? 0,
+              ),
               _CountChip(label: 'Epic', value: count(CardRarityV2.epic)),
               _CountChip(label: 'Gold', value: count(CardRarityV2.gold)),
               _CountChip(
                 label: 'Legendary',
-                value: count(CardRarityV2.legendary),
+                value: overview?.legendaryCards ??
+                    count(CardRarityV2.legendary),
               ),
             ],
           ),
@@ -167,6 +232,124 @@ class _AdminHero extends StatelessWidget {
       ),
     );
   }
+}
+
+class _SuperAdminNavigation extends StatelessWidget {
+  const _SuperAdminNavigation({
+    required this.arabic,
+    required this.openPlayers,
+    required this.openDuels,
+    required this.openSubscriptions,
+    required this.openAudit,
+  });
+
+  final bool arabic;
+  final VoidCallback openPlayers;
+  final VoidCallback openDuels;
+  final VoidCallback openSubscriptions;
+  final VoidCallback openAudit;
+
+  @override
+  Widget build(BuildContext context) => GridView.count(
+        crossAxisCount: 2,
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        childAspectRatio: 1.8,
+        children: [
+          _AdminNavTile(
+            icon: Icons.groups_rounded,
+            title: arabic ? 'اللاعبون' : 'Players',
+            subtitle: arabic ? 'نقاط وسرقات ودعم' : 'Stats & support',
+            onTap: openPlayers,
+          ),
+          _AdminNavTile(
+            icon: Icons.sports_esports_rounded,
+            title: arabic ? 'المواجهات' : 'Duels',
+            subtitle: arabic ? 'مراقبة وحل العالق' : 'Monitor & recover',
+            onTap: openDuels,
+          ),
+          _AdminNavTile(
+            icon: Icons.workspace_premium_rounded,
+            title: arabic ? 'الاشتراكات' : 'Subscriptions',
+            subtitle: arabic ? 'حالة التحقق' : 'Verification state',
+            onTap: openSubscriptions,
+          ),
+          _AdminNavTile(
+            icon: Icons.fact_check_rounded,
+            title: arabic ? 'سجل الإدارة' : 'Audit log',
+            subtitle: arabic ? 'كل تعديل حساس' : 'Every sensitive change',
+            onTap: openAudit,
+          ),
+        ],
+      );
+}
+
+class _AdminNavTile extends StatelessWidget {
+  const _AdminNavTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Ink(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFE7E0FF)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEDE7FF),
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: Icon(icon, color: const Color(0xFF5A3ACB)),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.black54,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
 }
 
 class _CountChip extends StatelessWidget {
