@@ -74,6 +74,54 @@ const getPublicProfileV2 = onCall(async (request) => {
   return { profile: publicProfile(targetUid, snap.data(), rarityCounts) };
 });
 
+
+const getHallOfLegendsV2 = onCall(async (request) => {
+  authUid(request);
+  const cardSnaps = await db.collection('cardsV2')
+    .where('rarity', '==', 'legendary')
+    .get();
+
+  const cards = [];
+  for (const cardSnap of cardSnaps.docs) {
+    const cardData = cardSnap.data();
+    if (cardData.enabled === false) continue;
+
+    const holderSnaps = await db.collection('users')
+      .where('profileV2.ownedPackIds', 'array-contains', cardSnap.id)
+      .get();
+
+    const holders = [];
+    let ownedCopies = 0;
+    for (const holderSnap of holderSnaps.docs) {
+      const holderData = holderSnap.data();
+      const profile = profileFromData(holderData);
+      const copies = Math.max(1, Number(profile.ownedPackCounts[cardSnap.id] || 1) | 0);
+      ownedCopies += copies;
+      holders.push({
+        displayName: holderData.displayName || 'PLAYER',
+        copies,
+      });
+    }
+    holders.sort((a, b) =>
+      b.copies - a.copies || String(a.displayName).localeCompare(String(b.displayName)));
+
+    const availableCopies = Math.max(0, Number(cardData.availableCopies || 0) | 0);
+    cards.push({
+      cardId: cardSnap.id,
+      titleAr: String(cardData.titleAr || cardSnap.id),
+      titleEn: String(cardData.titleEn || cardSnap.id),
+      availableCopies,
+      ownedCopies,
+      totalCopies: availableCopies + ownedCopies,
+      holders,
+    });
+  }
+
+  cards.sort((a, b) =>
+    b.ownedCopies - a.ownedCopies || String(a.cardId).localeCompare(String(b.cardId)));
+  return { cards };
+});
+
 const equipPrestigeV2 = onCall(async (request) => {
   const uid = authUid(request);
   const titleKey = request.data && request.data.titleKey != null
@@ -171,6 +219,7 @@ const getSubscriptionStatusV2 = onCall(async (request) => {
 
 module.exports = {
   getPublicProfileV2,
+  getHallOfLegendsV2,
   equipPrestigeV2,
   refreshSubscriptionV2,
   getSubscriptionStatusV2,
