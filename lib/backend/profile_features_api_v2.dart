@@ -10,6 +10,11 @@ class PublicPlayerProfileV2 {
     required this.totalWins,
     required this.totalLosses,
     required this.totalDraws,
+    required this.weeklySteals,
+    required this.totalSteals,
+    required this.epicCount,
+    required this.goldCount,
+    required this.legendaryCount,
     required this.firstPlaces,
     required this.secondPlaces,
     required this.thirdPlaces,
@@ -25,6 +30,11 @@ class PublicPlayerProfileV2 {
   final int totalWins;
   final int totalLosses;
   final int totalDraws;
+  final int weeklySteals;
+  final int totalSteals;
+  final int epicCount;
+  final int goldCount;
+  final int legendaryCount;
   final int firstPlaces;
   final int secondPlaces;
   final int thirdPlaces;
@@ -44,6 +54,11 @@ class PublicPlayerProfileV2 {
       totalWins: (data['totalWins'] as num?)?.toInt() ?? 0,
       totalLosses: (data['totalLosses'] as num?)?.toInt() ?? 0,
       totalDraws: (data['totalDraws'] as num?)?.toInt() ?? 0,
+      weeklySteals: (data['weeklySteals'] as num?)?.toInt() ?? 0,
+      totalSteals: (data['totalSteals'] as num?)?.toInt() ?? 0,
+      epicCount: (data['epicCount'] as num?)?.toInt() ?? 0,
+      goldCount: (data['goldCount'] as num?)?.toInt() ?? 0,
+      legendaryCount: (data['legendaryCount'] as num?)?.toInt() ?? 0,
       firstPlaces: (prestige['first'] as num?)?.toInt() ?? 0,
       secondPlaces: (prestige['second'] as num?)?.toInt() ?? 0,
       thirdPlaces: (prestige['third'] as num?)?.toInt() ?? 0,
