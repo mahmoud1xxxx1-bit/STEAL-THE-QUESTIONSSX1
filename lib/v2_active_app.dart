@@ -1985,6 +1985,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
       _ProfileV2(
         arabic: _arabic,
         profile: profile,
+        cardMeta: _cardMeta,
         ranking: _ranking,
         subscription: _subscription,
         busy: _busy,
@@ -2270,6 +2271,7 @@ class _CardsV2 extends StatelessWidget {
                       color: color,
                       rarity: rarity,
                       count: profile.ownedPackCounts[id] ?? 1,
+                      lastUsedAtMs: profile.packLastPvpUsedAtMs[id],
                       arabic: arabic,
                     ),
                   );
@@ -2461,6 +2463,7 @@ class _ProfileV2 extends StatelessWidget {
   const _ProfileV2({
     required this.arabic,
     required this.profile,
+    required this.cardMeta,
     required this.ranking,
     required this.subscription,
     required this.busy,
@@ -2478,6 +2481,7 @@ class _ProfileV2 extends StatelessWidget {
 
   final bool arabic;
   final PlayerProfileV2 profile;
+  final Map<String, CardSummaryV2> cardMeta;
   final WeeklyRankingV2? ranking;
   final SubscriptionStatusV2? subscription;
   final bool busy;
@@ -2495,6 +2499,17 @@ class _ProfileV2 extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final total = profile.totalWins + profile.totalLosses + profile.totalDraws;
+    int rarityCopies(CardRarityV2 rarity) => profile.ownedPackIds.fold<int>(
+          0,
+          (sum, id) =>
+              sum +
+              ((cardMeta[id]?.rarity ?? CardRarityV2.epic) == rarity
+                  ? (profile.ownedPackCounts[id] ?? 1)
+                  : 0),
+        );
+    final epicCopies = rarityCopies(CardRarityV2.epic);
+    final goldCopies = rarityCopies(CardRarityV2.gold);
+    final legendaryCopies = rarityCopies(CardRarityV2.legendary);
     final top = ranking?.players.take(10).toList(growable: false) ??
         const <WeeklyRankingPlayerV2>[];
 
@@ -2537,6 +2552,15 @@ class _ProfileV2 extends StatelessWidget {
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 18),
+        _SocialPrestigeStatsCard(
+          arabic: arabic,
+          totalSteals: profile.totalSteals,
+          weeklySteals: profile.weeklySteals,
+          epic: epicCopies,
+          gold: goldCopies,
+          legendary: legendaryCopies,
         ),
         const SizedBox(height: 18),
         _PrestigeCard(
@@ -2992,7 +3016,9 @@ class _PodiumPlayer extends StatelessWidget {
           ),
           const SizedBox(height: 3),
           Text(
-            player == null ? '—' : '${player!.weeklyPoints}',
+            player == null
+                ? '—'
+                : '${player!.weeklyPoints} • ${player!.weeklySteals}×',
             style: const TextStyle(
               color: _gold,
               fontSize: 10,
@@ -4351,6 +4377,60 @@ class _IdentityEquipRow extends StatelessWidget {
       );
 }
 
+class _SocialPrestigeStatsCard extends StatelessWidget {
+  const _SocialPrestigeStatsCard({
+    required this.arabic,
+    required this.totalSteals,
+    required this.weeklySteals,
+    required this.epic,
+    required this.gold,
+    required this.legendary,
+  });
+
+  final bool arabic;
+  final int totalSteals;
+  final int weeklySteals;
+  final int epic;
+  final int gold;
+  final int legendary;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: _cardSurface,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: _softPurple),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              arabic ? 'سمعتك ومجموعتك' : 'Reputation & collection',
+              style: const TextStyle(
+                color: _ink,
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 8),
+            _StatRow(
+              label: arabic ? 'إجمالي البطاقات المسروقة' : 'Total cards stolen',
+              value: '$totalSteals',
+            ),
+            _StatRow(
+              label: arabic ? 'سرقات هذا الأسبوع' : 'Steals this week',
+              value: '$weeklySteals',
+            ),
+            const Divider(height: 18),
+            _StatRow(label: 'Legendary', value: '$legendary'),
+            _StatRow(label: 'Gold', value: '$gold'),
+            _StatRow(label: 'Epic', value: '$epic'),
+          ],
+        ),
+      );
+}
+
 class _RankingCard extends StatelessWidget {
   const _RankingCard({required this.arabic, required this.players});
   final bool arabic;
@@ -4422,12 +4502,26 @@ class _RankingCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                Text(
-                  '${p.weeklyPoints}',
-                  style: const TextStyle(
-                    color: _purple,
-                    fontWeight: FontWeight.w900,
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '${p.weeklyPoints} ${arabic ? 'نقطة' : 'pts'}',
+                      style: const TextStyle(
+                        color: _purple,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${p.weeklySteals} ${arabic ? 'سرقة' : 'steals'}',
+                      style: const TextStyle(
+                        color: _coral,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -4953,6 +5047,7 @@ class _OwnedCardTile extends StatelessWidget {
     required this.color,
     required this.rarity,
     required this.count,
+    required this.lastUsedAtMs,
     required this.arabic,
   });
 
@@ -4960,14 +5055,20 @@ class _OwnedCardTile extends StatelessWidget {
   final Color color;
   final CardRarityV2 rarity;
   final int count;
+  final int? lastUsedAtMs;
   final bool arabic;
 
   @override
   Widget build(BuildContext context) {
     final rarityAccent = _rarityAccent(rarity);
     final rarityDark = _rarityDark(rarity);
+    final lifecycleLabel = _rarityLifecycleLabel(
+      arabic: arabic,
+      rarity: rarity,
+      lastUsedAtMs: lastUsedAtMs,
+    );
     return Container(
-        height: 202,
+        height: 220,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
@@ -5077,6 +5178,19 @@ class _OwnedCardTile extends StatelessWidget {
                       fontWeight: FontWeight.w900,
                     ),
                   ),
+                  const SizedBox(height: 5),
+                  Text(
+                    lifecycleLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: rarity == CardRarityV2.epic
+                          ? Colors.white.withValues(alpha: .72)
+                          : rarityAccent,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -5084,6 +5198,36 @@ class _OwnedCardTile extends StatelessWidget {
         ),
       );
   }
+}
+
+String _rarityLifecycleLabel({
+  required bool arabic,
+  required CardRarityV2 rarity,
+  required int? lastUsedAtMs,
+}) {
+  if (rarity == CardRarityV2.epic) {
+    return arabic ? 'دائمة • لا تنتهي' : 'Permanent • never expires';
+  }
+  if (lastUsedAtMs == null || lastUsedAtMs <= 0) {
+    return arabic
+        ? 'يبدأ عداد الحماية عند المزامنة'
+        : 'Protection timer starts on sync';
+  }
+  final lifetime = rarity == CardRarityV2.legendary
+      ? const Duration(days: 7)
+      : const Duration(days: 12);
+  final elapsed = Duration(
+    milliseconds: DateTime.now().millisecondsSinceEpoch - lastUsedAtMs,
+  );
+  final remaining = lifetime - elapsed;
+  if (remaining <= Duration.zero) {
+    return arabic ? 'بانتظار الرجوع للمخزون' : 'Pending inventory return';
+  }
+  final days = remaining.inDays;
+  final hours = remaining.inHours.remainder(24);
+  return arabic
+      ? 'متبقي $days يوم و$hours ساعة • العب بها للحفاظ عليها'
+      : '$days d $hours h left • use it in PvP to keep it';
 }
 
 Color _rarityAccent(CardRarityV2 rarity) => switch (rarity) {
