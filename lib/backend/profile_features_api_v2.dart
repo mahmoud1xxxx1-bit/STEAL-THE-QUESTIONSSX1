@@ -76,15 +76,18 @@ class PublicPlayerProfileV2 {
 
 class LegendaryHolderV2 {
   const LegendaryHolderV2({
+    required this.uid,
     required this.displayName,
     required this.copies,
   });
 
+  final String uid;
   final String displayName;
   final int copies;
 
   factory LegendaryHolderV2.fromMap(Map<String, dynamic> data) =>
       LegendaryHolderV2(
+        uid: data['uid'] as String? ?? '',
         displayName: data['displayName'] as String? ?? 'PLAYER',
         copies: (data['copies'] as num?)?.toInt() ?? 0,
       );
