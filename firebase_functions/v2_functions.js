@@ -293,6 +293,8 @@ const confirmStealV2 = onCall(async (request) => {
 
     const nextWinner = sanitizeDecksAfterOwnershipChange({
       ...winner,
+      weeklySteals: winner.weeklySteals + 1,
+      totalSteals: winner.totalSteals + 1,
       ownedPackIds: transfer.winnerOwnedPackIds,
       ownedPackCounts: transfer.winnerOwnedPackCounts,
       packLastPvpUsedAtMs: {
