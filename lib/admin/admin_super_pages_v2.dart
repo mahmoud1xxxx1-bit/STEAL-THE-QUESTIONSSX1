@@ -100,6 +100,54 @@ class _AdminPlayersPageV2State extends State<AdminPlayersPageV2> {
   }
 
 
+
+  Future<void> _showInventory(AdminPlayerRowV2 player) async {
+    final entries = player.ownedPackCounts.entries.toList()
+      ..sort((a, b) {
+        final byCopies = b.value.compareTo(a.value);
+        if (byCopies != 0) return byCopies;
+        return a.key.compareTo(b.key);
+      });
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          widget.arabic
+              ? 'بطاقات ${player.displayName}'
+              : '${player.displayName} cards',
+        ),
+        content: SizedBox(
+          width: 420,
+          child: entries.isEmpty
+              ? Text(widget.arabic ? 'لا يملك بطاقات.' : 'No owned cards.')
+              : ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: entries.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (_, index) {
+                    final item = entries[index];
+                    return ListTile(
+                      dense: true,
+                      leading: const Icon(Icons.style_rounded),
+                      title: Text(item.key),
+                      trailing: Text(
+                        '×${item.value}',
+                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                    );
+                  },
+                ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(widget.arabic ? 'إغلاق' : 'Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _toggleSuspension(AdminPlayerRowV2 player) async {
     if (player.suspended) {
       final ok = await showDialog<bool>(
@@ -223,6 +271,8 @@ class _AdminPlayersPageV2State extends State<AdminPlayersPageV2> {
                               onSelected: (value) {
                                 if (value == 'edit') {
                                   _edit(p);
+                                } else if (value == 'inventory') {
+                                  _showInventory(p);
                                 } else if (value == 'suspend') {
                                   _toggleSuspension(p);
                                 }
@@ -234,6 +284,14 @@ class _AdminPlayersPageV2State extends State<AdminPlayersPageV2> {
                                     widget.arabic
                                         ? 'تعديل الإحصائيات'
                                         : 'Edit stats',
+                                  ),
+                                ),
+                                PopupMenuItem(
+                                  value: 'inventory',
+                                  child: Text(
+                                    widget.arabic
+                                        ? 'عرض البطاقات'
+                                        : 'View cards',
                                   ),
                                 ),
                                 PopupMenuItem(
