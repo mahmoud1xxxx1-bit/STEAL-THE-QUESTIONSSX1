@@ -2579,6 +2579,8 @@ class _ProfileV2 extends StatelessWidget {
           onEquip: busy ? null : equipPrestige,
         ),
         const SizedBox(height: 18),
+        _HallOfLegendsSection(arabic: arabic),
+        const SizedBox(height: 18),
         _SectionRow(
           title: arabic ? 'الترتيب الأسبوعي' : 'Weekly ranking',
           action: ranking?.weekKey,
@@ -2908,6 +2910,336 @@ class _VersusMark extends StatelessWidget {
           ),
           Expanded(child: Divider(color: _purple.withValues(alpha: .18))),
         ],
+      );
+}
+
+class _HallOfLegendsSection extends StatefulWidget {
+  const _HallOfLegendsSection({required this.arabic});
+
+  final bool arabic;
+
+  @override
+  State<_HallOfLegendsSection> createState() => _HallOfLegendsSectionState();
+}
+
+class _HallOfLegendsSectionState extends State<_HallOfLegendsSection> {
+  late Future<HallOfLegendsV2> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = ProfileFeaturesApiV2().loadHallOfLegends();
+  }
+
+  void _reload() {
+    setState(() {
+      _future = ProfileFeaturesApiV2().loadHallOfLegends();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<HallOfLegendsV2>(
+        future: _future,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF241638), Color(0xFF4B245C)],
+                ),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.auto_awesome_rounded, color: _gold),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      widget.arabic
+                          ? 'جاري تحميل خزنة الأساطير...'
+                          : 'Loading Hall of Legends...',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          if (snapshot.hasError) {
+            return Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: _cardSurface,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: _softPurple),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.error_outline_rounded, color: _coral),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      widget.arabic
+                          ? 'تعذر تحميل خزنة الأساطير.'
+                          : 'Could not load Hall of Legends.',
+                      style: const TextStyle(
+                        color: _ink,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: _reload,
+                    icon: const Icon(Icons.refresh_rounded),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          final cards = snapshot.data?.cards ?? const <LegendaryCardStatusV2>[];
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF1F1432), Color(0xFF5C2446)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(26),
+              border: Border.all(
+                color: const Color(0xFFFF7348).withValues(alpha: .65),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.auto_awesome_rounded, color: _gold),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        widget.arabic ? 'خزنة الأساطير' : 'Hall of Legends',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      widget.arabic
+                          ? '${cards.length} بطاقة'
+                          : '${cards.length} cards',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: .72),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  widget.arabic
+                      ? 'شاهد أين توجد بطاقات Legendary ومن يحملها الآن.'
+                      : 'See where Legendary cards are and who holds them now.',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: .72),
+                    fontSize: 11,
+                    height: 1.4,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                if (cards.isEmpty)
+                  Text(
+                    widget.arabic
+                        ? 'لا توجد بطاقات Legendary مفعلة حاليًا.'
+                        : 'No active Legendary cards yet.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: .72),
+                      fontWeight: FontWeight.w800,
+                    ),
+                  )
+                else
+                  ...cards.map(
+                    (card) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _LegendaryVaultCard(
+                        arabic: widget.arabic,
+                        card: card,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          );
+        },
+      );
+}
+
+class _LegendaryVaultCard extends StatelessWidget {
+  const _LegendaryVaultCard({
+    required this.arabic,
+    required this.card,
+  });
+
+  final bool arabic;
+  final LegendaryCardStatusV2 card;
+
+  @override
+  Widget build(BuildContext context) {
+    final title = arabic
+        ? (card.titleAr.isNotEmpty ? card.titleAr : card.cardId)
+        : (card.titleEn.isNotEmpty ? card.titleEn : card.cardId);
+    return Container(
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: .08),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: const Color(0xFFFF7348).withValues(alpha: .28),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.workspace_premium_rounded,
+                color: Color(0xFFFF8C5A),
+                size: 21,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              Text(
+                '×${card.totalCopies}',
+                style: const TextStyle(
+                  color: _gold,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 9),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              _LegendaryVaultPill(
+                label: arabic ? 'المخزون/البوت' : 'Inventory/Bot',
+                value: card.availableCopies,
+              ),
+              _LegendaryVaultPill(
+                label: arabic ? 'مع اللاعبين' : 'With players',
+                value: card.ownedCopies,
+              ),
+              _LegendaryVaultPill(
+                label: arabic ? 'الإجمالي' : 'Total',
+                value: card.totalCopies,
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            arabic ? 'الحاملون الآن' : 'Current holders',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: .68),
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 5),
+          if (card.holders.isEmpty)
+            Text(
+              arabic ? 'لا أحد يحملها الآن.' : 'No player holds it right now.',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: .58),
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+              ),
+            )
+          else
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: card.holders
+                  .map(
+                    (holder) => Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: .1),
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                      child: Text(
+                        '${holder.displayName} ×${holder.copies}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(growable: false),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LegendaryVaultPill extends StatelessWidget {
+  const _LegendaryVaultPill({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final int value;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: .1),
+          borderRadius: BorderRadius.circular(99),
+        ),
+        child: Text(
+          '$label: $value',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 9,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
       );
 }
 
