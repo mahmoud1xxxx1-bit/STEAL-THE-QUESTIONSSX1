@@ -74,6 +74,65 @@ class PublicPlayerProfileV2 {
   }
 }
 
+class LegendaryHolderV2 {
+  const LegendaryHolderV2({
+    required this.displayName,
+    required this.copies,
+  });
+
+  final String displayName;
+  final int copies;
+
+  factory LegendaryHolderV2.fromMap(Map<String, dynamic> data) =>
+      LegendaryHolderV2(
+        displayName: data['displayName'] as String? ?? 'PLAYER',
+        copies: (data['copies'] as num?)?.toInt() ?? 0,
+      );
+}
+
+class LegendaryCardStatusV2 {
+  const LegendaryCardStatusV2({
+    required this.cardId,
+    required this.titleAr,
+    required this.titleEn,
+    required this.availableCopies,
+    required this.ownedCopies,
+    required this.totalCopies,
+    required this.holders,
+  });
+
+  final String cardId;
+  final String titleAr;
+  final String titleEn;
+  final int availableCopies;
+  final int ownedCopies;
+  final int totalCopies;
+  final List<LegendaryHolderV2> holders;
+
+  factory LegendaryCardStatusV2.fromMap(Map<String, dynamic> data) {
+    final rawHolders = data['holders'] as List? ?? const <dynamic>[];
+    return LegendaryCardStatusV2(
+      cardId: data['cardId'] as String? ?? '',
+      titleAr: data['titleAr'] as String? ?? '',
+      titleEn: data['titleEn'] as String? ?? '',
+      availableCopies: (data['availableCopies'] as num?)?.toInt() ?? 0,
+      ownedCopies: (data['ownedCopies'] as num?)?.toInt() ?? 0,
+      totalCopies: (data['totalCopies'] as num?)?.toInt() ?? 0,
+      holders: rawHolders
+          .whereType<Map>()
+          .map((item) => LegendaryHolderV2.fromMap(
+                Map<String, dynamic>.from(item),
+              ))
+          .toList(growable: false),
+    );
+  }
+}
+
+class HallOfLegendsV2 {
+  const HallOfLegendsV2({required this.cards});
+  final List<LegendaryCardStatusV2> cards;
+}
+
 class SubscriptionStatusV2 {
   const SubscriptionStatusV2({
     required this.active,
@@ -113,6 +172,21 @@ class ProfileFeaturesApiV2 {
     }
     return PublicPlayerProfileV2.fromMap(
       Map<String, dynamic>.from(profileRaw),
+    );
+  }
+
+  Future<HallOfLegendsV2> loadHallOfLegends() async {
+    final response =
+        await _functions.httpsCallable('getHallOfLegendsV2').call();
+    final raw = _map(response.data, 'Invalid Hall of Legends response.');
+    final cardsRaw = raw['cards'] as List? ?? const <dynamic>[];
+    return HallOfLegendsV2(
+      cards: cardsRaw
+          .whereType<Map>()
+          .map((item) => LegendaryCardStatusV2.fromMap(
+                Map<String, dynamic>.from(item),
+              ))
+          .toList(growable: false),
     );
   }
 
