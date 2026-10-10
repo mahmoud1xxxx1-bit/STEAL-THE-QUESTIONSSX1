@@ -276,11 +276,15 @@ void main() {
     expect(server, contains('availableCopies'));
     expect(server, contains('ownedCopies'));
     expect(server, contains('totalCopies'));
+    expect(server, contains('uid: holderSnap.id'));
     expect(server, contains("displayName: holderData.displayName || 'PLAYER'"));
     expect(server, isNot(contains('email: holderData.email')));
     expect(api, contains('class HallOfLegendsV2'));
+    expect(api, contains('final String uid;'));
     expect(api, contains("httpsCallable('getHallOfLegendsV2')"));
     expect(app, contains('خزنة الأساطير'));
+    expect(app, contains('holder.uid'));
+    expect(app, contains('_showPublicPlayerProfile'));
     expect(app, contains('المخزون/البوت'));
     expect(app, contains('الحاملون الآن'));
   });

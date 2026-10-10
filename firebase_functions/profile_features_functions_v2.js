@@ -98,6 +98,7 @@ const getHallOfLegendsV2 = onCall(async (request) => {
       const copies = Math.max(1, Number(profile.ownedPackCounts[cardSnap.id] || 1) | 0);
       ownedCopies += copies;
       holders.push({
+        uid: holderSnap.id,
         displayName: holderData.displayName || 'PLAYER',
         copies,
       });
