@@ -23,6 +23,8 @@ const syncWeeklyRankingV2 = onDocumentWritten('users/{uid}', async (event) => {
     weeklyWins: profile.weeklyWins,
     weeklyLosses: profile.weeklyLosses,
     weeklyDraws: profile.weeklyDraws,
+    weeklySteals: profile.weeklySteals,
+    totalSteals: profile.totalSteals,
     currentTitleKey: profile.currentTitleKey,
     currentFrameKey: profile.currentFrameKey,
     updatedAt: Timestamp.now(),
