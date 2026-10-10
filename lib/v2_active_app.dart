@@ -40,6 +40,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
   OnlinePlayerSessionV2? _session;
   PlayerProfileV2? _profile;
   WeeklyRankingV2? _ranking;
+  WeeklyRankingV2? _stealRanking;
   SubscriptionStatusV2? _subscription;
   BotStatusV2? _botStatus;
   MatchmakingStatusV2? _matchmaking;
@@ -170,6 +171,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
           _session = null;
           _profile = null;
           _ranking = null;
+          _stealRanking = null;
           _subscription = null;
           _botStatus = null;
           _matchmaking = null;
@@ -228,6 +230,35 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
     return WeeklyRankingV2(weekKey: profile.weekKey, players: rows);
   }
 
+  WeeklyRankingV2 _sparkTestStealRanking(PlayerProfileV2 profile) {
+    final base = _sparkTestRanking(profile);
+    final sorted = base.players.toList(growable: false)
+      ..sort((a, b) {
+        final steals = b.weeklySteals.compareTo(a.weeklySteals);
+        if (steals != 0) return steals;
+        final points = b.weeklyPoints.compareTo(a.weeklyPoints);
+        if (points != 0) return points;
+        return a.uid.compareTo(b.uid);
+      });
+    final players = <WeeklyRankingPlayerV2>[
+      for (var index = 0; index < sorted.length; index++)
+        WeeklyRankingPlayerV2(
+          rank: index + 1,
+          uid: sorted[index].uid,
+          displayName: sorted[index].displayName,
+          weeklyPoints: sorted[index].weeklyPoints,
+          weeklyWins: sorted[index].weeklyWins,
+          weeklyLosses: sorted[index].weeklyLosses,
+          weeklyDraws: sorted[index].weeklyDraws,
+          weeklySteals: sorted[index].weeklySteals,
+          totalSteals: sorted[index].totalSteals,
+          currentTitleKey: sorted[index].currentTitleKey,
+          currentFrameKey: sorted[index].currentFrameKey,
+        ),
+    ];
+    return WeeklyRankingV2(weekKey: base.weekKey, players: players);
+  }
+
   SubscriptionStatusV2 _sparkTestSubscription(PlayerProfileV2 profile) =>
       SubscriptionStatusV2(
         active: profile.subscriptionActive,
@@ -243,6 +274,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
   void _syncSparkTestPanels(PlayerProfileV2 profile) {
     if (!_demoMode) return;
     _ranking = _sparkTestRanking(profile);
+    _stealRanking = _sparkTestStealRanking(profile);
     _subscription = _sparkTestSubscription(profile);
     _botStatus = BotStatusV2(
       botUnlocked: profile.ownedCount < kDeckSizeV2,
@@ -372,6 +404,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
     try {
       final values = await Future.wait<dynamic>([
         session.weeklyRanking(),
+        session.weeklyStealRanking(),
         session.subscriptionStatus(),
         session.botStatus(),
         session.matchStatus(),
@@ -379,9 +412,10 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
       if (!mounted) return;
       setState(() {
         _ranking = values[0] as WeeklyRankingV2;
-        _subscription = values[1] as SubscriptionStatusV2;
-        _botStatus = values[2] as BotStatusV2;
-        _matchmaking = values[3] as MatchmakingStatusV2;
+        _stealRanking = values[1] as WeeklyRankingV2;
+        _subscription = values[2] as SubscriptionStatusV2;
+        _botStatus = values[3] as BotStatusV2;
+        _matchmaking = values[4] as MatchmakingStatusV2;
       });
     } catch (_) {
       // The cached profile remains usable while a secondary panel refresh fails.
@@ -1993,6 +2027,7 @@ class _StealQuestionsV2AppState extends State<StealQuestionsV2App> {
         profile: profile,
         cardMeta: _cardMeta,
         ranking: _ranking,
+        stealRanking: _stealRanking,
         subscription: _subscription,
         busy: _busy,
         refresh: _refreshProfile,
@@ -2471,6 +2506,7 @@ class _ProfileV2 extends StatelessWidget {
     required this.profile,
     required this.cardMeta,
     required this.ranking,
+    required this.stealRanking,
     required this.subscription,
     required this.busy,
     required this.refresh,
@@ -2489,6 +2525,7 @@ class _ProfileV2 extends StatelessWidget {
   final PlayerProfileV2 profile;
   final Map<String, CardSummaryV2> cardMeta;
   final WeeklyRankingV2? ranking;
+  final WeeklyRankingV2? stealRanking;
   final SubscriptionStatusV2? subscription;
   final bool busy;
   final VoidCallback refresh;
@@ -2518,6 +2555,9 @@ class _ProfileV2 extends StatelessWidget {
     final legendaryCopies = rarityCopies(CardRarityV2.legendary);
     final top = ranking?.players.take(10).toList(growable: false) ??
         const <WeeklyRankingPlayerV2>[];
+    final stealTop =
+        stealRanking?.players.take(10).toList(growable: false) ??
+            const <WeeklyRankingPlayerV2>[];
 
     return _Scroll(
       children: [
@@ -2588,7 +2628,31 @@ class _ProfileV2 extends StatelessWidget {
         const SizedBox(height: 10),
         _WeeklyPodium(arabic: arabic, players: top),
         const SizedBox(height: 10),
-        _RankingCard(arabic: arabic, players: top),
+        _RankingCard(
+          arabic: arabic,
+          players: top,
+          openProfile: (uid) => _showPublicPlayerProfile(
+            context,
+            arabic: arabic,
+            uid: uid,
+          ),
+        ),
+        const SizedBox(height: 18),
+        _SectionRow(
+          title: arabic ? 'ملوك السرقة' : 'Theft kings',
+          action: stealRanking?.weekKey,
+        ),
+        const SizedBox(height: 10),
+        _RankingCard(
+          arabic: arabic,
+          players: stealTop,
+          stealFirst: true,
+          openProfile: (uid) => _showPublicPlayerProfile(
+            context,
+            arabic: arabic,
+            uid: uid,
+          ),
+        ),
         const SizedBox(height: 18),
         _SubscriptionCard(
           arabic: arabic,
@@ -4769,10 +4833,177 @@ class _SocialPrestigeStatsCard extends StatelessWidget {
       );
 }
 
+Future<void> _showPublicPlayerProfile(
+  BuildContext context, {
+  required bool arabic,
+  required String uid,
+}) =>
+    showDialog<void>(
+      context: context,
+      builder: (_) => _PublicPlayerProfileDialog(
+        arabic: arabic,
+        uid: uid,
+      ),
+    );
+
+class _PublicPlayerProfileDialog extends StatefulWidget {
+  const _PublicPlayerProfileDialog({
+    required this.arabic,
+    required this.uid,
+  });
+
+  final bool arabic;
+  final String uid;
+
+  @override
+  State<_PublicPlayerProfileDialog> createState() =>
+      _PublicPlayerProfileDialogState();
+}
+
+class _PublicPlayerProfileDialogState
+    extends State<_PublicPlayerProfileDialog> {
+  late Future<PublicPlayerProfileV2> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = ProfileFeaturesApiV2().loadPublicProfile(uid: widget.uid);
+  }
+
+  @override
+  Widget build(BuildContext context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 430),
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: _cardSurface,
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: FutureBuilder<PublicPlayerProfileV2>(
+            future: _future,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const SizedBox(
+                  height: 180,
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+              if (snapshot.hasError || snapshot.data == null) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.error_outline_rounded, color: _coral),
+                    const SizedBox(height: 10),
+                    Text(
+                      widget.arabic
+                          ? 'تعذر تحميل بروفايل اللاعب.'
+                          : 'Could not load player profile.',
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 12),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text(widget.arabic ? 'إغلاق' : 'Close'),
+                    ),
+                  ],
+                );
+              }
+
+              final p = snapshot.data!;
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      const CircleAvatar(
+                        radius: 26,
+                        backgroundColor: _softPurple,
+                        child: Icon(Icons.person_rounded, color: _purple),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              p.displayName,
+                              style: const TextStyle(
+                                color: _ink,
+                                fontSize: 19,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            if (p.currentTitleKey != null)
+                              Text(
+                                p.currentTitleKey!,
+                                style: const TextStyle(
+                                  color: _purple,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  _StatRow(
+                    label: widget.arabic ? 'إجمالي السرقات' : 'Total steals',
+                    value: '${p.totalSteals}',
+                  ),
+                  _StatRow(
+                    label: widget.arabic ? 'سرقات الأسبوع' : 'Weekly steals',
+                    value: '${p.weeklySteals}',
+                  ),
+                  _StatRow(
+                    label: widget.arabic ? 'فوز / خسارة / تعادل' : 'W / L / D',
+                    value:
+                        '${p.totalWins} / ${p.totalLosses} / ${p.totalDraws}',
+                  ),
+                  const Divider(height: 20),
+                  _StatRow(label: 'Legendary', value: '${p.legendaryCount}'),
+                  _StatRow(label: 'Gold', value: '${p.goldCount}'),
+                  _StatRow(label: 'Epic', value: '${p.epicCount}'),
+                  const Divider(height: 20),
+                  _StatRow(
+                    label: widget.arabic ? 'ميداليات المركز الأول' : '1st medals',
+                    value: '${p.firstPlaces}',
+                  ),
+                  _StatRow(
+                    label: widget.arabic ? 'ميداليات المركز الثاني' : '2nd medals',
+                    value: '${p.secondPlaces}',
+                  ),
+                  _StatRow(
+                    label: widget.arabic ? 'ميداليات المركز الثالث' : '3rd medals',
+                    value: '${p.thirdPlaces}',
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(widget.arabic ? 'إغلاق' : 'Close'),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      );
+
 class _RankingCard extends StatelessWidget {
-  const _RankingCard({required this.arabic, required this.players});
+  const _RankingCard({
+    required this.arabic,
+    required this.players,
+    this.stealFirst = false,
+    this.openProfile,
+  });
+
   final bool arabic;
   final List<WeeklyRankingPlayerV2> players;
+  final bool stealFirst;
+  final ValueChanged<String>? openProfile;
 
   @override
   Widget build(BuildContext context) {
@@ -4811,16 +5042,19 @@ class _RankingCard extends StatelessWidget {
                   : p.rank == 3
                       ? '🥉'
                       : '#${p.rank}';
-          return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-            margin: const EdgeInsets.only(bottom: 5),
-            decoration: BoxDecoration(
-              color: p.rank <= 3
-                  ? _gold.withValues(alpha: .08)
-                  : _page,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Row(
+          return InkWell(
+            onTap: openProfile == null ? null : () => openProfile!(p.uid),
+            borderRadius: BorderRadius.circular(14),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+              margin: const EdgeInsets.only(bottom: 5),
+              decoration: BoxDecoration(
+                color: p.rank <= 3
+                    ? _gold.withValues(alpha: .08)
+                    : _page,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Row(
               children: [
                 SizedBox(
                   width: 36,
@@ -4844,17 +5078,21 @@ class _RankingCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      '${p.weeklyPoints} ${arabic ? 'نقطة' : 'pts'}',
-                      style: const TextStyle(
-                        color: _purple,
+                      stealFirst
+                          ? '${p.weeklySteals} ${arabic ? 'سرقة' : 'steals'}'
+                          : '${p.weeklyPoints} ${arabic ? 'نقطة' : 'pts'}',
+                      style: TextStyle(
+                        color: stealFirst ? _coral : _purple,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${p.weeklySteals} ${arabic ? 'سرقة' : 'steals'}',
-                      style: const TextStyle(
-                        color: _coral,
+                      stealFirst
+                          ? '${p.weeklyPoints} ${arabic ? 'نقطة' : 'pts'}'
+                          : '${p.weeklySteals} ${arabic ? 'سرقة' : 'steals'}',
+                      style: TextStyle(
+                        color: stealFirst ? _purple : _coral,
                         fontSize: 10,
                         fontWeight: FontWeight.w900,
                       ),
@@ -4863,7 +5101,8 @@ class _RankingCard extends StatelessWidget {
                 ),
               ],
             ),
-          );
+          ),
+        );
         }).toList(growable: false),
       ),
     );
