@@ -71,9 +71,11 @@ function emptyProfileV2(nowMs = Date.now()) {
     weeklyWins: 0,
     weeklyLosses: 0,
     weeklyDraws: 0,
+    weeklySteals: 0,
     totalWins: 0,
     totalLosses: 0,
     totalDraws: 0,
+    totalSteals: 0,
     prestige: { first: 0, second: 0, third: 0 },
     subscriptionActive: false,
     subscriptionExpiresAt: null,
@@ -107,9 +109,11 @@ function normalizeProfileV2(input, nowMs = Date.now()) {
     weeklyWins: Math.max(0, Number(data.weeklyWins || 0) | 0),
     weeklyLosses: Math.max(0, Number(data.weeklyLosses || 0) | 0),
     weeklyDraws: Math.max(0, Number(data.weeklyDraws || 0) | 0),
+    weeklySteals: Math.max(0, Number(data.weeklySteals || 0) | 0),
     totalWins: Math.max(0, Number(data.totalWins || 0) | 0),
     totalLosses: Math.max(0, Number(data.totalLosses || 0) | 0),
     totalDraws: Math.max(0, Number(data.totalDraws || 0) | 0),
+    totalSteals: Math.max(0, Number(data.totalSteals || 0) | 0),
     prestige: normalizePrestige(data.prestige),
     subscriptionActive: active,
     subscriptionExpiresAt: data.subscriptionExpiresAt || null,
@@ -130,6 +134,7 @@ function ensureCurrentWeekV2(profile, nowMs = Date.now()) {
     weeklyWins: 0,
     weeklyLosses: 0,
     weeklyDraws: 0,
+    weeklySteals: 0,
   };
 }
 
